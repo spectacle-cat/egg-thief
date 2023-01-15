@@ -1,7 +1,10 @@
 require 'app/player.rb'
+require 'app/tile_board.rb'
 
 def tick args
   args.outputs.solids << background(args)
+
+  TileBoard.tick(args)
 
   Player.tick(args)
 end

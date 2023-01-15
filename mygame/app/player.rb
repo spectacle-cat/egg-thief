@@ -1,7 +1,7 @@
 module Player
   extend self
 
-  SPEED = 4
+  SPEED = 8
 
   def tick args
     args.state.player.x ||= 100
@@ -129,7 +129,7 @@ module Player
   def standing_sprite args
     player_sprite(args)
   end
-
+  
   def player_sprite args, index: 0
     {
       x: args.state.player.x,
