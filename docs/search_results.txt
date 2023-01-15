@@ -1,0 +1,8 @@
+** How To Render A Sprite Using An Array
+** More Sprite Properties As An Array
+** Different Sprite Representations
+* DOCS: ~GTK::Outputs#sprites~ [[GTK::Outputs.docs_sprites]]
+** Rendering a sprite using an Array
+** Rendering a sprite using an Array with colors and alpha
+** Rendering a sprite using a Hash
+** Rendering a solid using a Class
