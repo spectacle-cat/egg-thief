@@ -52,17 +52,6 @@ module Player
     args.outputs.labels << [30, 700, "Use arrow keys to move around."]
   end
 
-  def standing_sprite args
-    {
-      x: args.state.player.x,
-      y: args.state.player.y,
-      w: args.state.player.w,
-      h: args.state.player.h,
-      path: "sprites/Lizzie_100x100.png",
-      angle: facing_angle(args),
-    }
-  end
-
   def set_player_input(args)
       # get the keyboard input and set player properties
     if args.inputs.keyboard.right
@@ -137,7 +126,31 @@ module Player
     args.state.player.last_angle = new_angle
   end
 
+  def standing_sprite args
+    player_sprite(args)
+  end
+
+  def player_sprite args, index: 0
+    {
+      x: args.state.player.x,
+      y: args.state.player.y,
+      w: args.state.player.w,
+      h: args.state.player.h,
+      path: "sprites/Lizzie_100x100_#{index}.png",
+      angle: facing_angle(args),
+    }
+  end
+
   def running_sprite args
-    standing_sprite(args)
+    number_of_sprites = 2
+    number_of_frames_to_show_each_sprite = 10
+    does_sprite_loop = true
+    start_looping_at = 0
+
+    sprite_index = start_looping_at.frame_index number_of_sprites,
+                                              number_of_frames_to_show_each_sprite,
+                                              does_sprite_loop
+
+    args.outputs.sprites << player_sprite(args, index: sprite_index)
   end
 end
