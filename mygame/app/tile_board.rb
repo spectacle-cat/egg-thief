@@ -40,7 +40,7 @@ module TileBoard
         }
 
         if index_counter % 5 == 0
-          args.state.cover << { x: x, y: y }
+          args.state.cover << { x: x, y: y, index: [1, 2, 3].sample }
         end
 
         if index_counter % 8 == 0 &&
@@ -58,7 +58,7 @@ module TileBoard
 
   def render_cover(args)
     args.outputs.sprites << args.state.cover.map do |cover|
-      shrub_sprite(x: cover[:x], y: cover[:y])
+      shrub_sprite(x: cover[:x], y: cover[:y], index: cover[:index])
     end
   end
 
@@ -78,13 +78,15 @@ module TileBoard
     }
   end
 
-  def shrub_sprite(x:, y: )
+  def shrub_sprite(x:, y: , index: [1, 2, 3].sample)
+    expand_by = 50
+
     {
-      x: x,
-      y: y,
-      w: 98,
-      h: 98,
-      path: "sprites/tufft2.png",
+      x: x - (expand_by / 2),
+      y: y - (expand_by / 2),
+      w: 100 + expand_by,
+      h: 100 + expand_by,
+      path: "sprites/tuft_#{index}.png",
     }
   end
 
