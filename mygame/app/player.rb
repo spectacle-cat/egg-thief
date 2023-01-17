@@ -136,7 +136,7 @@ module Player
       y: args.state.player.y,
       w: args.state.player.w,
       h: args.state.player.h,
-      path: "sprites/Lizzie_100x100_#{index}.png",
+      path: "sprites/Lizzie_1000x1000_#{index}.png",
       angle: facing_angle(args),
     }
   end
