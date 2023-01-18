@@ -11,15 +11,15 @@ def tick args
   Player.tick(args)
   TileBoard.render_cover(args)
 
-  args.outputs.debug << [30, 700, "Player y: #{args.state.player.y}, x: #{args.state.player.x}"].label
-  args.outputs.debug << [30, 675,
-  "Collider\
-  y: #{args.state.player_collider[:y]},\
-  x: #{args.state.player_collider[:x]},\
-  h: #{args.state.player_collider[:h]},\
-  w: #{args.state.player_collider[:w]}\
-  floor: #{args.state.target_floor}\
-  empty: #{args.state.target_empty}", :white].label
+  # args.outputs.debug << [30, 700, "Player y: #{args.state.player.y}, x: #{args.state.player.x}"].label
+  # args.outputs.debug << [30, 675,
+  # "Collider\
+  # y: #{args.state.player_collider[:y]},\
+  # x: #{args.state.player_collider[:x]},\
+  # h: #{args.state.player_collider[:h]},\
+  # w: #{args.state.player_collider[:w]}\
+  # floor: #{args.state.target_floor}\
+  # empty: #{args.state.target_empty}", :white].label
 end
 
 def background(args)

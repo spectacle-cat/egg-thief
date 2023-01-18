@@ -44,15 +44,9 @@ module TileBoard
         x = (col * 100) + 40
 
         tile_data = args.state.level_data[row][col]
-        tile_type =
-          case tile_data
-          when 'X' then :empty
-          else
-            :floor
-          end
 
-        tile_data = {
-          type: tile_type,
+        tile = {
+          type: tile_data == 'X' ? :empty : :floor,
           column: col,
           row: row,
           index: index_counter,
@@ -62,14 +56,17 @@ module TileBoard
           h: TILE_SIZE
         }
 
-        args.state.empty_tiles << tile_data if tile_type == :empty
-        args.state.tiles << tile_data if tile_type == :floor
+        if tile_data == 'X'
+          args.state.empty_tiles << tile
+        else
+          args.state.tiles << tile
+        end
 
-        if tile_type == 'C'
+        if tile_data == 'C'
           args.state.cover << { x: x, y: y, index: [1, 2, 3].sample }
         end
 
-        if tile_type == 'E'
+        if tile_data == 'E'
           args.state.nests << { x: x, y: y }
         end
       end

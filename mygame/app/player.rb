@@ -72,9 +72,6 @@ module Player
       target_y -= speed
     end
 
-    puts "from #{args.state.player.x} to #{target_x}\
-     : from #{args.state.player.y} to #{target_y}"
-
     return if args.state.player.x == target_x &&
       args.state.player.y == target_y
 
