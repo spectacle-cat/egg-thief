@@ -77,7 +77,7 @@ module TileBoard
   end
 
   def can_walk_to(args, x:, y:)
-    player_rect = {
+    target_player_rect = {
       x: x,
       y: y,
       w: args.state.player.w,
@@ -86,9 +86,23 @@ module TileBoard
     args.state.player_collider = player_collider = {
       w: 50,
       h: 50,
-    }.center_inside_rect(player_rect)
+    }.center_inside_rect(target_player_rect)
 
-    !args.state.empty_tiles.any_intersect_rect?(player_collider)
+    !args.state.empty_tiles.any_intersect_rect?(player_collider) and !outside_of_board?(args, player_collider)
+  end
+
+  def outside_of_board?(args, player_collider)
+    if player_collider.x > (1280 - 90)
+      true
+    elsif player_collider.x < 35
+      true
+    elsif player_collider.y > (720 - 60)
+      true
+    elsif player_collider.y < 10
+      true
+    else
+      false
+    end
   end
 
   def render_tiles(args)
