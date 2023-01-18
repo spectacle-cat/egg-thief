@@ -4,7 +4,8 @@ module TileBoard
   ROWS = 7
   COLUMNS = 12
 
-  def setup(args)
+  def setup(args, level:)
+    args.state.level = level
     args.state.board ||= {
       rows: ROWS,
       columns: COLUMNS,
@@ -16,7 +17,15 @@ module TileBoard
     args.state.nests ||= []
     args.state.cover ||= []
 
+    load_level(args, level)
     build_tiles(args)
+  end
+
+  def load_level(args, level)
+    data = args.gtk.read_file("data/levels/level_#{level}.txt")
+    rows = data.split
+
+    args.state.level_data = rows.map { |row| row.chars }
   end
 
   def build_tiles(args)
@@ -30,6 +39,10 @@ module TileBoard
         y = (row * 100) + 10
         x = (col * 100) + 40
 
+        tile_type = args.state.level_data[row][col]
+        puts tile_type
+        next if tile_type == 'X'
+
         args.state.tiles << {
           type: :floor,
           column: col,
@@ -39,11 +52,11 @@ module TileBoard
           x: x,
         }
 
-        if index_counter % 5 == 0
+        if tile_type == 'C'
           args.state.cover << { x: x, y: y, index: [1, 2, 3].sample }
         end
 
-        if index_counter % 8 == 0 &&
+        if tile_type == 'E'
           args.state.nests << { x: x, y: y }
         end
       end

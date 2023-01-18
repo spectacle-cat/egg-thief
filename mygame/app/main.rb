@@ -4,7 +4,7 @@ require 'app/tile_board.rb'
 def tick args
   args.outputs.solids << background(args)
 
-  TileBoard.setup(args) if args.tick_count == 0
+  TileBoard.setup(args, level: 1) if args.tick_count == 0
 
   TileBoard.render_tiles(args)
   TileBoard.render_nests(args)
