@@ -4,14 +4,13 @@ module Player
   SPEED = 8
 
   def tick args
-    args.state.player.x ||= 100
-    args.state.player.y ||= 100
-    args.state.player.w ||= 100
-    args.state.player.h ||= 100
+    args.state.player.x ||= 200
+    args.state.player.y ||= 200
+    args.state.player.w ||= 35
+    args.state.player.h ||= 95
     args.state.player.lr ||= :none
     args.state.player.ud ||= :none
-    args.state.player.last_angle || 0
-
+    args.state.player.last_angle ||= 0
     args.state.player.is_moving = false
 
     set_player_input(args)
@@ -26,30 +25,12 @@ module Player
       args.state.player.started_running_at = nil
     end
 
-    # wrap player around the stage
-    if args.state.player.x > 1280
-      args.state.player.x = -64
-      args.state.player.started_running_at ||= args.state.tick_count
-    elsif args.state.player.x < -64
-      args.state.player.x = 1280
-      args.state.player.started_running_at ||= args.state.tick_count
-    end
-
-    if args.state.player.y > 720
-      args.state.player.y = -64
-      args.state.player.started_running_at ||= args.state.tick_count
-    elsif args.state.player.y < -64
-      args.state.player.y = 720
-      args.state.player.started_running_at ||= args.state.tick_count
-    end
-
     # render player as standing or running
     if args.state.player.started_running_at
       args.outputs.sprites << running_sprite(args)
     else
       args.outputs.sprites << standing_sprite(args)
     end
-    args.outputs.labels << [30, 700, "Use arrow keys to move around."]
   end
 
   def set_player_input(args)
@@ -76,16 +57,30 @@ module Player
     ud = args.state.player.ud
     speed = normalized_speed(args)
 
+    target_x = args.state.player.x
+    target_y = args.state.player.y
+
     if lr == :left
-      args.state.player.x -= speed
+      target_x -= speed
     elsif lr == :right
-      args.state.player.x += speed
+      target_x += speed
     end
 
     if ud == :up
-      args.state.player.y += speed
+      target_y += speed
     elsif ud == :down
-      args.state.player.y -= speed
+      target_y -= speed
+    end
+
+    puts "from #{args.state.player.x} to #{target_x}\
+     : from #{args.state.player.y} to #{target_y}"
+
+    return if args.state.player.x == target_x &&
+      args.state.player.y == target_y
+
+    if TileBoard.can_walk_to(args, x: target_x, y: target_y)
+      args.state.player.x = target_x
+      args.state.player.y = target_y
     end
   end
 
@@ -129,14 +124,14 @@ module Player
   def standing_sprite args
     player_sprite(args)
   end
-  
+
   def player_sprite args, index: 0
     {
       x: args.state.player.x,
       y: args.state.player.y,
       w: args.state.player.w,
       h: args.state.player.h,
-      path: "sprites/Lizzie_1000x1000_#{index}.png",
+      path: "sprites/Lizzie_350x_950_#{index}.png",
       angle: facing_angle(args),
     }
   end

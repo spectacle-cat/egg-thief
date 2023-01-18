@@ -2,18 +2,22 @@ module TileBoard
   extend self
 
   ROWS = 7
+  ROW_GUTTER = 10
   COLUMNS = 12
+  COLUMN_GUTTER = 20
+  TILE_SIZE = 100
 
   def setup(args, level:)
     args.state.level = level
     args.state.board ||= {
       rows: ROWS,
       columns: COLUMNS,
-      tile_size: 100,
-      column_gutter: 20,
-      row_gutter: 10,
+      tile_size: TILE_SIZE,
+      column_gutter: COLUMN_GUTTER,
+      row_gutter: ROW_GUTTER,
     }
     args.state.tiles ||= []
+    args.state.empty_tiles ||= []
     args.state.nests ||= []
     args.state.cover ||= []
 
@@ -39,18 +43,27 @@ module TileBoard
         y = (row * 100) + 10
         x = (col * 100) + 40
 
-        tile_type = args.state.level_data[row][col]
-        puts tile_type
-        next if tile_type == 'X'
+        tile_data = args.state.level_data[row][col]
+        tile_type =
+          case tile_data
+          when 'X' then :empty
+          else
+            :floor
+          end
 
-        args.state.tiles << {
-          type: :floor,
+        tile_data = {
+          type: tile_type,
           column: col,
           row: row,
           index: index_counter,
           y: y,
           x: x,
+          w: TILE_SIZE,
+          h: TILE_SIZE
         }
+
+        args.state.empty_tiles << tile_data if tile_type == :empty
+        args.state.tiles << tile_data if tile_type == :floor
 
         if tile_type == 'C'
           args.state.cover << { x: x, y: y, index: [1, 2, 3].sample }
@@ -61,6 +74,21 @@ module TileBoard
         end
       end
     end
+  end
+
+  def can_walk_to(args, x:, y:)
+    player_rect = {
+      x: x,
+      y: y,
+      w: args.state.player.w,
+      h: args.state.player.h,
+    }
+    args.state.player_collider = player_collider = {
+      w: 50,
+      h: 50,
+    }.center_inside_rect(player_rect)
+
+    !args.state.empty_tiles.any_intersect_rect?(player_collider)
   end
 
   def render_tiles(args)
