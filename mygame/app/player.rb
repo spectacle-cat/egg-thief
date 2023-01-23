@@ -4,10 +4,14 @@ module Player
   SPEED = 8
 
   def tick args
-    args.state.player.x ||= 200
-    args.state.player.y ||= 200
     args.state.player.w ||= 35
     args.state.player.h ||= 95
+
+    args.state.player.x ||= args.state.player.start_point.x + (
+      (TileBoard::TILE_SIZE - args.state.player.w) / 2
+    )
+    args.state.player.y ||= args.state.player.start_point.y
+
     args.state.player.lr ||= :none
     args.state.player.ud ||= :none
     args.state.player.last_angle ||= 0
