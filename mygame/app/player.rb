@@ -15,6 +15,7 @@ module Player
 
     set_player_input(args)
     move_player(args)
+    check_collisions(args)
 
     if normalized_speed(args) > 0
       args.state.player.started_running_at ||= args.state.tick_count
@@ -80,6 +81,34 @@ module Player
       args.state.player.y = target_y
     end
   end
+
+  def check_collisions(args)
+    player_collider = player_collision_box(args)
+
+    args.state.nests.delete_if do |nest|
+      hit = nest[:collision_box].intersect_rect?(player_collider)
+
+      args.state.collected_nests << nest if hit
+
+      hit
+    end
+  end
+
+  def player_collision_box(args)
+      target_player_rect = {
+      x: args.state.player.x,
+      y: args.state.player.y,
+      w: args.state.player.w,
+      h: args.state.player.h,
+    }
+    args.state.player_collider = player_collider = {
+      w: 50,
+      h: 50,
+    }.center_inside_rect(target_player_rect)
+
+    player_collider
+  end
+
 
   def normalized_speed(args)
     lr = args.state.player.lr
