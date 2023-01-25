@@ -7,8 +7,7 @@ module TileBoard
   COLUMN_GUTTER = 20
   TILE_SIZE = 100
 
-  def setup(args, level:)
-    args.state.level = level
+  def setup(args)
     args.state.board ||= {
       rows: ROWS,
       columns: COLUMNS,
@@ -21,15 +20,15 @@ module TileBoard
     args.state.nests ||= []
     args.state.cover ||= []
 
-    load_level(args, level)
     build_tiles(args)
   end
 
-  def load_level(args, level)
-    data = args.gtk.read_file("data/levels/level_#{level}.txt")
-    rows = data.split
-
-    args.state.level_data = rows.map { |row| row.chars }
+  def reset(args)
+    args.state.board = nil
+    args.state.tiles = []
+    args.state.empty_tiles = []
+    args.state.nests = []
+    args.state.cover = []
   end
 
   def build_tiles(args)
@@ -121,6 +120,15 @@ module TileBoard
     args.outputs.sprites << args.state.tiles.map do |tile|
       tile_sprite(x: tile[:x], y: tile[:y])
     end
+
+  end
+
+  def render_finish(args)
+    fp = args.state.player.finish_point
+    args.state.interactables.finish_rect = finish_border =
+      [fp.x, fp.y, TILE_SIZE, TILE_SIZE, 255, 255, 255, 150 ]
+    args.outputs.primitives << finish_border.solid
+    args.outputs.labels << [fp.x + 30, fp.y + 20, "EXIT"]
   end
 
   def render_cover(args)

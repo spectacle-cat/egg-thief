@@ -3,6 +3,10 @@ module Player
 
   SPEED = 8
 
+  def reset(args)
+    args.state.player = nil
+  end
+
   def tick args
     args.state.player.w ||= 35
     args.state.player.h ||= 95
@@ -95,6 +99,10 @@ module Player
       args.state.collected_nests << nest if hit
 
       hit
+    end
+
+    if args.state.interactables.finish_rect.intersect_rect?(player_collider)
+      args.state.exit_level = true
     end
   end
 
