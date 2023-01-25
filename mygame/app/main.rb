@@ -6,21 +6,52 @@ def tick args
   args.state.collected_nests ||= []
   args.state.level ||= 1
   args.state.exit_level ||= false
+  args.state.scene ||= :level
 
-  if args.state.exit_level
-    if last_level?(args)
-      render_game_complete(args)
-    else
-      setup_next_level(args)
-    end
+  case args.state.scene
+  when :level
+    level_scene(args)
+  when :game_completed
+    game_completed_scene(args)
+  when :game_over
+    # game_over_scene
   else
-    if args.tick_count == 0
-      load_level(args)
-      TileBoard.setup(args)
-    end
+    raise "UNKNOWN SCENE STATE: #{args.state.scene}"
+  end
 
-    render_level(args)
-    show_score(args)
+  args.outputs.debug << args.gtk.framerate_diagnostics_primitives
+end
+
+def game_completed_scene(args)
+  render_game_complete(args)
+
+  if args.inputs.keyboard.space
+    args.state.level = 1
+    args.state.scene = :level
+    reset_score(args)
+    setup_level(args)
+  end
+end
+
+def level_scene(args)
+  return transition_to_next_level(args) if args.state.exit_level
+
+  if args.tick_count == 0
+    load_level(args)
+    TileBoard.setup(args)
+  end
+
+  render_level(args)
+  show_score(args)
+end
+
+def transition_to_next_level(args)
+  if last_level?(args)
+    args.state.scene = :game_completed
+    args.state.exit_level = false
+  else
+    args.state.level += 1
+    setup_level(args)
   end
 end
 
@@ -52,15 +83,17 @@ def load_level(args)
   args.state.level_data = rows.reverse.map { |row| row.chars }
 end
 
-def setup_next_level(args)
-  args.state.level += 1
-
+def setup_level(args)
   Player.reset(args)
   TileBoard.reset(args)
   load_level(args)
   TileBoard.setup(args)
 
   args.state.exit_level = false
+end
+
+def reset_score(args)
+  args.state.collected_nests = []
 end
 
 def render_game_complete(args)

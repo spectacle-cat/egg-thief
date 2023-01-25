@@ -75,13 +75,11 @@ module TileBoard
         if tile_data == 'S'
           args.state.player.start_point.x = x
           args.state.player.start_point.y = y
-          puts "start!"
         end
 
         if tile_data == 'F'
           args.state.player.finish_point.x = x
           args.state.player.finish_point.y = y
-          puts "finish!"
         end
       end
     end
