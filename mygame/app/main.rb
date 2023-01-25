@@ -97,33 +97,35 @@ def reset_score(args)
 end
 
 def render_game_complete(args)
-  args.outputs.labels << [
+  labels = []
+  labels << [
     x: args.grid.left.shift_right(720 - 275),
     y: args.grid.top.shift_down(200),
     text: "CONGRATULATIONS!",
     size_enum: 20,
   ]
 
-  args.outputs.labels << [
+  labels << [
     x: args.grid.left.shift_right(720 - 270),
     y: args.grid.top.shift_down(350),
     text: "You've completed the Game!",
     size_enum: 10,
   ]
 
-  args.outputs.labels << [
+  labels << [
     x: args.grid.left.shift_right(720 - 270),
     y: args.grid.top.shift_down(400),
     text: "Eggs #{args.state.collected_nests.count} / 100",
     size_enum: 5,
   ]
 
-  args.outputs.labels << [
+  labels << [
     x: args.grid.left.shift_right(720 - 270),
     y: args.grid.top.shift_down(500),
     text: "Press SPACE to restart",
     size_enum: 5,
   ]
+  args.outputs.labels << labels
 end
 
 def show_score(args)
