@@ -16,6 +16,9 @@ module Player
     )
     args.state.player.y ||= args.state.player.start_point.y
 
+    raise "no X starting position" unless args.state.player.x
+    raise "no Y starting position" unless args.state.player.y
+
     args.state.player.lr ||= :none
     args.state.player.ud ||= :none
     args.state.player.last_angle ||= 0
@@ -40,6 +43,8 @@ module Player
     else
       args.outputs.sprites << standing_sprite(args)
     end
+
+    args.outputs.debug << args.state.player_collider.border
   end
 
   def set_player_input(args)
@@ -96,7 +101,10 @@ module Player
     args.state.nests.delete_if do |nest|
       hit = nest[:collision_box].intersect_rect?(player_collider)
 
-      args.state.collected_nests << nest if hit
+      if hit
+        args.state.collected_nests << nest
+        args.state.empty_nests << nest
+      end
 
       hit
     end
@@ -106,18 +114,57 @@ module Player
     end
   end
 
-  def player_collision_box(args)
-      target_player_rect = {
-      x: args.state.player.x,
-      y: args.state.player.y,
+  def player_collision_box(args, x: :unset, y: :unset)
+    length = 85
+    target_player_rect = {
+      x: x == :unset ? args.state.player.x : x,
+      y: y == :unset ? args.state.player.y : y,
       w: args.state.player.w,
       h: args.state.player.h,
     }
-    args.state.player_collider = player_collider = {
-      w: 50,
-      h: 50,
-    }.center_inside_rect(target_player_rect)
+    lr = args.state.player.lr
+    ud = args.state.player.ud
 
+    player_collider =
+      if [:left, :right].include?(lr) && [:up, :down].include?(ud)
+        { w: length / 2, h: length / 2, }
+      elsif lr == :right || lr == :left
+        { w: length * 0.75, h: length / 2, }
+      else
+        { w: length / 2, h: length * 0.75, }
+      end
+
+    player_collider =
+      player_collider.center_inside_rect(target_player_rect)
+
+    offset = length / 5
+    diagonal_offset = offset / 2
+
+    if lr == :left && ud == :none
+      player_collider[:x] -= offset
+    elsif lr == :left && ud == :up
+      player_collider[:x] -= diagonal_offset
+      player_collider[:y] += offset
+    elsif lr == :left && ud == :down
+      player_collider[:x] -= diagonal_offset
+      player_collider[:y] -= offset
+    elsif lr == :right && ud == :none
+      player_collider[:x] += offset
+    elsif lr == :right && ud == :up
+      player_collider[:x] += diagonal_offset
+      player_collider[:y] += offset
+    elsif lr == :right && ud == :down
+      player_collider[:x] += diagonal_offset
+      player_collider[:y] -= offset
+    elsif lr == :none && ud == :none
+      player_collider
+    elsif lr == :none && ud == :up
+      player_collider[:y] += offset
+    elsif lr == :none && ud == :down
+      player_collider[:y] -= offset
+    end
+
+    args.state.player_collider = player_collider
     player_collider
   end
 

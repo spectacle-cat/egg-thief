@@ -16,7 +16,7 @@ module TileBoard
       row_gutter: ROW_GUTTER,
     }
     args.state.tiles ||= []
-    args.state.empty_tiles ||= []
+    args.state.empty_nests ||= []
     args.state.nests ||= []
     args.state.cover ||= []
     args.state.boulders ||= []
@@ -28,6 +28,8 @@ module TileBoard
     args.state.board = nil
     args.state.tiles = []
     args.state.empty_tiles = []
+    args.state.empty_nests = []
+    args.state.boulders = []
     args.state.nests = []
     args.state.cover = []
   end
@@ -63,7 +65,7 @@ module TileBoard
         end
 
         if tile_data == 'B'
-          args.state.boulders << { x: x, y: y }
+          args.state.boulders << { x: x, y: y, w: 100, h: 100 }
         end
 
         if tile_data == 'E'
@@ -88,18 +90,9 @@ module TileBoard
   end
 
   def can_walk_to(args, x:, y:)
-    target_player_rect = {
-      x: x,
-      y: y,
-      w: args.state.player.w,
-      h: args.state.player.h,
-    }
-    args.state.player_collider = player_collider = {
-      w: 50,
-      h: 50,
-    }.center_inside_rect(target_player_rect)
+    player_collider = Player.player_collision_box(args, x: x, y: y)
 
-    !args.state.empty_tiles.any_intersect_rect?(player_collider) and !outside_of_board?(args, player_collider)
+    !args.state.boulders.any_intersect_rect?(player_collider) and !outside_of_board?(args, player_collider)
   end
 
   def outside_of_board?(args, player_collider)
@@ -151,6 +144,10 @@ module TileBoard
       nest_sprite(x: nest[:x], y: nest[:y])
     end
 
+    sprites << args.state.empty_nests.map do |nest|
+      nest_sprite(x: nest[:x], y: nest[:y], empty: true)
+    end
+
     args.outputs.sprites << sprites
   end
 
@@ -186,13 +183,13 @@ module TileBoard
     }
   end
 
-  def nest_sprite(x:, y: )
+  def nest_sprite(x:, y:, empty: false )
     {
       x: x,
       y: y,
-      w: 98,
-      h: 98,
-      path: "sprites/nest.png",
+      w: 100,
+      h: 100,
+      path: "sprites/nest#{'_empty' if empty}.png",
     }
   end
 end
