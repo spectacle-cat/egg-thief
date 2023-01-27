@@ -19,6 +19,7 @@ module TileBoard
     args.state.empty_tiles ||= []
     args.state.nests ||= []
     args.state.cover ||= []
+    args.state.boulders ||= []
 
     build_tiles(args)
   end
@@ -45,7 +46,7 @@ module TileBoard
         tile_data = args.state.level_data[row][col]
 
         tile = {
-          type: tile_data == 'X' ? :empty : :floor,
+          type: :floor,
           column: col,
           row: row,
           index: index_counter,
@@ -55,14 +56,14 @@ module TileBoard
           h: TILE_SIZE
         }
 
-        if tile_data == 'X'
-          args.state.empty_tiles << tile
-        else
-          args.state.tiles << tile
-        end
+        args.state.tiles << tile
 
         if tile_data == 'C'
           args.state.cover << { x: x, y: y, index: [1, 2, 3].sample }
+        end
+
+        if tile_data == 'B'
+          args.state.boulders << { x: x, y: y }
         end
 
         if tile_data == 'E'
@@ -119,7 +120,6 @@ module TileBoard
     args.outputs.sprites << args.state.tiles.map do |tile|
       tile_sprite(x: tile[:x], y: tile[:y])
     end
-
   end
 
   def render_finish(args)
@@ -130,16 +130,28 @@ module TileBoard
     args.outputs.labels << [fp.x + 30, fp.y + 20, "EXIT"]
   end
 
-  def render_cover(args)
-    args.outputs.sprites << args.state.cover.map do |cover|
+  def render_obstacles(args)
+    sprites = []
+
+    sprites << args.state.cover.map do |cover|
       shrub_sprite(x: cover[:x], y: cover[:y], index: cover[:index])
     end
+
+    sprites << args.state.boulders.map do |sprite|
+      boulder_sprite(x: sprite[:x], y: sprite[:y])
+    end
+
+    args.outputs.sprites << sprites
   end
 
   def render_nests(args)
-    args.outputs.sprites << args.state.nests.map do |nest|
+    sprites = []
+
+    sprites << args.state.nests.map do |nest|
       nest_sprite(x: nest[:x], y: nest[:y])
     end
+
+    args.outputs.sprites << sprites
   end
 
   def tile_sprite(x:, y: )
@@ -161,6 +173,16 @@ module TileBoard
       w: 100 + expand_by,
       h: 100 + expand_by,
       path: "sprites/tuft_#{index}.png",
+    }
+  end
+
+  def boulder_sprite(x:, y: )
+    {
+      x: x,
+      y: y,
+      w: 100,
+      h: 100,
+      path: "sprites/boulder.png",
     }
   end
 

@@ -56,10 +56,6 @@ def continue_fade_in(args)
   percentage_delta = (tick_duration / 100) * tick_delta
   alpha_delta = (255 / 100) * percentage_delta
   alpha = 255 - alpha_delta
-  puts "tick_delta #{tick_delta}"
-  puts "% delta #{percentage_delta}"
-  puts "a delta: #{alpha_delta}"
-  puts "a: #{alpha}"
 
   if alpha > 0
     args.outputs.primitives << {
@@ -94,7 +90,7 @@ def render_level(args)
   TileBoard.render_finish(args)
   TileBoard.render_nests(args)
   Player.tick(args)
-  TileBoard.render_cover(args)
+  TileBoard.render_obstacles(args)
 end
 
 def last_level?(args)
