@@ -70,6 +70,7 @@ module TileBoard
             x: x, y: y,
             collision_box: { x: x + 25, y: y + 25, w: 25, h: 25 }
           }
+          args.state.total_nests += 1
         end
 
         if tile_data == 'S'
@@ -147,7 +148,7 @@ module TileBoard
       y: y,
       w: 98,
       h: 98,
-      path: "sprites/floortile_large.png",
+      path: "sprites/tile_floor.png",
     }
   end
 

@@ -4,9 +4,12 @@ require 'app/tile_board.rb'
 def tick args
   args.outputs.solids << background(args)
   args.state.collected_nests ||= []
+  args.state.total_nests ||= 0
   args.state.level ||= 1
   args.state.exit_level ||= false
   args.state.scene ||= :level
+  args.state.fade_in_started_at ||= nil
+  args.state.fade_out_started_at ||= nil
 
   case args.state.scene
   when :level
@@ -39,13 +42,44 @@ def level_scene(args)
   if args.tick_count == 0
     load_level(args)
     TileBoard.setup(args)
+    args.state.fade_in_started_at = args.state.tick_count
   end
 
   render_level(args)
   show_score(args)
+  continue_fade_in(args) if args.state.fade_in_started_at
+end
+
+def continue_fade_in(args)
+  tick_duration = 60
+  tick_delta = args.state.tick_count - args.state.fade_in_started_at
+  percentage_delta = (tick_duration / 100) * tick_delta
+  alpha_delta = (255 / 100) * percentage_delta
+  alpha = 255 - alpha_delta
+  puts "tick_delta #{tick_delta}"
+  puts "% delta #{percentage_delta}"
+  puts "a delta: #{alpha_delta}"
+  puts "a: #{alpha}"
+
+  if alpha > 0
+    args.outputs.primitives << {
+      x: args.grid.x,
+      y: args.grid.y,
+      w: args.grid.w,
+      h: args.grid.h,
+      r: 0,
+      g: 0,
+      b: 0,
+      a: alpha
+    }.solid!
+  end
+
+  args.state.fading_in_started_at = nil if tick_delta >= tick_duration
 end
 
 def transition_to_next_level(args)
+  args.state.fade_in_started_at = args.state.tick_count
+
   if last_level?(args)
     args.state.scene = :game_completed
     args.state.exit_level = false
@@ -94,6 +128,7 @@ end
 
 def reset_score(args)
   args.state.collected_nests = []
+  args.state.total_nests = 0
 end
 
 def render_game_complete(args)
@@ -115,7 +150,7 @@ def render_game_complete(args)
   labels << [
     x: args.grid.left.shift_right(720 - 270),
     y: args.grid.top.shift_down(400),
-    text: "Eggs #{args.state.collected_nests.count} / 100",
+    text: "Eggs #{args.state.collected_nests.count} / #{args.state.total_nests}",
     size_enum: 5,
   ]
 
