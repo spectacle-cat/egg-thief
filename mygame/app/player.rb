@@ -44,7 +44,7 @@ module Player
       args.outputs.sprites << standing_sprite(args)
     end
 
-    args.outputs.debug << args.state.player_collider.border
+    # args.outputs.debug << args.state.player_collider.border
   end
 
   def set_player_input(args)
@@ -111,6 +111,30 @@ module Player
 
     if args.state.interactables.finish_rect.intersect_rect?(player_collider)
       args.state.exit_level = true
+    end
+
+    args.state.scorpions.each do |scorpion|
+      up = { x: scorpion[:x], y: scorpion[:y] + 100, direction: :up }
+      down = { x: scorpion[:x], y: scorpion[:y] - 100, direction: :down }
+      right = { x: scorpion[:x] + TileBoard::TILE_SIZE, y: scorpion[:y], direction: :right }
+      left = { x: scorpion[:x] - TileBoard::TILE_SIZE, y: scorpion[:y], direction: :left }
+
+      tile_candidates = [up, down, right, left].map do |tile|
+        tile = tile.merge({w: TileBoard::TILE_SIZE, h: TileBoard::TILE_SIZE})
+puts "tile: #{tile.inspect}"
+        tile
+      end
+
+      tiles_hit = tile_candidates.select do |tile|
+        tile.intersect_rect?(player_collider)
+      end.each do |tile|
+        # args.outputs.debug << [tile[:x], tile[:y], 100, 100, 255].border
+
+        unless Scorpion.animating?(args, scorpion)
+          scorpion[:attack_started_at] = args.tick_count
+          scorpion[:attack_direction] = tile[:direction]
+        end
+      end
     end
   end
 

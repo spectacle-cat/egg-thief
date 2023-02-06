@@ -1,3 +1,5 @@
+require 'app/scorpion.rb'
+
 module TileBoard
   extend self
 
@@ -20,6 +22,7 @@ module TileBoard
     args.state.nests ||= []
     args.state.cover ||= []
     args.state.boulders ||= []
+    args.state.scorpions ||= []
 
     build_tiles(args)
   end
@@ -30,6 +33,7 @@ module TileBoard
     args.state.empty_tiles = []
     args.state.empty_nests = []
     args.state.boulders = []
+    args.state.scorpions = []
     args.state.nests = []
     args.state.cover = []
   end
@@ -64,8 +68,12 @@ module TileBoard
           args.state.cover << { x: x, y: y, index: [1, 2, 3].sample }
         end
 
-        if tile_data == 'B'
+        if tile_data == 'B' || tile_data == 'b'
           args.state.boulders << { x: x, y: y, w: 100, h: 100 }
+        end
+
+        if tile_data == 'b'
+          args.state.scorpions << { x: x, y: y, w: 100, h: 100 }
         end
 
         if tile_data == 'E'
@@ -130,9 +138,15 @@ module TileBoard
       shrub_sprite(x: cover[:x], y: cover[:y], index: cover[:index])
     end
 
+    sprites << args.state.scorpions.map do |sprite|
+      scorpion = Scorpion.sprite(x: sprite[:x], y: sprite[:y], attack_direction: sprite[:attack_direction])
+      Scorpion.animate(args: args, scorpion: scorpion, attack_started_at: sprite[:attack_started_at], attack_direction: sprite[:attack_direction])
+    end
+
     sprites << args.state.boulders.map do |sprite|
       boulder_sprite(x: sprite[:x], y: sprite[:y])
     end
+
 
     args.outputs.sprites << sprites
   end
