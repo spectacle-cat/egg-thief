@@ -7,7 +7,7 @@ module TileBoard
   ROWS = 7
   ROW_GUTTER = 10
   COLUMNS = 12
-  COLUMN_GUTTER = 20
+  COLUMN_GUTTER = 5
   TILE_SIZE = 100
 
   def setup(args)
@@ -50,8 +50,9 @@ module TileBoard
       0.upto(args.state.board[:columns] - 1).each do |col|
         index_counter += 1
 
-        y = (row * 100) + 10
-        x = (col * 100) + 40
+        y = (row * 100) + ROW_GUTTER
+        # x = (col * 100) + 40
+        x = (col * 100) + COLUMN_GUTTER
 
         tile_data = args.state.level_data[row][col]
 
@@ -138,17 +139,13 @@ module TileBoard
   def render_finish(args)
     fp = args.state.finish_point
     args.state.interactables.finish_rect = finish_border =
-      [fp.x, fp.y, TILE_SIZE, TILE_SIZE, 255, 255, 255, 150 ]
+      [fp.x, fp.y, TILE_SIZE, TILE_SIZE, 255, 255, 255, 50 ]
     args.outputs.primitives << finish_border.solid
     args.outputs.labels << [fp.x + 30, fp.y + 20, "EXIT"]
   end
 
   def render_obstacles(args)
     sprites = []
-
-    sprites << args.state.cover.map do |cover|
-      shrub_sprite(x: cover[:x], y: cover[:y], index: cover[:index])
-    end
 
     sprites << args.state.scorpions.map do |scorpion|
       scorpion.sprite = Scorpion.sprite(x: scorpion[:x], y: scorpion[:y], attack_direction: scorpion[:attack_direction])
@@ -162,6 +159,10 @@ module TileBoard
 
     sprites << args.state.boulders.map do |sprite|
       boulder_sprite(x: sprite[:x], y: sprite[:y])
+    end
+
+    sprites << args.state.cover.map do |cover|
+      shrub_sprite(x: cover[:x], y: cover[:y], index: cover[:index])
     end
 
     if args.state.roadrunner_path.any?
@@ -190,8 +191,8 @@ module TileBoard
     {
       x: x,
       y: y,
-      w: 98,
-      h: 98,
+      w: 100,
+      h: 100,
       path: "sprites/tile_floor.png",
     }
   end
