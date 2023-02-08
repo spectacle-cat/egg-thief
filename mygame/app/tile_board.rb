@@ -227,6 +227,7 @@ module TileBoard
       w: 100,
       h: 100,
       path: "sprites/nest#{'_empty' if empty}.png",
+      angle: (x + y) % 360,
     }
   end
 end
