@@ -7,14 +7,28 @@ module Player
     args.state.player = nil
   end
 
-  def tick args
-    args.state.player.w ||= 35
-    args.state.player.h ||= 95
+  def place_at_start(args)
+    set_player_size(args)
 
-    args.state.player.x ||= args.state.player.start_point.x + (
+    args.state.player.x = args.state.start_point.x + (
       (TileBoard::TILE_SIZE - args.state.player.w) / 2
     )
-    args.state.player.y ||= args.state.player.start_point.y
+    args.state.player.y = args.state.start_point.y
+  end
+
+  def set_player_size(args)
+    args.state.player.w = 35
+    args.state.player.h = 95
+  end
+
+  def tick args
+    if args.state.player.w.nil? || args.state.player.h.nil?
+      set_player_size(args)
+    end
+
+    if args.state.player.x.nil? || args.state.player.y.nil?
+      place_at_start(args)
+    end
 
     raise "no X starting position" unless args.state.player.x
     raise "no Y starting position" unless args.state.player.y
@@ -36,14 +50,17 @@ module Player
       args.state.player.started_running_at = nil
     end
 
-    # render player as standing or running
+
+    render_player_sprite(args)
+    # args.outputs.debug << args.state.player_collider.border
+  end
+
+  def render_player_sprite(args)
     if args.state.player.started_running_at
       args.outputs.sprites << running_sprite(args)
     else
       args.outputs.sprites << standing_sprite(args)
     end
-
-    # args.outputs.debug << args.state.player_collider.border
   end
 
   def set_player_input(args)

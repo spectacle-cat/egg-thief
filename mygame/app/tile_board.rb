@@ -23,6 +23,7 @@ module TileBoard
     args.state.cover ||= []
     args.state.boulders ||= []
     args.state.scorpions ||= []
+    args.state.finish_point = nil
 
     build_tiles(args)
   end
@@ -36,6 +37,7 @@ module TileBoard
     args.state.scorpions = []
     args.state.nests = []
     args.state.cover = []
+    args.state.finish_point = nil
   end
 
   def build_tiles(args)
@@ -85,13 +87,13 @@ module TileBoard
         end
 
         if tile_data == 'S'
-          args.state.player.start_point.x = x
-          args.state.player.start_point.y = y
+          args.state.start_point.x = x
+          args.state.start_point.y = y
         end
 
         if tile_data == 'F'
-          args.state.player.finish_point.x = x
-          args.state.player.finish_point.y = y
+          args.state.finish_point.x = x
+          args.state.finish_point.y = y
         end
       end
     end
@@ -124,7 +126,7 @@ module TileBoard
   end
 
   def render_finish(args)
-    fp = args.state.player.finish_point
+    fp = args.state.finish_point
     args.state.interactables.finish_rect = finish_border =
       [fp.x, fp.y, TILE_SIZE, TILE_SIZE, 255, 255, 255, 150 ]
     args.outputs.primitives << finish_border.solid
@@ -138,15 +140,19 @@ module TileBoard
       shrub_sprite(x: cover[:x], y: cover[:y], index: cover[:index])
     end
 
-    sprites << args.state.scorpions.map do |sprite|
-      scorpion = Scorpion.sprite(x: sprite[:x], y: sprite[:y], attack_direction: sprite[:attack_direction])
-      Scorpion.animate(args: args, scorpion: scorpion, attack_started_at: sprite[:attack_started_at], attack_direction: sprite[:attack_direction])
+    sprites << args.state.scorpions.map do |scorpion|
+      scorpion.sprite = Scorpion.sprite(x: scorpion[:x], y: scorpion[:y], attack_direction: scorpion[:attack_direction])
+      Scorpion.animate(
+        args: args,
+        scorpion: scorpion.sprite,
+        attack_started_at: scorpion[:attack_started_at],
+        attack_direction: scorpion[:attack_direction]
+      )
     end
 
     sprites << args.state.boulders.map do |sprite|
       boulder_sprite(x: sprite[:x], y: sprite[:y])
     end
-
 
     args.outputs.sprites << sprites
   end

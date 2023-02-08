@@ -13,6 +13,7 @@ class Collisions
     check_finish
     check_nests
     check_enemy_triggers
+    check_enemies
   end
 
   def check_finish
@@ -36,5 +37,19 @@ class Collisions
 
   def check_enemy_triggers
     ScorpionTileTriggers.run(args, player_collider)
+  end
+
+  def check_enemies
+    args.state.scorpions.each do |scorpion|
+      args.outputs.debug << scorpion.sprite.border
+
+      hit = scorpion.sprite.intersect_rect?(player_collider)
+
+      if hit
+        args.state.scene = :restart_level
+      end
+
+      hit
+    end
   end
 end

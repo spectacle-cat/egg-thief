@@ -3,6 +3,12 @@ module Scorpion
 
   TILE_SIZE = 100
 
+  def to_border
+    [
+      scorpion.x, scorpion.y, scorpion.w, scorpion.h
+    ]
+  end
+
   def animating?(args, scorpion)
     duration = 60
     start_time = scorpion[:attack_started_at]
@@ -82,18 +88,6 @@ module Scorpion
     number_of_frames_to_show_each_sprite = 6
     does_sprite_loop = true
 
-    angle =
-    case attack_direction
-    when :up
-      0
-    when :down
-      180
-    when :left
-      90
-    when :right
-      270
-    end
-
     tile_index =
       start_looping_at.frame_index(
         number_of_sprites,
@@ -101,7 +95,28 @@ module Scorpion
         does_sprite_loop
       )
 
-    sprite_index ||= 0
+    {
+      path: "sprites/scorpion.png",
+      tile_x: 0 + (tile_index * 416),
+      tile_y: 0,
+      tile_w: 416,
+      tile_h: 421,
+      **sprite_position(x, y, w, h, attack_direction),
+    }
+  end
+
+  def sprite_position(x, y, w, h, attack_direction)
+    angle =
+      case attack_direction
+      when :up
+        0
+      when :down
+        180
+      when :left
+        90
+      when :right
+        270
+      end
 
     x_gutter = (TILE_SIZE - w) / 2
     y_gutter = (TILE_SIZE - h) / 2
@@ -119,17 +134,12 @@ module Scorpion
         x_gutter -= tile_diff
       end
 
-    scorpion = {
+    {
       x: x + x_gutter,
       y: y + y_gutter,
       w: w,
       h: h,
-      path: "sprites/scorpion.png",
       angle: angle,
-      tile_x: 0 + (tile_index * 416),
-      tile_y: 0,
-      tile_w: 416,
-      tile_h: 421,
     }
   end
 end

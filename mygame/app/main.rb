@@ -15,6 +15,8 @@ def tick args
   case args.state.scene
   when :level
     level_scene(args)
+  when :restart_level
+    restart_level(args)
   when :game_completed
     game_completed_scene(args)
   when :game_over
@@ -95,6 +97,26 @@ def render_level(args)
   Collisions.new(args, Player.player_collision_box(args)).run!
 
   TileBoard.render_obstacles(args)
+end
+
+def restart_level(args)
+  if args.state.fade_in_started_at < args.tick_count - 60
+    args.state.fade_in_started_at = args.tick_count
+  end
+  TileBoard.render_tiles(args)
+  TileBoard.render_finish(args)
+  TileBoard.render_nests(args)
+
+  Player.reset(args)
+  Player.place_at_start(args)
+  Player.render_player_sprite(args)
+
+  TileBoard.render_obstacles(args)
+  continue_fade_in(args) if args.state.fade_in_started_at
+
+  if args.state.fade_in_started_at > args.tick_count - 60
+    args.state.scene = :level
+  end
 end
 
 def last_level?(args)
