@@ -30,7 +30,7 @@ module Game
       raise "UNKNOWN SCENE STATE: #{args.state.scene}"
     end
 
-    args.outputs.debug << args.gtk.framerate_diagnostics_primitives
+    # args.outputs.debug << args.gtk.framerate_diagnostics_primitives
   end
 
   def game_completed_scene(args)

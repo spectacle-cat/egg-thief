@@ -117,11 +117,11 @@ module TileBoard
   end
 
   def outside_of_board?(args, player_collider)
-    if player_collider.x > (1280 - 90)
+    if player_collider.x > 1280 - 100 - 40
       true
-    elsif player_collider.x < 35
+    elsif player_collider.x < -10
       true
-    elsif player_collider.y > (720 - 60)
+    elsif player_collider.y > (720 - 100)
       true
     elsif player_collider.y < 10
       true
