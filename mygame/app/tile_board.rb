@@ -39,6 +39,7 @@ module TileBoard
     args.state.scorpions = []
     args.state.nests = []
     args.state.cover = []
+    args.state.roadrunner_path = []
     args.state.finish_point = nil
   end
 
