@@ -5,6 +5,8 @@ require 'app/collisions.rb'
 module Game
   extend self
 
+  RESTART_DURATION = 60 * 1.5
+
   def tick args
     args.outputs.solids << background(args)
     args.state.collected_nests ||= []
@@ -112,14 +114,14 @@ module Game
     TileBoard.render_finish(args)
     TileBoard.render_nests(args)
 
-#    Player.reset(args)
     Player.render_player_sprite(args, is_dead: true)
 
     TileBoard.render_obstacles(args)
 
-    if args.tick_count > (args.state.restarted_level_at + 60)
+    if args.tick_count > (args.state.restarted_level_at + RESTART_DURATION)
       args.state.scene = :level
       args.state.restarted_level_at = nil
+      Player.reset(args)
       Player.place_at_start(args)
     end
   end

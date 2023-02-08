@@ -5,6 +5,7 @@ module Player
 
   def reset(args)
     args.state.player = nil
+    args.state.player.angle = nil
   end
 
   def place_at_start(args)
@@ -211,17 +212,32 @@ module Player
   end
 
   def dead_sprite(args)
-    player_sprite(args, index: 0)
+    player_sprite(args, index: 0, angle: death_spin(args))
   end
 
-  def player_sprite args, index: 0
+  def death_spin(args)
+    spline = [
+      [1.0, 0.3, 0.1, 0]
+    ]
+    angle_easing = args.easing.ease_spline(
+      args.state.restarted_level_at,
+      args.state.tick_count,
+      Game::RESTART_DURATION,
+      spline
+    )
+
+    angle_offset = (360 * 3) * (1 - angle_easing)
+    facing_angle(args) + angle_offset
+  end
+
+  def player_sprite(args, index: 0, angle: nil)
     {
       x: args.state.player.x,
       y: args.state.player.y,
       w: args.state.player.w,
       h: args.state.player.h,
       path: "sprites/Lizzie_350x_950_#{index}.png",
-      angle: facing_angle(args),
+      angle: angle || facing_angle(args),
     }
   end
 
