@@ -3,10 +3,42 @@ module Scorpion
 
   TILE_SIZE = 100
 
-  def to_border
+  def to_border(scorpion)
     [
-      scorpion.x, scorpion.y, scorpion.w, scorpion.h
+      scorpion.sprite.x, scorpion.sprite.y, scorpion.sprite.w, scorpion.sprite.h
     ]
+  end
+
+  def hit_box(args, scorpion)
+    x, y, w, h = to_border(scorpion)
+    buffer = 5
+
+    case scorpion.attack_direction
+    when :up
+      y -= (buffer * 2)
+      h -= buffer
+      w -= (buffer * 2)
+      x += buffer
+    when :down
+      y += (buffer * 2)
+      h -= (buffer * 2)
+      w -= (buffer * 2)
+      x += buffer
+    when :left
+      y += buffer
+      h -= (buffer * 2)
+      w += buffer
+      x += (buffer * 2)
+    when :right
+      y += buffer
+      h -= (buffer * 2)
+      w -= (buffer * 2)
+      x -= buffer
+    end
+
+    box = [x, y, w, h]
+    # args.outputs.debug << box.border
+    box
   end
 
   def animating?(args, scorpion)
