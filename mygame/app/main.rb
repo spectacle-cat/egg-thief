@@ -1,5 +1,6 @@
 require 'app/player.rb'
 require 'app/tile_board.rb'
+require 'app/collisions.rb'
 
 def tick args
   args.outputs.solids << background(args)
@@ -89,7 +90,10 @@ def render_level(args)
   TileBoard.render_tiles(args)
   TileBoard.render_finish(args)
   TileBoard.render_nests(args)
+
   Player.tick(args)
+  Collisions.new(args, Player.player_collision_box(args)).run!
+
   TileBoard.render_obstacles(args)
 end
 
