@@ -60,10 +60,9 @@ module Player
     if is_dead
       args.outputs.sprites << dead_sprite(args)
     elsif args.state.player.started_running_at.nil?
-      args.outputs.sprites << running_sprite(args)
-
-    else args.state.player.started_running_at
       args.outputs.sprites << standing_sprite(args)
+    else args.state.player.started_running_at
+      args.outputs.sprites << running_sprite(args)
     end
   end
 

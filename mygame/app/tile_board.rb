@@ -1,4 +1,5 @@
 require 'app/scorpion.rb'
+require 'app/roadrunner.rb'
 
 module TileBoard
   extend self
@@ -23,6 +24,7 @@ module TileBoard
     args.state.cover ||= []
     args.state.boulders ||= []
     args.state.scorpions ||= []
+    args.state.roadrunner_path ||= []
     args.state.finish_point = nil
 
     build_tiles(args)
@@ -76,6 +78,14 @@ module TileBoard
 
         if tile_data == 'b'
           args.state.scorpions << { x: x, y: y, w: 100, h: 100 }
+        end
+
+        if tile_data == 'r'
+          args.state.roadrunner_path << { x: x , y: y, start: true }
+        end
+
+        if tile_data == 'R'
+          args.state.roadrunner_path << { x: x, y: y, w: 100, h: 200 }
         end
 
         if tile_data == 'E'
@@ -152,6 +162,11 @@ module TileBoard
 
     sprites << args.state.boulders.map do |sprite|
       boulder_sprite(x: sprite[:x], y: sprite[:y])
+    end
+
+    if args.state.roadrunner_path.any?
+      roadrunner = args.state.roadrunner_path.find { |path| path[:start] }
+      sprites << Roadrunner.new(roadrunner)
     end
 
     args.outputs.sprites << sprites
