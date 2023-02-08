@@ -1,3 +1,4 @@
+require 'app/game.rb'
 require 'app/collisions/scorpion_tile_triggers.rb'
 
 class Collisions
@@ -41,15 +42,13 @@ class Collisions
 
   def check_enemies
     args.state.scorpions.each do |scorpion|
-      args.outputs.debug << scorpion.sprite.border
+      # args.outputs.debug << scorpion.sprite.border
 
       hit = scorpion.sprite.intersect_rect?(player_collider)
-
       if hit
-        args.state.scene = :restart_level
+        Game.restart_level!(args)
+        break
       end
-
-      hit
     end
   end
 end

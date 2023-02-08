@@ -55,10 +55,13 @@ module Player
     # args.outputs.debug << args.state.player_collider.border
   end
 
-  def render_player_sprite(args)
-    if args.state.player.started_running_at
+  def render_player_sprite(args, is_dead: false)
+    if is_dead
+      args.outputs.sprites << dead_sprite(args)
+    elsif args.state.player.started_running_at.nil?
       args.outputs.sprites << running_sprite(args)
-    else
+
+    else args.state.player.started_running_at
       args.outputs.sprites << standing_sprite(args)
     end
   end
@@ -205,6 +208,10 @@ module Player
 
   def standing_sprite args
     player_sprite(args)
+  end
+
+  def dead_sprite(args)
+    player_sprite(args, index: 0)
   end
 
   def player_sprite args, index: 0
