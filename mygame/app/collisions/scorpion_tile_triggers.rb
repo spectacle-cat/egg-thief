@@ -3,7 +3,7 @@ module ScorpionTileTriggers
 
   def run(args, player_collider)
     args.state.scorpions.each do |scorpion|
-      tiles_hit = trigger_tile_candidates(scorpion).select do |tile|
+      tiles_hit = trigger_tile_candidates(args, scorpion).select do |tile|
         tile.intersect_rect?(player_collider)
       end.each do |tile|
         # args.outputs.debug << [tile[:x], tile[:y], 100, 100, 255].border
@@ -16,7 +16,7 @@ module ScorpionTileTriggers
     end
   end
 
-  def trigger_tile_candidates(scorpion)
+  def trigger_tile_candidates(args, scorpion)
     tile_candidates = [
       tile_above(scorpion),
       tile_below(scorpion),
@@ -26,6 +26,8 @@ module ScorpionTileTriggers
 
     tile_candidates.map do |tile|
       tile.merge({w: TileBoard::TILE_SIZE, h: TileBoard::TILE_SIZE})
+    end.reject do |tile|
+      args.state.boulders.any_intersect_rect?(tile)
     end
   end
 
