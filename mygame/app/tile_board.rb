@@ -93,7 +93,7 @@ module TileBoard
         if tile_data == 'E'
           args.state.nests << {
             x: x, y: y,
-            collision_box: { x: x + 25, y: y + 25, w: 25, h: 25 }
+            collision_box: { x: x + 33, y: y + 33, w: 33, h: 33 }
           }
           args.state.total_nests += 1
         end
