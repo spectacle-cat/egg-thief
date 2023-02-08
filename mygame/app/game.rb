@@ -8,7 +8,7 @@ module Game
   RESTART_DURATION = 60 * 1.5
 
   def tick args
-    args.outputs.solids << background(args)
+    args.outputs.background_color = [56, 52, 14]
     args.state.collected_nests ||= []
     args.state.total_nests ||= 0
     args.state.level ||= 1
