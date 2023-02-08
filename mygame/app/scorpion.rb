@@ -11,7 +11,7 @@ module Scorpion
 
   def hit_box(args, scorpion)
     x, y, w, h = to_border(scorpion)
-    buffer = 5
+    buffer = 2
 
     case scorpion.attack_direction
     when :up

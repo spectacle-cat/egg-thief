@@ -210,7 +210,7 @@ module TileBoard
     }
   end
 
-  def boulder_sprite(x:, y: )
+  def boulder_sprite(x:, y:)
     {
       x: x,
       y: y,
