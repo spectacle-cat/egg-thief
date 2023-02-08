@@ -6,6 +6,7 @@ module Player
   def reset(args)
     args.state.player = nil
     args.state.player.angle = nil
+    args.state.player_collider = nil
   end
 
   def place_at_start(args)
@@ -129,13 +130,14 @@ module Player
       if [:left, :right].include?(lr) && [:up, :down].include?(ud)
         { w: length / 2, h: length / 2, }
       elsif lr == :right || lr == :left
-        { w: length * 0.9, h: length / 3.5, }
+        { w: length * 0.5, h: length / 3.5, }
       elsif ud == :up || ud == :down
-        { w: length / 3.5, h: length * 0.9 }
+        { w: length / 3.5, h: length * 0.5 }
+      elsif !args.state.player_collider.x.nil?
+        return args.state.player_collider
       else
-        args.state.player.last_collider || { w: length / 3.5, h: length }
+        { w: length / 3.5, h: length }
       end
-    args.state.player.last_collider = player_collider
 
     player_collider =
       player_collider.center_inside_rect(target_player_rect)
@@ -147,24 +149,24 @@ module Player
       player_collider[:x] -= offset
     elsif lr == :left && ud == :up
       player_collider[:x] -= diagonal_offset
-      player_collider[:y] += offset
+      player_collider[:y] += diagonal_offset
     elsif lr == :left && ud == :down
       player_collider[:x] -= diagonal_offset
-      player_collider[:y] -= offset
+      player_collider[:y] -= diagonal_offset
     elsif lr == :right && ud == :none
       player_collider[:x] += offset
     elsif lr == :right && ud == :up
       player_collider[:x] += diagonal_offset
-      player_collider[:y] += offset
+      player_collider[:y] += diagonal_offset
     elsif lr == :right && ud == :down
       player_collider[:x] += diagonal_offset
-      player_collider[:y] -= offset
+      player_collider[:y] -= diagonal_offset
     elsif lr == :none && ud == :none
       player_collider
     elsif lr == :none && ud == :up
-      # player_collider[:y] -= offset
+      player_collider[:y] += offset
     elsif lr == :none && ud == :down
-      # player_collider[:y] -= offset
+      player_collider[:y] -= offset
     end
 
     args.state.player_collider = player_collider

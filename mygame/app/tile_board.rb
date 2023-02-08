@@ -121,7 +121,7 @@ module TileBoard
       true
     elsif player_collider.x < -10
       true
-    elsif player_collider.y > (720 - 100)
+    elsif player_collider.y > (720 - 50)
       true
     elsif player_collider.y < 10
       true
