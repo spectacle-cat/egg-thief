@@ -18,8 +18,8 @@ module Player
   end
 
   def set_player_size(args)
-    args.state.player.w = 35
-    args.state.player.h = 95
+    args.state.player.w = 100
+    args.state.player.h = 100
   end
 
   def tick args
@@ -115,7 +115,7 @@ module Player
   end
 
   def player_collision_box(args, x: :unset, y: :unset)
-    length = 85
+    length = 100
     target_player_rect = {
       x: x == :unset ? args.state.player.x : x,
       y: y == :unset ? args.state.player.y : y,
@@ -129,10 +129,13 @@ module Player
       if [:left, :right].include?(lr) && [:up, :down].include?(ud)
         { w: length / 2, h: length / 2, }
       elsif lr == :right || lr == :left
-        { w: length * 0.75, h: length / 2, }
+        { w: length, h: length / 3.5, }
+      elsif ud == :up || ud == :down
+        { w: length / 3.5, h: length }
       else
-        { w: length / 2, h: length * 0.75, }
+        args.state.player.last_collider || { w: length / 3.5, h: length }
       end
+    args.state.player.last_collider = player_collider
 
     player_collider =
       player_collider.center_inside_rect(target_player_rect)
@@ -141,7 +144,7 @@ module Player
     diagonal_offset = offset / 2
 
     if lr == :left && ud == :none
-      player_collider[:x] -= offset
+      # player_collider[:x] -= offset
     elsif lr == :left && ud == :up
       player_collider[:x] -= diagonal_offset
       player_collider[:y] += offset
@@ -149,7 +152,7 @@ module Player
       player_collider[:x] -= diagonal_offset
       player_collider[:y] -= offset
     elsif lr == :right && ud == :none
-      player_collider[:x] += offset
+      # player_collider[:x] += offset
     elsif lr == :right && ud == :up
       player_collider[:x] += diagonal_offset
       player_collider[:y] += offset
@@ -159,12 +162,13 @@ module Player
     elsif lr == :none && ud == :none
       player_collider
     elsif lr == :none && ud == :up
-      player_collider[:y] += offset
+      # player_collider[:y] -= offset
     elsif lr == :none && ud == :down
-      player_collider[:y] -= offset
+      # player_collider[:y] -= offset
     end
 
     args.state.player_collider = player_collider
+    # args.outputs.debug << player_collider.border
     player_collider
   end
 
@@ -235,7 +239,7 @@ module Player
       y: args.state.player.y,
       w: args.state.player.w,
       h: args.state.player.h,
-      path: "sprites/Lizzie_350x_950_#{index}.png",
+      path: "sprites/yellow_lizzie_#{index}.png",
       angle: angle || facing_angle(args),
     }
   end
