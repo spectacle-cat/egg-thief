@@ -11,16 +11,15 @@ class Roadrunner < Sprite
                                   does_sprite_loop
 
     @w = 100
-    @x = opts[:x] + ((TileBoard::TILE_SIZE - @w) / 2)
-    @x = calculate_x(opts, width: @w)
+    @x = calculate_x(opts, width: @w, sprite_index: sprite_index)
     @y = calculate_y(opts, sprite_index: sprite_index)
     @h = TileBoard::TILE_SIZE * 2
     @path = "sprites/roadrunner_#{sprite_index}.png"
     @angle = opts[:angle]
   end
 
-  def calculate_x(opts, width: )
-    opts[:x] + ((TileBoard::TILE_SIZE - width) / 2)
+  def calculate_x(opts, width: , sprite_index:)
+    opts[:x] - 3 + ((TileBoard::TILE_SIZE - width) / 2) + (sprite_index * 3)
   end
 
   def calculate_y(opts, sprite_index: )
