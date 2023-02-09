@@ -1,3 +1,4 @@
+require 'app/common/direction.rb'
 require 'app/player.rb'
 require 'app/enemies.rb'
 require 'app/enemies/roadrunner_track.rb'
@@ -109,6 +110,7 @@ module Game
     Collisions.new(args, Player.player_collision_box(args)).run!
 
     TileBoard.render_obstacles(args)
+    Enemies.tick(args)
   end
 
   def restart_level!(args)

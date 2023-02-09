@@ -11,9 +11,21 @@ module Enemies
 
         tracks.each do |track|
           args.state.enemies.roadrunner_tracks <<
-            RoadrunnerTrack.new(args, tracks).build_track
+            track = RoadrunnerTrack.new(args, tracks)
+            track.build_track
+            track
         end
       end
     end
+  end
+
+  def tick(args)
+    sprites = []
+
+    args.state.enemies.roadrunner_tracks.each do |track|
+      sprites << Roadrunner.new(track.tick.position)
+    end
+
+    args.outputs.sprites << sprites
   end
 end
