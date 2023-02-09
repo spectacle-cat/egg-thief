@@ -52,7 +52,6 @@ module TileBoard
         index_counter += 1
 
         y = (row * 100) + ROW_GUTTER
-        # x = (col * 100) + 40
         x = (col * 100) + COLUMN_GUTTER
 
         tile_data = args.state.level_data["Tiles"][row][col]

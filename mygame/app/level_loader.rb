@@ -24,8 +24,14 @@ class LevelLoader
       level = data_split
       level_data = level.reverse.map { |row| row.chars }
 
-      # move enemies under a collection
-      acc[type] = level_data
+      case type
+      when "Tiles"
+        acc[type] = level_data
+      else
+        acc[type] ||= []
+        acc[type] << level_data
+      end
+
       acc
     end
   end

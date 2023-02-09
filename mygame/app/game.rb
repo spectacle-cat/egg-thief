@@ -1,4 +1,6 @@
 require 'app/player.rb'
+require 'app/enemies.rb'
+require 'app/enemies/roadrunner_track.rb'
 require 'app/tile_board.rb'
 require 'app/collisions.rb'
 
@@ -31,6 +33,10 @@ module Game
     end
 
     args.outputs.debug << args.gtk.framerate_diagnostics_primitives
+
+    args.state.enemy_tracks.each do |point|
+      args.outputs.debug << point.border
+    end
   end
 
   def game_completed_scene(args)
@@ -50,6 +56,7 @@ module Game
     if args.tick_count == 0
       load_level(args)
       TileBoard.setup(args)
+      Enemies.setup(args)
       args.state.fade_in_started_at = args.state.tick_count
     end
 
@@ -131,7 +138,6 @@ module Game
     data = args.gtk.read_file(level_path(next_level))
     result = data.to_s.length == 0
 
-    puts result
     result
   end
 
