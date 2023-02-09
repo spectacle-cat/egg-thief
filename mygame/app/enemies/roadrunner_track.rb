@@ -1,6 +1,6 @@
 class RoadrunnerTrack
   attr_reader :args, :track
-  attr_accessor :points, :steps, :position, :from_step, :next_step
+  attr_accessor :points, :steps, :position, :from_step, :next_step, :last_stepped_at
 
   ALPHABET = %w[a b c d e f g h i j k l m n o p q r s t u v w x y z]
 
@@ -18,21 +18,55 @@ class RoadrunnerTrack
     # raise
     @from_step = steps[0]
     @position = @from_step
+    @last_stepped_at = 0
   end
 
   def tick
-    move
+    if args.tick_count % SPEED == 0
+      self.last_stepped_at = args.tick_count
+      increment_step
+    end
+
+    puts "last step: #{last_stepped_at.inspect}"
+    puts "tick count: #{args.tick_count}"
+    puts "speed: #{SPEED}"
+
+    current_progress = args.easing.ease(
+      last_stepped_at,
+      args.state.tick_count,
+      SPEED,
+      :identity
+    )
+
+    step = from_step.dup
+    nstep = next_step(step)
+
+
+    case step[:direction]
+    when :up
+      step[:y] += (nstep[:y] - step[:y]) * current_progress
+    when :down
+      step[:y] -= (step[:y] - nstep[:y]) * current_progress
+    when :right
+      step[:x] += (nstep[:x] - step[:x]) * current_progress
+    when :left
+      step[:x] -= (step[:x] - nstep[:x]) * current_progress
+    else
+      raise "no direction"
+    end
+
+    self.position = step
+    puts "position: #{position}"
+
     self
   end
 
-  def move
+  def increment_step
     if args.tick_count % SPEED == 0
       ns = next_step(from_step)
       puts "next step: #{ns}"
       self.from_step = ns
       puts "from_step: #{from_step}"
-      self.position = from_step
-      puts "position: #{position}"
     end
   end
 
