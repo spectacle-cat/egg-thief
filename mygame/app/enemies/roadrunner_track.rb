@@ -1,43 +1,51 @@
 class RoadrunnerTrack
   attr_reader :args, :track
-  attr_accessor :points, :position, :from_point, :next_point
+  attr_accessor :points, :steps, :position, :from_step, :next_step
 
   ALPHABET = %w[a b c d e f g h i j k l m n o p q r s t u v w x y z]
 
   # one tile per X ticks
-  SPEED = 60
+  SPEED = 25
 
   def initialize(args, track)
     @args = args
     @track = track.first
-    @points = build_track
-    @from_point = points[0]
-    @position = @from_point
+    @steps = build_track
+    # puts "steps:"
+    # @steps.map { |step| puts step }
+    # puts "points:"
+    # @points.map { |point| puts point }
+    # raise
+    @from_step = steps[0]
+    @position = @from_step
   end
 
   def tick
-    next_position
+    move
     self
   end
 
-  def next_position
+  def move
     if args.tick_count % SPEED == 0
-      np = next_point(from_point)
-      puts "next point: #{np}"
-      self.from_point = np
-      puts "from_point: #{from_point}"
-      self.position = from_point
+      ns = next_step(from_step)
+      puts "next step: #{ns}"
+      self.from_step = ns
+      puts "from_step: #{from_step}"
+      self.position = from_step
       puts "position: #{position}"
     end
   end
 
-  def next_point(point)
-    i = point.index
+  def next_step(step)
+    i = steps.index(step)
+    puts "steps: #{steps}"
+    puts "step: #{step}"
+    puts "next step"
 
-    if i == (points.count - 1)
-      points[0]
+    if i == (steps.count - 1)
+      steps[0]
     else
-      points[i + 1]
+      steps[i + 1]
     end
   end
 
@@ -45,7 +53,36 @@ class RoadrunnerTrack
     build_points
     add_facing_angles_to_points
     add_distance_to_points
-    points
+    add_steps_between_points
+  end
+
+  def add_steps_between_points
+    steps = []
+
+    points.each do |point|
+      point[:tile_distance].abs.times do |n|
+        step = point.dup
+
+        case point[:direction]
+        when :up
+          step[:y] += (n * step[:h])
+        when :down
+          step[:y] -= (n * step[:h])
+        when :right
+          step[:x] += (n * step[:w])
+        when :left
+          step[:x] -= (n * step[:w])
+        else
+          raise "no direction"
+        end
+
+        step[:index] = steps.count + 1
+
+        steps << step
+      end
+    end
+
+    steps
   end
 
   def add_distance_to_points
@@ -123,7 +160,7 @@ class RoadrunnerTrack
   end
 
   def build_points
-    points = []
+    @points = []
 
     0.upto(7 - 1) do |row|
       0.upto(12 - 1) do |col|
@@ -135,11 +172,11 @@ class RoadrunnerTrack
           tile[:row] == row && tile[:column] == col
         end
 
-        points << {
-          x: tile[:x],
-          y: tile[:y],
+        @points << {
           h: 100,
           w: 100,
+          x: tile[:x],
+          y: tile[:y],
           row: row,
           column: col,
           index: ALPHABET.index(char),
@@ -147,6 +184,6 @@ class RoadrunnerTrack
       end
     end
 
-    @points = points.sort_by { |point| point[:index] }
+    @points = @points.sort_by { |point| point[:index] }
   end
 end
