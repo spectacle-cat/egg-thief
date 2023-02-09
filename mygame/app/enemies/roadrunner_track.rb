@@ -5,7 +5,8 @@ class RoadrunnerTrack
   ALPHABET = %w[a b c d e f g h i j k l m n o p q r s t u v w x y z]
 
   # one tile per X ticks
-  SPEED = 25
+  # SPEED = 30
+  SPEED = 75
 
   def initialize(args, track)
     @args = args
@@ -14,6 +15,7 @@ class RoadrunnerTrack
     @from_step = steps[0]
     @position = @from_step
     @last_stepped_at = 0
+    @last_up_was_zero = true
   end
 
   def tick
@@ -31,6 +33,7 @@ class RoadrunnerTrack
 
     step = from_step.dup
     nstep = next_step(step)
+    pstep = previous_step(steps, step)
 
     case step[:direction]
     when :up
@@ -45,11 +48,33 @@ class RoadrunnerTrack
       raise "no direction"
     end
 
-    step[:angle] = Common::Direction.angle(step[:direction])
+    if step[:angle] == 90 && pstep[:angle] == 360
+      step[:angle] = 0
+    end
+    if step[:angle] == 360 && nstep[:angle] == 90
+      step[:angle] = 0
+    end
+
+    step[:angle] = increment_angle(step[:angle], nstep[:angle], current_progress)
 
     self.position = step
+    # args.outputs.debug << [200, 100, "Angle: #{step[:angle]}"].label
+    # args.outputs.debug << [200, 50, "Direction: #{step[:direction]}"].label
+    # args.outputs.debug << [200, 75, "Row: #{step[:row]} - Column: #{step[:column]}"].label
 
+    # steps.each { |step| args.outputs.debug << step.border }
     self
+  end
+
+  def increment_angle(angle, next_angle, delta)
+    r = if angle > next_angle
+      angle - ((angle - next_angle) * delta)
+    elsif angle < next_angle
+      angle + ((next_angle - angle) * delta)
+    else
+      angle
+    end
+    r
   end
 
   def increment_step
@@ -60,8 +85,7 @@ class RoadrunnerTrack
   end
 
   def next_step(step)
-    i = steps.index(step)
-
+    i = step[:index]
     if i == (steps.count - 1)
       steps[0]
     else
@@ -69,7 +93,7 @@ class RoadrunnerTrack
     end
   end
 
-  def previous_step(step)
+  def previous_step(steps, step)
     i = steps.index(step)
 
     if i == (steps.count - 1)
@@ -83,7 +107,53 @@ class RoadrunnerTrack
     build_points
     add_facing_angles_to_points
     add_distance_to_points
-    add_corners_to_steps(add_steps_between_points)
+    r = calculate_angles(
+      add_corners_to_steps(
+        add_steps_between_points))
+
+    # r.each {|i| puts i.slice(:angle, :direction).inspect }
+    # raise
+    r
+  end
+
+  def calculate_angles(steps)
+    rotations = 0
+    steps.each.with_index do |step, i|
+      if i == 0
+        prev_step = steps.last
+        next_step = steps[1]
+      elsif i == (steps.count - 1)
+        prev_step = steps[steps.count - 2]
+        next_step = steps.first
+      else
+        prev_step = steps[i - 1]
+        next_step = steps[i + 1]
+      end
+
+      prev_angle = prev_step[:angle]
+      angle = Common::Direction.angle(step[:direction])
+      next_angle = next_step[:angle]
+
+      if prev_angle != angle && next_angle != angle
+      elsif prev_angle == angle && next_angle != angle
+      elsif prev_angle != angle && next_angle == angle
+      elsif prev_angle == angle && next_angle == angle
+      end
+
+      if next_angle == 270 && angle == 0
+        angle = 360
+      end
+
+      if prev_angle == 360 && angle == 0
+        angle = 360
+      end
+
+      if prev_angle == 270 && angle == 0
+        angle = 360
+      end
+
+      step[:angle] = angle
+    end
   end
 
   def add_corners_to_steps(steps)
@@ -94,10 +164,15 @@ class RoadrunnerTrack
         else
           steps[i + 1]
         end
-
+      pstep = previous_step(steps, step)
 
       step[:corner] = nstep[:direction] != step[:direction]
+      step[:next_direction] = nstep[:direction]
+      step[:previous_direction] = pstep[:direction]
     end
+
+    # steps.map { |step| puts step.slice(:corner, :direction, :next_direction) }.inspect
+    # raise
 
     steps
   end

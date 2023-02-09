@@ -1,5 +1,6 @@
 class Roadrunner < Sprite
   def initialize opts
+    @opts = opts
     start_looping_at = 0
     number_of_sprites = 4
     number_of_frames_to_show_each_sprite = 9
@@ -25,7 +26,7 @@ class Roadrunner < Sprite
   def calculate_y(opts, sprite_index: )
     y = opts[:y] - 3 + (sprite_index * 3)
 
-    if opts[:direction] == :left || opts[:direction] == :right
+    if opts[:direction] == :left || opts[:direction] == :right || opts[:corner]
       y -= TileBoard::TILE_SIZE / 2
     end
 
