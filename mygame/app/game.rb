@@ -30,7 +30,7 @@ module Game
       raise "UNKNOWN SCENE STATE: #{args.state.scene}"
     end
 
-    # args.outputs.debug << args.gtk.framerate_diagnostics_primitives
+    args.outputs.debug << args.gtk.framerate_diagnostics_primitives
   end
 
   def game_completed_scene(args)
@@ -135,15 +135,9 @@ module Game
     result
   end
 
-  def level_path(level)
-    "data/levels/level_#{level}.txt"
-  end
-
   def load_level(args)
-    data = args.gtk.read_file(level_path(args.state.level))
-    rows = data.split
-
-    args.state.level_data = rows.reverse.map { |row| row.chars }
+    args.state.level_data =
+      LevelLoader.new(args, level_number: args.state.level).level_data
   end
 
   def setup_level(args)
