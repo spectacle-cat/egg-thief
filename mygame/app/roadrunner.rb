@@ -16,7 +16,7 @@ class Roadrunner < Sprite
     @y = calculate_y(opts, sprite_index: sprite_index)
     @h = TileBoard::TILE_SIZE * 2
     @path = "sprites/roadrunner_#{sprite_index}.png"
-    @angle = Common::Direction.angle(opts[:direction])
+    @angle = opts[:angle]
   end
 
   def calculate_x(opts, width: )

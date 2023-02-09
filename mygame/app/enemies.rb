@@ -8,10 +8,9 @@ module Enemies
       case enemy_type
       when "Roadrunner"
         args.state.enemies.roadrunner_tracks ||= []
-
         tracks.each do |track|
-          args.state.enemies.roadrunner_tracks <<
-            track = RoadrunnerTrack.new(args, tracks)
+            args.state.enemies.roadrunner_tracks <<
+            track = RoadrunnerTrack.new(args, track)
             track.build_track
             track
         end

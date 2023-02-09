@@ -1,6 +1,6 @@
 class RoadrunnerTrack
   attr_reader :args, :track
-  attr_accessor :points, :steps, :position, :from_step, :next_step, :last_stepped_at
+  attr_accessor :points, :steps, :position, :from_step, :last_stepped_at
 
   ALPHABET = %w[a b c d e f g h i j k l m n o p q r s t u v w x y z]
 
@@ -9,13 +9,8 @@ class RoadrunnerTrack
 
   def initialize(args, track)
     @args = args
-    @track = track.first
+    @track = track
     @steps = build_track
-    # puts "steps:"
-    # @steps.map { |step| puts step }
-    # puts "points:"
-    # @points.map { |point| puts point }
-    # raise
     @from_step = steps[0]
     @position = @from_step
     @last_stepped_at = 0
@@ -27,10 +22,6 @@ class RoadrunnerTrack
       increment_step
     end
 
-    puts "last step: #{last_stepped_at.inspect}"
-    puts "tick count: #{args.tick_count}"
-    puts "speed: #{SPEED}"
-
     current_progress = args.easing.ease(
       last_stepped_at,
       args.state.tick_count,
@@ -40,7 +31,6 @@ class RoadrunnerTrack
 
     step = from_step.dup
     nstep = next_step(step)
-
 
     case step[:direction]
     when :up
@@ -55,8 +45,9 @@ class RoadrunnerTrack
       raise "no direction"
     end
 
+    step[:angle] = Common::Direction.angle(step[:direction])
+
     self.position = step
-    puts "position: #{position}"
 
     self
   end
@@ -64,17 +55,12 @@ class RoadrunnerTrack
   def increment_step
     if args.tick_count % SPEED == 0
       ns = next_step(from_step)
-      puts "next step: #{ns}"
       self.from_step = ns
-      puts "from_step: #{from_step}"
     end
   end
 
   def next_step(step)
     i = steps.index(step)
-    puts "steps: #{steps}"
-    puts "step: #{step}"
-    puts "next step"
 
     if i == (steps.count - 1)
       steps[0]
@@ -83,11 +69,37 @@ class RoadrunnerTrack
     end
   end
 
+  def previous_step(step)
+    i = steps.index(step)
+
+    if i == (steps.count - 1)
+      steps.last
+    else
+      steps[i - 1]
+    end
+  end
+
   def build_track
     build_points
     add_facing_angles_to_points
     add_distance_to_points
-    add_steps_between_points
+    add_corners_to_steps(add_steps_between_points)
+  end
+
+  def add_corners_to_steps(steps)
+    steps.each.with_index do |step, i|
+      nstep =
+        if i == (steps.count - 1)
+          steps[0]
+        else
+          steps[i + 1]
+        end
+
+
+      step[:corner] = nstep[:direction] != step[:direction]
+    end
+
+    steps
   end
 
   def add_steps_between_points
@@ -130,10 +142,6 @@ class RoadrunnerTrack
         end
 
       if point.nil? || next_point.nil?
-        puts "point: #{point}"
-        puts "next point: #{next_point}"
-        puts "i: #{i}"
-        puts "count: #{points.count}"
         raise "missing point"
       end
 
@@ -167,10 +175,6 @@ class RoadrunnerTrack
         end
 
       if point.nil? || next_point.nil?
-        puts "point: #{point}"
-        puts "next point: #{next_point}"
-        puts "i: #{i}"
-        puts "count: #{points.count}"
         raise "missing point"
       end
 
@@ -219,5 +223,17 @@ class RoadrunnerTrack
     end
 
     @points = @points.sort_by { |point| point[:index] }
+  end
+
+  def inspect
+    serialize.to_s
+  end
+
+  def serialize
+    {
+      position: position,
+      from_step: from_step,
+      last_stepped_at: last_stepped_at
+    }
   end
 end
