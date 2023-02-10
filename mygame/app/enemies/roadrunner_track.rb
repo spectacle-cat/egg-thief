@@ -52,29 +52,26 @@ class RoadrunnerTrack
       raise "no direction"
     end
 
-      # if step[:angle] == 90 && pstep[:angle] == 360
-      #   step[:angle] = 0
-      # end
     if step[:angle] == 360 && nstep[:angle] == 90
       step[:angle] = 0
     end
-    # if step[:direction] == :up && nstep[:angle] == 90
-    #   step[:angle] = 0
-    # end
-
-
     step[:angle] = increment_angle(step[:angle], nstep[:angle], current_progress)
 
     self.position = step
     args.outputs.debug << [200, 100, "Angle: #{step[:angle]} - Next Angle: #{nstep[:angle]}"].label
     args.outputs.debug << [200, 50, "Direction: #{step[:direction]} - Next Direction: #{nstep[:direction]}"].label
-    args.outputs.debug << [200, 75, "Row: #{step[:row]} - Column: #{step[:column]} - Corner: #{step[:corner]}"].label
+    args.outputs.debug << [200, 75, "Row: #{step[:row]} - Column: #{step[:column]} - Corner: #{step[:corner]} - Corner Angle: #{step[:corner_angle] == true}"].label
 
     # steps.each { |step| args.outputs.debug << step.border }
 
     steps.each do |i|
       stepb = next_step(i)
-      args.outputs.debug << [i[:x], i[:y], stepb[:x], stepb[:y], 200, 200, 0].line
+      args.outputs.debug <<
+      if i[:corner_angle] == true
+         [i[:x], i[:y], stepb[:x], stepb[:y], 0, 150, 250].line
+      else
+         [i[:x], i[:y], stepb[:x], stepb[:y], 200, 200, 0].line
+      end
     end
     args.outputs.debug << [step[:x], step[:y], nstep[:x], nstep[:y], 0, 200, 0].line
 
@@ -118,13 +115,22 @@ class RoadrunnerTrack
     #   raise "issue with next step #{step} - i: #{i} ni: #{ni} steps count: #{steps.count} - 1, #{e}"
   end
 
-  def previous_step(steps, step)
-    i = steps.index(step)
-
-    if i == (steps.count - 1)
-      steps.last
+  def next_step_in(coll, step, index: nil)
+    i = (index || step[:index]) - 1
+    if i == (coll.count - 1)
+      coll[0]
     else
-      steps[i - 1]
+      coll[i + 1]
+    end
+  end
+
+  def previous_step(coll, step)
+    i = coll.index(step)
+
+    if i == (coll.count - 1)
+      coll.last
+    else
+      coll[i - 1]
     end
   end
 
@@ -133,15 +139,15 @@ class RoadrunnerTrack
     add_facing_angles_to_points
     add_distance_to_points
     # r =
-    # r = add_extra_steps_on_corners(
-      r = calculate_angles(
-        add_corners_to_steps(
-         add_steps_between_points))
-    # )
+    reindex_coll(
+      calculate_angles(
+        make_corners_45_degrees(
+          add_corners_to_steps(
+            add_steps_between_points))))
 
     # r.each {|i| puts i.slice(:angle, :direction).inspect }
     # raise
-    r
+    # r
   end
 
   def calculate_angles(steps)
@@ -184,56 +190,56 @@ class RoadrunnerTrack
     end
   end
 
-  def add_extra_steps_on_corners(steps)
-    acc = []
-    steps.each do |step|
-      acc << step
-      next unless step[:corner]
-
-      pd = step[:previous_direction]
-      d = step[:direction]
-      nd = step[:next_direction]
-      tile = TileBoard::TILE_SIZE
-
-      new_steps =
-        case [d, nd]
-        when [:up, :right]
-
-        when [:up, :left]
-          [
-            # { x: step[:x] - (tile * 0.9), y: step[:y] + (tile * 0.5) },
-            { x: step[:x] + (tile * 0.7), y: step[:y] + (tile * 0.7) },
-            # { x: step[:x] - (tile * 0.25), y: step[:y] + (tile * 0.9) },
-          ]
-        when [:down, :right]
-        when [:down, :left]
-        when [:left, :up]
-        when [:left, :down]
-        when [:right, :up]
-        when [:right, :down]
-        else
-          raise "shouldnt get here, corners are not properly specified for: #{pd} -> #{d} -> #{nd}"
-        end
-      acc << new_steps.map { |new_step| step.dup.merge(**new_step) } if new_steps
-    end
-
-    acc.flatten!
-
+  def reindex_coll(coll)
     index = 1
-    acc.flatten.each do |item|
+    coll.flatten.each do |item|
       item[:index] = index
       index += 1
     end
+  end
 
-    # acc.each do |a|
-    #   begin
-    #   puts a.slice(:index, :x, :y, :angle, :corner).inspect
-    #   rescue
-    #     raise "problem with #{a}"
-    #   end
-    # end
+  def make_corners_45_degrees(steps)
+    acc = []
+    steps.each.with_index do |step, i|
+      if step[:direction] == step[:previous_direction]
+        acc << step
+        next
+      end
+
+      pstep = previous_step(steps, step)
+      nstep = next_step_in(steps, step, index: i)
+
+      offset = TileBoard::TILE_SIZE / 2
+
+      p_override = case pstep[:direction]
+      when :up
+        { y: pstep[:y] + offset }
+      when :right
+        { x: pstep[:x] + offset }
+      when :left
+        { x: pstep[:x] - offset }
+      when :down
+        { y: pstep[:y] - offset }
+      end
+
+      n_override = case nstep[:direction]
+      when :up
+        { y: nstep[:y] + offset }
+      when :right
+        { x: nstep[:x] + offset }
+      when :left
+        { x: nstep[:x] - offset }
+      when :down
+        { y: nstep[:y] - offset }
+      end
+
+      puts acc << step.dup.merge(p_override).merge(corner_angle: true)
+      puts acc << step.dup.merge(n_override).merge(corner_angle: true)
+      # raise
+    end
+
+    # acc.each { |a| puts a.slice(:x, :y, :corner_angle, :corner, :previous_direction, :direction, :next_direction).inspect }
     # raise
-
     acc
   end
 
