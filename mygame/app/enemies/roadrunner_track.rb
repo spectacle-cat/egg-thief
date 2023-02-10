@@ -6,7 +6,7 @@ class RoadrunnerTrack
 
   # one tile per X ticks
   SPEED = 30
-  # SPEED = 75
+  # SPEED = 1000
 
   def initialize(args, track)
     @args = args
@@ -26,7 +26,7 @@ class RoadrunnerTrack
 
     step = from_step.dup
     nstep = next_step(step)
-    pstep = previous_step(steps, step)
+    # pstep = previous_step(steps, step)
 
     current_progress = args.easing.ease(
       last_stepped_at,
@@ -52,19 +52,23 @@ class RoadrunnerTrack
       raise "no direction"
     end
 
-    if step[:angle] == 90 && pstep[:angle] == 360
-      step[:angle] = 0
-    end
+      # if step[:angle] == 90 && pstep[:angle] == 360
+      #   step[:angle] = 0
+      # end
     if step[:angle] == 360 && nstep[:angle] == 90
       step[:angle] = 0
     end
+    # if step[:direction] == :up && nstep[:angle] == 90
+    #   step[:angle] = 0
+    # end
+
 
     step[:angle] = increment_angle(step[:angle], nstep[:angle], current_progress)
 
     self.position = step
-    args.outputs.debug << [200, 100, "Angle: #{step[:angle]}"].label
-    args.outputs.debug << [200, 50, "Direction: #{step[:direction]}"].label
-    args.outputs.debug << [200, 75, "Row: #{step[:row]} - Column: #{step[:column]}"].label
+    args.outputs.debug << [200, 100, "Angle: #{step[:angle]} - Next Angle: #{nstep[:angle]}"].label
+    args.outputs.debug << [200, 50, "Direction: #{step[:direction]} - Next Direction: #{nstep[:direction]}"].label
+    args.outputs.debug << [200, 75, "Row: #{step[:row]} - Column: #{step[:column]} - Corner: #{step[:corner]}"].label
 
     # steps.each { |step| args.outputs.debug << step.border }
 
