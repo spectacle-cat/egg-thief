@@ -5,7 +5,7 @@ class RoadrunnerTrack
   ALPHABET = %w[a b c d e f g h i j k l m n o p q r s t u v w x y z]
 
   # one tile per X ticks
-  SPEED = 30
+  SPEED = 60
   # SPEED = 1000
 
   def initialize(args, track)
@@ -19,48 +19,45 @@ class RoadrunnerTrack
   end
 
   def tick
-    if args.tick_count % SPEED == 0
-      self.last_stepped_at = args.tick_count
-      increment_step
-    end
-
     step = from_step.dup
     nstep = next_step(step)
-    # pstep = previous_step(steps, step)
+
+    pixels_per_frame = 6
+    step_distance = $geometry.distance(step, nstep)
+    distance = $geometry.distance(step, self.position) + pixels_per_frame
+
+    if distance >= (step_distance * 0.6)
+      self.last_stepped_at = args.tick_count
+      self.from_step = step = next_step(from_step).dup
+      nstep = next_step(step)
+      self.from_step = step
+    end
 
     current_progress = args.easing.ease(
       last_stepped_at,
       args.state.tick_count,
-      SPEED,
-      step[:corner] ? :quad : :identity
+      pixels_per_frame * 60,
+      :identity
     )
 
-    case step[:direction]
-    when :up
-      step[:y] += (nstep[:y] - step[:y]) * current_progress
-    when :down
-      step[:y] -= (step[:y] - nstep[:y]) * current_progress
-    when :right
-      step[:x] += (nstep[:x] - step[:x]) * current_progress
-    when :left
-      begin
-      step[:x] -= (step[:x] - nstep[:x]) * current_progress
-      rescue
-        raise "issue with left direction - sx: #{step[:x]} nx: #{nstep[:x]} progress: #{current_progress} (step #{step} nstep: #{nstep})"
-      end
-    else
-      raise "no direction"
-    end
+    direction_x = (nstep[:x] - self.position[:x])
+    direction_y = (nstep[:y] - self.position[:y])
 
-    if step[:angle] == 360 && nstep[:angle] == 90
-      step[:angle] = 0
-    end
-    step[:angle] = increment_angle(step[:angle], nstep[:angle], current_progress)
+    nx, ny = normalize(direction_x, direction_y)
+
+    distance_x = nx * pixels_per_frame
+    distance_y = ny * pixels_per_frame
+
+    step[:x] = self.position[:x] + distance_x
+    step[:y] = self.position[:y] + distance_y
+
+    step[:angle] = (($geometry.angle_to self.position, nstep) - 90)
 
     self.position = step
-    args.outputs.debug << [200, 100, "Angle: #{step[:angle]} - Next Angle: #{nstep[:angle]}"].label
-    args.outputs.debug << [200, 50, "Direction: #{step[:direction]} - Next Direction: #{nstep[:direction]}"].label
-    args.outputs.debug << [200, 75, "Row: #{step[:row]} - Column: #{step[:column]} - Corner: #{step[:corner]} - Corner Angle: #{step[:corner_angle] == true}"].label
+    # args.outputs.debug << [200, 100, "Angle: #{step[:angle]} - Next Angle: #{nstep[:angle]}"].label
+    args.outputs.debug << [200, 75, "X: #{step[:x]} - y: #{step[:y]} - Distance: #{distance}"].label
+    # args.outputs.debug << [200, 50, "Direction: #{step[:direction]} - Next Direction: #{nstep[:direction]}"].label
+    args.outputs.debug << [200, 50, "XDirection: #{direction_x} - YDirection: #{direction_y}"].label
 
     # steps.each { |step| args.outputs.debug << step.border }
 
@@ -79,6 +76,16 @@ class RoadrunnerTrack
     self
   end
 
+  #return the magnitude of the vector
+  def mag(x, y)
+    ((x**2)+(y**2))**0.5
+  end
+
+  #returns a new normalize version of the vector
+  def normalize(x, y)
+    [x/mag(x, y), y/mag(x, y)]
+  end
+
   def increment_angle(angle, next_angle, delta)
     r = if angle > next_angle
       angle - ((angle - next_angle) * delta)
@@ -90,29 +97,15 @@ class RoadrunnerTrack
     r
   end
 
-  def increment_step
-    if args.tick_count % SPEED == 0
-      ns = next_step(from_step)
-      self.from_step = ns
-    end
-  end
-
   def next_step(step)
-      i = step[:index]
-      puts "last index: #{steps.last[:index]}"
-      ni = if i == (steps.last[:index])
-        puts "last"
-        1
-      else
-        puts "not last (#{i})"
-        i + 1
-      end
+    i = step[:index]
+    ni = if i == (steps.last[:index])
+      1
+    else
+      i + 1
+    end
 
-      r = steps[ni - 1]
-      raise "no next step #{step} - i: #{i} ni: #{ni} steps count: #{steps.count} - 1 r: #{r}" unless r
-      r
-    # rescue => e
-    #   raise "issue with next step #{step} - i: #{i} ni: #{ni} steps count: #{steps.count} - 1, #{e}"
+    steps[ni - 1]
   end
 
   def next_step_in(coll, step, index: nil)
