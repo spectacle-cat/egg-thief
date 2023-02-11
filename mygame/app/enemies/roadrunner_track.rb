@@ -4,8 +4,8 @@ class RoadrunnerTrack
 
   ALPHABET = %w[a b c d e f g h i j k l m n o p q r s t u v w x y z]
 
-  # one tile per X ticks
-  SPEED = 60
+  # pixels per frame
+  SPEED = 4
   # SPEED = 1000
 
   def initialize(args, track)
@@ -21,24 +21,41 @@ class RoadrunnerTrack
   def tick
     step = from_step.dup
     nstep = next_step(step)
+    pstep = prev_step(step)
 
-    pixels_per_frame = 6
-    step_distance = $geometry.distance(step, nstep)
-    distance = $geometry.distance(step, self.position) + pixels_per_frame
+    near_corner = step[:corner] || nstep[:corner]
 
-    if distance >= (step_distance * 0.6)
+    pixels_per_frame = if step[:corner]
+      SPEED * 0.7
+    elsif nstep[:corner]
+      SPEED # * 0.3
+    elsif pstep[:corner]
+      SPEED * 0.7
+    else
+      SPEED
+    end
+
+    if args.tick_count % 60 == 0
       self.last_stepped_at = args.tick_count
-      self.from_step = step = next_step(from_step).dup
-      nstep = next_step(step)
-      self.from_step = step
     end
 
     current_progress = args.easing.ease(
       last_stepped_at,
       args.state.tick_count,
-      pixels_per_frame * 60,
+      pixels_per_frame,
       :identity
     )
+
+    pixels_per_frame *= current_progress
+
+    step_distance = $geometry.distance(step, nstep)
+    distance = $geometry.distance(step, self.position) + pixels_per_frame
+
+    if distance >= (step_distance * 0.6)
+      self.from_step = step = next_step(from_step).dup
+      nstep = next_step(step)
+      self.from_step = step
+    end
 
     direction_x = (nstep[:x] - self.position[:x])
     direction_y = (nstep[:y] - self.position[:y])
@@ -48,29 +65,30 @@ class RoadrunnerTrack
     distance_x = nx * pixels_per_frame
     distance_y = ny * pixels_per_frame
 
+    step[:angle] = (($geometry.angle_to self.position, nstep) - 90)
     step[:x] = self.position[:x] + distance_x
     step[:y] = self.position[:y] + distance_y
 
-    step[:angle] = (($geometry.angle_to self.position, nstep) - 90)
+
 
     self.position = step
     # args.outputs.debug << [200, 100, "Angle: #{step[:angle]} - Next Angle: #{nstep[:angle]}"].label
-    args.outputs.debug << [200, 75, "X: #{step[:x]} - y: #{step[:y]} - Distance: #{distance}"].label
+    # args.outputs.debug << [200, 75, "X: #{step[:x]} - y: #{step[:y]} - Distance: #{distance}"].label
     # args.outputs.debug << [200, 50, "Direction: #{step[:direction]} - Next Direction: #{nstep[:direction]}"].label
-    args.outputs.debug << [200, 50, "XDirection: #{direction_x} - YDirection: #{direction_y}"].label
+    # args.outputs.debug << [200, 50, "XDirection: #{direction_x} - YDirection: #{direction_y}"].label
 
     # steps.each { |step| args.outputs.debug << step.border }
 
-    steps.each do |i|
-      stepb = next_step(i)
-      args.outputs.debug <<
-      if i[:corner_angle] == true
-         [i[:x], i[:y], stepb[:x], stepb[:y], 0, 150, 250].line
-      else
-         [i[:x], i[:y], stepb[:x], stepb[:y], 200, 200, 0].line
-      end
-    end
-    args.outputs.debug << [step[:x], step[:y], nstep[:x], nstep[:y], 0, 200, 0].line
+    # steps.each do |i|
+    #   stepb = next_step(i)
+    #   args.outputs.debug <<
+    #   if i[:corner_angle] == true
+    #      [i[:x], i[:y], stepb[:x], stepb[:y], 0, 150, 250].line
+    #   else
+    #      [i[:x], i[:y], stepb[:x], stepb[:y], 200, 200, 0].line
+    #   end
+    # end
+    # args.outputs.debug << [step[:x], step[:y], nstep[:x], nstep[:y], 0, 200, 0].line
 
 
     self
@@ -101,6 +119,17 @@ class RoadrunnerTrack
     i = step[:index]
     ni = if i == (steps.last[:index])
       1
+    else
+      i + 1
+    end
+
+    steps[ni - 1]
+  end
+
+  def prev_step(step)
+    i = step[:index]
+    ni = if i == (steps.first[:index])
+      steps.last[:index]
     else
       i + 1
     end

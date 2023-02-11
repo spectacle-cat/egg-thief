@@ -23,7 +23,7 @@ module Enemies
 
     args.state.enemies.roadrunner_tracks.each do |track|
       r = Roadrunner.new(track.tick.position)
-      args.outputs.debug << [r.x, r.y, r.h, r.w].border
+      # args.outputs.debug << [r.x, r.y, r.h, r.w].border
       sprites << r
     end
 
