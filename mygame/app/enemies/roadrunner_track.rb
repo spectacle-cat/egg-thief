@@ -5,7 +5,7 @@ class RoadrunnerTrack
   ALPHABET = %w[a b c d e f g h i j k l m n o p q r s t u v w x y z]
 
   # pixels per frame
-  SPEED = 4
+  SPEED = 2
   # SPEED = 1000
 
   def initialize(args, track)
@@ -35,26 +35,12 @@ class RoadrunnerTrack
       SPEED
     end
 
-    if args.tick_count % 60 == 0
-      self.last_stepped_at = args.tick_count
-    end
-
-    current_progress = args.easing.ease(
-      last_stepped_at,
-      args.state.tick_count,
-      pixels_per_frame,
-      :identity
-    )
-
-    pixels_per_frame *= current_progress
-
     step_distance = $geometry.distance(step, nstep)
-    distance = $geometry.distance(step, self.position) + pixels_per_frame
+    distance = ($geometry.distance(step, self.position) + pixels_per_frame)
 
     if distance >= (step_distance * 0.6)
       self.from_step = step = next_step(from_step).dup
       nstep = next_step(step)
-      self.from_step = step
     end
 
     direction_x = (nstep[:x] - self.position[:x])
@@ -65,11 +51,9 @@ class RoadrunnerTrack
     distance_x = nx * pixels_per_frame
     distance_y = ny * pixels_per_frame
 
-    step[:angle] = (($geometry.angle_to self.position, nstep) - 90)
     step[:x] = self.position[:x] + distance_x
     step[:y] = self.position[:y] + distance_y
-
-
+    step[:angle] = (($geometry.angle_to step, nstep)) - 90
 
     self.position = step
     # args.outputs.debug << [200, 100, "Angle: #{step[:angle]} - Next Angle: #{nstep[:angle]}"].label
@@ -79,16 +63,16 @@ class RoadrunnerTrack
 
     # steps.each { |step| args.outputs.debug << step.border }
 
-    # steps.each do |i|
-    #   stepb = next_step(i)
-    #   args.outputs.debug <<
-    #   if i[:corner_angle] == true
-    #      [i[:x], i[:y], stepb[:x], stepb[:y], 0, 150, 250].line
-    #   else
-    #      [i[:x], i[:y], stepb[:x], stepb[:y], 200, 200, 0].line
-    #   end
-    # end
-    # args.outputs.debug << [step[:x], step[:y], nstep[:x], nstep[:y], 0, 200, 0].line
+    steps.each do |i|
+      stepb = next_step(i)
+      args.outputs.debug <<
+      if i[:corner_angle] == true
+         [i[:x], i[:y], stepb[:x], stepb[:y], 0, 150, 250].line
+      else
+         [i[:x], i[:y], stepb[:x], stepb[:y], 200, 200, 0].line
+      end
+    end
+    args.outputs.debug << [step[:x], step[:y], nstep[:x], nstep[:y], 0, 200, 0].line
 
 
     self
