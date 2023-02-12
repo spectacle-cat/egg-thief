@@ -14,17 +14,31 @@ class Vector
   end
 
   def *(amount)
-    Vector.new(x: x * amount, y: y * amount)
+    vamount = Vector.build(amount)
+    Vector.new(x: x * vamount.x, y: y * vamount.y)
+  end
+
+  def +(amount)
+    vamount = Vector.build(amount)
+    Vector.new(x: x + vamount.x, y: y + vamount.y)
+  end
+
+  def inspect
+    serialize
+  end
+
+  def serialize
+    { x: x, y: y }
   end
 
   class << self
     def build(data)
       if data.is_a?(Array)
-        new(arr.first, arr.last)
+        new(x: data.first, y: data.last)
       elsif data.is_a?(Hash)
-        new(data[:x], data[:y])
+        new(x: data[:x], y: data[:y])
       elsif data.respond_to?(:x) && data.respond_to?(:y)
-        new(data.x, data.y)
+        new(x: data.x, y: data.y)
       else
         raise "cannot build vector from #{data}"
       end
@@ -35,7 +49,7 @@ class Vector
     end
 
     def distance_between(a_vector, b_vector)
-      $geometry.distance(a_vector, b_vector)
+      $geometry.distance(Vector.build(a_vector), Vector.build(b_vector))
     end
   end
 end

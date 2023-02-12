@@ -1,4 +1,5 @@
 require 'app/common/direction.rb'
+require 'app/common/vector.rb'
 require 'app/player.rb'
 require 'app/enemies.rb'
 require 'app/pathing/track_builder.rb'

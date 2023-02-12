@@ -11,7 +11,7 @@ module Enemies
         tracks.each do |track|
             track = TrackBuilder.new(args, track).build_track
             entity = TrackingEntity.new(track: TrackLoop.new(track))
-            args.state.enemies.roadrunner << entity
+            args.state.enemies.roadrunners << entity
         end
       end
     end
@@ -21,7 +21,11 @@ module Enemies
     sprites = []
 
     args.state.enemies.roadrunners.each do |entity|
-      sprites << Roadrunner.new(entity.tick.position)
+      pos = entity.tick(args).position
+      sprites << Roadrunner.new(pos.serialize)
+
+      entity.show_debug(args)
+      entity.track.show_debug(args)
     end
 
     args.outputs.sprites << sprites

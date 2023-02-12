@@ -10,37 +10,42 @@ class TrackLoop
     @current_step = steps[0]
     @previous_step = find_previous_step
     @next_step = find_next_step
-    @last_index = steps.last[:index]
   end
 
   def update!(position)
-    if on_track?(position)
+    # if on_track?(position)
+    #   puts "increment step"
+    #   puts "next step: #{next_step[:index]}"
       increment_step
-    else
-      # set_current_step(find_closest_step(position))
-      raise "TODO: implement finding the closest step to get back on track"
-    end
+    #   puts "new next step: #{next_step[:index]}"
+    # else
+    #   # set_current_step(find_closest_step(position))
+    #   raise "TODO: implement finding the closest step to get back on track"
+    # end
   end
 
   def find_track_top_speed
     add_distances_to_steps
 
-    min(step_distances)
+    step_distances.min
   end
 
-  def on_track?
+  def on_track?(position)
     distance_from_current_step =
       Vector.distance_between(position, current_step)
     distance_from_next_step =
       Vector.distance_between(position, next_step)
     distance_from_next_next_step =
       Vector.distance_between(position, current_step)
+
+    distance_from_next_step < distance_from_current_step &&
+      distance_from_next_step < distance_from_next_next_step
   end
 
   def increment_step
-    previous_step = current_step
-    current_step = next_step
-    next_step = find_next_step
+    self.previous_step = current_step
+    self.current_step = next_step
+    self.next_step = find_next_step
   end
 
   def find_next_step
@@ -76,6 +81,8 @@ class TrackLoop
       step[:index] = index
       index += 1
     end
+
+    @last_index = index - 1
   end
 
   def add_distances_to_steps
@@ -87,5 +94,21 @@ class TrackLoop
 
   def step_distances
     steps.map { |step| step[:distance_to_next_step] }
+  end
+
+  def show_debug(args)
+    steps.each do |step|
+      stepb = lookup_step_after(step)
+      args.outputs.debug <<
+      if step[:corner_angle] == true
+        [step[:x], step[:y], stepb[:x], stepb[:y], 0, 150, 250].line
+      else
+        [step[:x], step[:y], stepb[:x], stepb[:y], 200, 200, 0].line
+      end
+    end
+    args.outputs.debug << [
+      current_step[:x], current_step[:y],
+      next_step[:x], next_step[:y], 0, 200, 0
+    ].line
   end
 end
