@@ -7,20 +7,16 @@ class TrackingEntity
     attr_accessor :point, :angle
 
     def initialize(point:, angle:)
-      raise "no point" if point.nil?
-      @point = point
+      @point = Vector.build(point)
       @angle = angle
     end
 
     def move(normalized_direction, speed)
-      # puts "point before: #{point.serialize}"
-      # puts "direction * speed: #{v.serialize}"
       self.point = next_point(normalized_direction, speed)
-      # puts "point after: #{point.serialize}"
     end
 
     def next_point(normalized_direction, speed)
-      point + Vector.build(normalized_direction * speed)
+      point + Vector.build(normalized_direction) * speed
     end
 
     def x
@@ -41,7 +37,7 @@ class TrackingEntity
   end
 
   def initialize(track:)
-    @check_position_ticks = 10 # frames
+    @check_position_ticks = 20 # frames
     last_checked_at = 0
 
     @track = track
@@ -60,24 +56,16 @@ class TrackingEntity
     if check_position?(args)
       last_checked_at = args.tick_count
       if reached_current_point?
-        puts "position before: #{position.serialize}"
-        puts "track next step (#{track.next_step[:index]}) - x: #{track.next_step[:x]}, y: #{track.next_step[:y]}"
-
-
         track.update!(position)
-        puts "position after: #{position.serialize}"
 
         self.speed = step_speed
         self.direction = direction_from_position
         self.angle = step_angle
-        # raise if track.next_step[:index] == 10
       end
       move
     else
       move
     end
-
-    args.outputs.debug << [ 100, 100, "current step: #{track.current_step[:index]}" ].label
 
     self
   end
@@ -85,12 +73,7 @@ class TrackingEntity
   private
 
   def move
-    # puts "position before: #{position.serialize}"
     position.move(direction, speed)
-    # puts "direction: #{direction}"
-    # puts "speed: #{speed}"
-    # puts "position after: #{position.serialize}"
-    # raise
     turn
   end
 
@@ -105,7 +88,6 @@ class TrackingEntity
   end
 
   def step_speed
-    puts "top speed: #{track.top_speed}"
     top_speed = track.top_speed / check_position_ticks
     base_speed = top_speed * 0.5
 
@@ -133,9 +115,7 @@ class TrackingEntity
   end
 
   def reached_current_point?
-    # overshot? make this a line past the point or something
     close_enough?
-    # overshot?
   end
 
   def close_enough?(strategy: :percent)
@@ -151,24 +131,7 @@ class TrackingEntity
         raise "Unknown strategy: #{strategy}"
       end
 
-    begin
-      distance_between(position, track.next_step) < distance_allowance
-    rescue
-      puts "distance_between(position, track.next_step) < distance_allowance
-"
-      puts "distance_between(#{position}, #{track.next_step}) < #{distance_allowance}"
-      raise
-    end
-  end
-
-  def overshot?
-    puts "distance_between(track.current_step, track.next_step):"
-    puts "#{distance_between(track.current_step, track.next_step)}"
-    puts "distance_between(position, track.next_step):"
-    puts "#{distance_between(position, track.next_step)}"
-
-    distance_between(track.current_step, track.next_step) * 0.9 <=
-      distance_between(position, track.next_step)
+    distance_between(position, track.next_step) < distance_allowance
   end
 
   def distance_between(a_vector, b_vector)
@@ -191,6 +154,8 @@ class TrackingEntity
   end
 
   def show_debug(args)
+    args.outputs.debug << [ 100, 100, "current step: #{track.current_step[:index]}" ].label
+
     args.outputs.debug << [
       track.current_step[:x], track.current_step[:y],
       position.x, position.y, 0, 200, 250

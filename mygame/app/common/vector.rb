@@ -14,13 +14,25 @@ class Vector
   end
 
   def *(amount)
-    vamount = Vector.build(amount)
-    Vector.new(x: x * vamount.x, y: y * vamount.y)
+    if amount.is_a?(Float)
+      Vector.new(x: x * amount, y: y * amount)
+    else
+      vamount = Vector.build(amount)
+      Vector.new(x: x * vamount.x, y: y * vamount.y)
+    end
   end
 
   def +(amount)
-    vamount = Vector.build(amount)
-    Vector.new(x: x + vamount.x, y: y + vamount.y)
+    if amount.is_a?(Float)
+      puts "im a float"
+      Vector.new(x: x + amount, y: y + amount)
+    else
+      puts "im not a float"
+      vamount = Vector.build(amount)
+      puts "amount: #{amount.inspect}"
+      puts "vamount: #{vamount.inspect}"
+      Vector.new(x: x + vamount.x, y: y + vamount.y)
+    end
   end
 
   def inspect
@@ -33,7 +45,9 @@ class Vector
 
   class << self
     def build(data)
-      if data.is_a?(Array)
+      if data.is_a?(Vector)
+        data
+      elsif data.is_a?(Array)
         new(x: data.first, y: data.last)
       elsif data.is_a?(Hash)
         new(x: data[:x], y: data[:y])
