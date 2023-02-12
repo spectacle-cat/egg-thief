@@ -18,87 +18,6 @@ class TrackBuilder
     @last_up_was_zero = true
   end
 
-  def tick
-    step = from_step.dup
-    nstep = next_step(step)
-    pstep = prev_step(step)
-
-    near_corner = step[:corner] || nstep[:corner]
-
-    pixels_per_frame = if step[:corner]
-      SPEED * 0.7
-    elsif nstep[:corner]
-      SPEED # * 0.3
-    elsif pstep[:corner]
-      SPEED * 0.7
-    else
-      SPEED
-    end
-
-    step_distance = $geometry.distance(step, nstep)
-    distance = ($geometry.distance(step, self.position) + pixels_per_frame)
-
-    if distance >= (step_distance * 0.6)
-      self.from_step = step = next_step(from_step).dup
-      nstep = next_step(step)
-    end
-
-    direction_x = (nstep[:x] - self.position[:x])
-    direction_y = (nstep[:y] - self.position[:y])
-
-    nx, ny = normalize(direction_x, direction_y)
-
-    distance_x = nx * pixels_per_frame
-    distance_y = ny * pixels_per_frame
-
-    step[:x] = self.position[:x] + distance_x
-    step[:y] = self.position[:y] + distance_y
-    step[:angle] = (($geometry.angle_to step, nstep)) - 90
-
-    self.position = step
-    # args.outputs.debug << [200, 100, "Angle: #{step[:angle]} - Next Angle: #{nstep[:angle]}"].label
-    # args.outputs.debug << [200, 75, "X: #{step[:x]} - y: #{step[:y]} - Distance: #{distance}"].label
-    # args.outputs.debug << [200, 50, "Direction: #{step[:direction]} - Next Direction: #{nstep[:direction]}"].label
-    # args.outputs.debug << [200, 50, "XDirection: #{direction_x} - YDirection: #{direction_y}"].label
-
-    # steps.each { |step| args.outputs.debug << step.border }
-
-    steps.each do |i|
-      stepb = next_step(i)
-      args.outputs.debug <<
-      if i[:corner_angle] == true
-         [i[:x], i[:y], stepb[:x], stepb[:y], 0, 150, 250].line
-      else
-         [i[:x], i[:y], stepb[:x], stepb[:y], 200, 200, 0].line
-      end
-    end
-    args.outputs.debug << [step[:x], step[:y], nstep[:x], nstep[:y], 0, 200, 0].line
-
-
-    self
-  end
-
-  #return the magnitude of the vector
-  def mag(x, y)
-    ((x**2)+(y**2))**0.5
-  end
-
-  #returns a new normalize version of the vector
-  def normalize(x, y)
-    [x/mag(x, y), y/mag(x, y)]
-  end
-
-  def increment_angle(angle, next_angle, delta)
-    r = if angle > next_angle
-      angle - ((angle - next_angle) * delta)
-    elsif angle < next_angle
-      angle + ((next_angle - angle) * delta)
-    else
-      angle
-    end
-    r
-  end
-
   def next_step(step)
     i = step[:index]
     ni = if i == (steps.last[:index])
@@ -144,16 +63,12 @@ class TrackBuilder
     build_points
     add_facing_angles_to_points
     add_distance_to_points
-    # r =
-    reindex_coll(
+
       calculate_angles(
+    reindex_coll(
         make_corners_45_degrees(
           add_corners_to_steps(
             add_steps_between_points))))
-
-    # r.each {|i| puts i.slice(:angle, :direction).inspect }
-    # raise
-    # r
   end
 
   def calculate_angles(steps)
@@ -173,12 +88,6 @@ class TrackBuilder
       prev_angle = prev_step[:angle]
       angle = Common::Direction.angle(step[:direction])
       next_angle = next_step[:angle]
-
-      if prev_angle != angle && next_angle != angle
-      elsif prev_angle == angle && next_angle != angle
-      elsif prev_angle != angle && next_angle == angle
-      elsif prev_angle == angle && next_angle == angle
-      end
 
       if next_angle == 270 && angle == 0
         angle = 360
@@ -207,13 +116,13 @@ class TrackBuilder
   def make_corners_45_degrees(steps)
     acc = []
     steps.each.with_index do |step, i|
-      if step[:direction] == step[:previous_direction]
+      pstep = previous_step(steps, step)
+      nstep = next_step_in(steps, step, index: i)
+
+      if step[:direction] == step[:previous_direction] # && nstep[:corner] != true
         acc << step
         next
       end
-
-      pstep = previous_step(steps, step)
-      nstep = next_step_in(steps, step, index: i)
 
       offset = TileBoard::TILE_SIZE / 2
 
@@ -239,8 +148,8 @@ class TrackBuilder
         { y: nstep[:y] - offset }
       end
 
-      puts acc << step.dup.merge(p_override).merge(corner_angle: true)
-      puts acc << step.dup.merge(n_override).merge(corner_angle: true)
+      acc << step.dup.merge(p_override).merge(corner_angle: true)
+      acc << step.dup.merge(n_override).merge(corner_angle: true)
       # raise
     end
 

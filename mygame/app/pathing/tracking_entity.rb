@@ -1,7 +1,12 @@
 class TrackingEntity
   attr_reader :track
   attr_accessor :check_position_ticks, :last_checked_at,
-    :position, :speed, :direction, :angle
+    :position, :speed, :direction, :angle, :sprint
+
+  BASE_SPEED = 0.6
+  SPRINT_SPEED = 1.1
+  CORNER_SPEED = 0.7
+  CHECK_POSITION_TICKS = 10
 
   class Position
     attr_accessor :point, :angle
@@ -37,8 +42,9 @@ class TrackingEntity
   end
 
   def initialize(track:)
-    @check_position_ticks = 20 # frames
+    @check_position_ticks = CHECK_POSITION_TICKS # frames
     last_checked_at = 0
+    @sprint = false
 
     @track = track
     step = track.current_step.dup
@@ -53,6 +59,12 @@ class TrackingEntity
   end
 
   def tick(args)
+    if args.inputs.keyboard.key_down.space
+      self.sprint = true
+    elsif args.inputs.keyboard.key_up.space
+      self.sprint = false
+    end
+
     if check_position?(args)
       last_checked_at = args.tick_count
       if reached_current_point?
@@ -89,21 +101,29 @@ class TrackingEntity
 
   def step_speed
     top_speed = track.top_speed / check_position_ticks
-    base_speed = top_speed * 0.5
+    if sprint
+      base_speed = top_speed * SPRINT_SPEED
+    else
+      base_speed = top_speed * BASE_SPEED
+    end
 
     if track.current_step[:corner]
-      base_speed * 0.7
+      base_speed * CORNER_SPEED
     elsif track.next_step[:corner]
-      base_speed# * 0.3
+      base_speed # * CORNER_SPEED
     elsif track.previous_step[:corner]
-      base_speed * 0.7
+      base_speed * CORNER_SPEED
     else
       base_speed
     end
   end
 
   def step_angle
-    (($geometry.angle_to track.current_step, track.next_step)) - 90
+    if track.previous_step[:corner] == true && track.current_step[:corner] == true
+      (($geometry.angle_to track.next_step, track.lookup_step_after(track.next_step))) - 90
+    else
+      (($geometry.angle_to track.current_step, track.next_step)) - 90
+    end
   end
 
   def direction_from_position
@@ -125,7 +145,7 @@ class TrackingEntity
         buffer = 30 # pixels
         distance_between(track.current_step, track.next_step) - buffer
       when :percent
-        buffer = 0.8
+        buffer = 0.7
         distance_between(track.current_step, track.next_step) * buffer
       else
         raise "Unknown strategy: #{strategy}"
@@ -154,7 +174,7 @@ class TrackingEntity
   end
 
   def show_debug(args)
-    args.outputs.debug << [ 100, 100, "current step: #{track.current_step[:index]}" ].label
+    args.outputs.debug << [ 100, 100, "current step: #{track.current_step[:index]} (sprint: #{sprint == true})" ].label
 
     args.outputs.debug << [
       track.current_step[:x], track.current_step[:y],
