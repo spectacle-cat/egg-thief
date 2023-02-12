@@ -7,12 +7,11 @@ module Enemies
     enemies.each do |(enemy_type, tracks)|
       case enemy_type
       when "Roadrunner"
-        args.state.enemies.roadrunner_tracks ||= []
+        args.state.enemies.roadrunners ||= []
         tracks.each do |track|
-            args.state.enemies.roadrunner_tracks <<
-            track = RoadrunnerTrack.new(args, track)
-            track.build_track
-            track
+            track = TrackBuilder.new(args, track).build_track
+            entity = TrackingEntity.new(track: TrackLoop.new(track))
+            args.state.enemies.roadrunner << entity
         end
       end
     end
@@ -21,10 +20,8 @@ module Enemies
   def tick(args)
     sprites = []
 
-    args.state.enemies.roadrunner_tracks.each do |track|
-      r = Roadrunner.new(track.tick.position)
-      # args.outputs.debug << [r.x, r.y, r.h, r.w].border
-      sprites << r
+    args.state.enemies.roadrunners.each do |entity|
+      sprites << Roadrunner.new(entity.tick.position)
     end
 
     args.outputs.sprites << sprites

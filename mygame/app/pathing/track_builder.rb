@@ -1,4 +1,4 @@
-class RoadrunnerTrack
+class TrackBuilder
   attr_reader :args, :track
   attr_accessor :points, :steps, :position, :from_step, :last_stepped_at
 

@@ -1,7 +1,9 @@
 require 'app/common/direction.rb'
 require 'app/player.rb'
 require 'app/enemies.rb'
-require 'app/enemies/roadrunner_track.rb'
+require 'app/pathing/track_builder.rb'
+require 'app/pathing/track_loop.rb'
+require 'app/pathing/tracking_entity.rb'
 require 'app/tile_board.rb'
 require 'app/collisions.rb'
 
