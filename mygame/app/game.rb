@@ -14,6 +14,7 @@ module Game
   RESTART_DURATION = 60 * 1.5
 
   def tick args
+    # args.gtk.slowmo! 30
     args.outputs.background_color = [56, 52, 14]
     args.state.collected_nests ||= []
     args.state.total_nests ||= 0

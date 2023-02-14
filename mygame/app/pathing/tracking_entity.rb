@@ -90,13 +90,70 @@ class TrackingEntity
   end
 
   def turn
-    angle_increment = (step_angle - position.angle) / check_position_ticks
     # (maybe have to change to -180/180 angles)
-    position.angle += angle_increment
+    # moving_right?
+    position.angle -= angle_increment
+  end
+
+  def next_point_on
+    step = track.lookup_step_before(track.current_step)
+    step_after = track.current_step
+    step_after_after = track.next_step
+
+    $geometry.ray_test [step_after_after.x, step_after_after.y], [step.x, step.y, step_after.x, step_after.y]
+  end
+
+  def angle_change
+    position.angle - step_angle
+  end
+
+  def angle_increment
+    angle_change / check_position_ticks
+  end
+
+  def step_angle
+    angle = unaltered_angle
+
+    if opposite_angle < angle && cycle_switches_to_moving_right
+      angle
+    elsif opposite_angle < angle
+      -opposite_angle
+    else
+      angle
+    end
+  end
+
+  def cycle_switches_to_moving_right
+    track.current_step.corner_angle == true &&
+      track.lookup_step_before(track.current_step).angle == 180 &&
+      next_point_on == :right
+  end
+
+  def unaltered_angle
+    anticlockwise_angle(current_step: track.current_step, next_step: track.next_step)
+  end
+
+  def opposite_angle
+    360 - unaltered_angle
   end
 
   def check_position?(args)
     (args.tick_count % check_position_ticks) == 0
+  end
+
+  def anticlockwise_angle(current_step:, next_step:)
+    if track.previous_step[:corner] == true && track.current_step[:corner] == true
+      (($geometry.angle_to current_step, track.lookup_step_after(next_step))) - 90
+    else
+      (($geometry.angle_to current_step, next_step)) - 90
+    end
+  end
+
+  def direction_from_position
+    direction_x = (track.next_step[:x] - position.x)
+    direction_y = (track.next_step[:y] - position.y)
+
+    Vector.new(x: direction_x, y: direction_y).normalize
   end
 
   def step_speed
@@ -116,22 +173,6 @@ class TrackingEntity
     else
       base_speed
     end
-  end
-
-  def step_angle
-    if track.previous_step[:corner] == true && track.current_step[:corner] == true
-      (($geometry.angle_to track.next_step, track.lookup_step_after(track.next_step))) - 90
-    else
-      (($geometry.angle_to track.current_step, track.next_step)) - 90
-    end
-  end
-
-  def direction_from_position
-    direction_x = (track.next_step[:x] - position.x)
-    direction_y = (track.next_step[:y] - position.y)
-    puts "track next step (#{track.next_step[:index]}) - x: #{track.next_step[:x]}, y: #{track.next_step[:y]}"
-
-    Vector.new(x: direction_x, y: direction_y).normalize
   end
 
   def reached_current_point?
@@ -174,7 +215,9 @@ class TrackingEntity
   end
 
   def show_debug(args)
-    args.outputs.debug << [ 100, 100, "current step: #{track.current_step[:index]} (sprint: #{sprint == true})" ].label
+    args.outputs.debug << [ 100, 100, "corner angle: #{track.current_step.corner_angle == true} (right switch: #{cycle_switches_to_moving_right})" ].label
+    args.outputs.debug << [ 100, 75, "a: #{unaltered_angle}, o: #{opposite_angle}, s: #{step_angle}, p: #{position.angle}" ].label
+
 
     args.outputs.debug << [
       track.current_step[:x], track.current_step[:y],

@@ -7,14 +7,14 @@ class Vector
   end
 
   def normalize
-    [
-      x / Vector.mag(x, y),
-      y / Vector.mag(x, y)
-    ]
+    Vector.new(
+      x: x / Vector.mag(x, y),
+      y: y / Vector.mag(x, y)
+    )
   end
 
   def *(amount)
-    if amount.is_a?(Float)
+    if amount.is_a?(Float) || amount.is_a?(Integer)
       Vector.new(x: x * amount, y: y * amount)
     else
       vamount = Vector.build(amount)
@@ -23,16 +23,16 @@ class Vector
   end
 
   def +(amount)
-    if amount.is_a?(Float)
-      puts "im a float"
+    if amount.is_a?(Float) || amount.is_a?(Integer)
       Vector.new(x: x + amount, y: y + amount)
     else
-      puts "im not a float"
       vamount = Vector.build(amount)
-      puts "amount: #{amount.inspect}"
-      puts "vamount: #{vamount.inspect}"
       Vector.new(x: x + vamount.x, y: y + vamount.y)
     end
+  end
+
+  def dot(other_vector)
+    (x * other_vector.x) + (y * other_vector.y)
   end
 
   def inspect
@@ -41,6 +41,10 @@ class Vector
 
   def serialize
     { x: x, y: y }
+  end
+
+  def to_s
+    "x: #{x}, y: #{y}"
   end
 
   class << self

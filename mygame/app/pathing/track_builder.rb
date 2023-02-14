@@ -64,9 +64,9 @@ class TrackBuilder
     add_facing_angles_to_points
     add_distance_to_points
 
-      calculate_angles(
     reindex_coll(
-        make_corners_45_degrees(
+      make_corners_45_degrees(
+        calculate_angles(
           add_corners_to_steps(
             add_steps_between_points))))
   end
@@ -88,18 +88,6 @@ class TrackBuilder
       prev_angle = prev_step[:angle]
       angle = Common::Direction.angle(step[:direction])
       next_angle = next_step[:angle]
-
-      if next_angle == 270 && angle == 0
-        angle = 360
-      end
-
-      if prev_angle == 360 && angle == 0
-        angle = 360
-      end
-
-      if prev_angle == 270 && angle == 0
-        angle = 360
-      end
 
       step[:angle] = angle
     end
@@ -148,8 +136,8 @@ class TrackBuilder
         { y: nstep[:y] - offset }
       end
 
-      acc << step.dup.merge(p_override).merge(corner_angle: true)
-      acc << step.dup.merge(n_override).merge(corner_angle: true)
+      acc << step.dup.merge(p_override).merge(corner_angle: true, angle: pstep[:angle] - 45)
+      acc << step.dup.merge(n_override)#.merge(corner_angle: true)
       # raise
     end
 
