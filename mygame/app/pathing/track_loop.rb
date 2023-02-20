@@ -12,7 +12,7 @@ class TrackLoop
     @next_step = find_next_step
   end
 
-  def update!(position)
+  def update!
     # if on_track?(position)
     #   puts "increment step"
     #   puts "next step: #{next_step[:index]}"

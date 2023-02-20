@@ -1,6 +1,8 @@
 class Roadrunner < Sprite
-  def initialize opts
-    @opts = opts
+  attr_accessor :origin_point, :x, :y
+
+  def initialize(origin_point:, angle: 0)
+    self.origin_point = origin_point
     start_looping_at = 0
     number_of_sprites = 4
     number_of_frames_to_show_each_sprite = 9
@@ -10,28 +12,24 @@ class Roadrunner < Sprite
       start_looping_at.frame_index number_of_sprites,
                                   number_of_frames_to_show_each_sprite,
                                   does_sprite_loop
-    @x = calculate_x(opts, width: @w, sprite_index: sprite_index)
-    @y = calculate_y(opts, sprite_index: sprite_index)
-    @path = "sprites/roadrunner_#{sprite_index}.png"
     @h = TileBoard::TILE_SIZE * 2
     @w = TileBoard::TILE_SIZE
+    @path = "sprites/roadrunner_#{sprite_index}.png"
 
-    @angle = opts[:angle] || 0
+    @angle = angle
     @angle_anchor_x = 0.5
     @angle_anchor_y = 0.5
   end
 
-  def calculate_x(opts, width: , sprite_index:)
-    opts[:x] # - 3 + ((TileBoard::TILE_SIZE - width) / 2) + (sprite_index * 3)
-    opts[:x] - (TileBoard::TILE_SIZE / 2)
+  def origin_point=(point)
+    @origin_point = point
   end
 
-  def calculate_y(opts, sprite_index: )
-    y = opts[:y] # - 3 + (sprite_index * 3)
-    opts[:y] - (TileBoard::TILE_SIZE)
+  def x
+    origin_point.x - (TileBoard::TILE_SIZE / 2)
+  end
 
-    # if opts[:direction] == :left || opts[:direction] == :right || opts[:corner]
-    #   y -= TileBoard::TILE_SIZE / 2
-    # end
+  def y
+    origin_point.y - (TileBoard::TILE_SIZE)
   end
 end

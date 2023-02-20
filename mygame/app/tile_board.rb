@@ -41,6 +41,7 @@ module TileBoard
     args.state.cover = []
     args.state.roadrunner_path = []
     args.state.finish_point = nil
+    # reset egg counter
   end
 
   def build_tiles(args)
@@ -131,9 +132,25 @@ module TileBoard
   end
 
   def render_tiles(args)
-    args.outputs.sprites << args.state.tiles.map do |tile|
-      tile_sprite(x: tile[:x], y: tile[:y])
+    sprites = []
+    args.state.tiles.map do |tile|
+      sprites << tile_sprite(x: tile[:x], y: tile[:y])
     end
+
+    sprites << Scoring::BackgroundSprite.new
+
+    left_to_find = args.state.nests.count # 3
+    found_score = args.state.empty_nests.count # 1
+
+    left_to_find.times do |n|
+      sprites << Scoring::EggCounter.new(index: found_score + n + 1, enabled: false)
+    end
+
+    found_score.times do |n|
+      sprites << Scoring::EggCounter.new(index: n + 1, enabled: true)
+    end
+
+    args.outputs.sprites << sprites
   end
 
   def render_finish(args)

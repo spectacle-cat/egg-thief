@@ -7,6 +7,8 @@ require 'app/pathing/track_loop.rb'
 require 'app/pathing/tracking_entity.rb'
 require 'app/tile_board.rb'
 require 'app/collisions.rb'
+require 'app/scoring/background_sprite.rb'
+require 'app/scoring/egg_counter.rb'
 
 module Game
   extend self
@@ -14,8 +16,8 @@ module Game
   RESTART_DURATION = 60 * 1.5
 
   def tick args
-    # args.gtk.slowmo! 30
-    args.outputs.background_color = [56, 52, 14]
+    # args.gtk.slowmo! 5
+    args.outputs.background_color = [52, 43, 14]
     args.state.collected_nests ||= []
     args.state.total_nests ||= 0
     args.state.level ||= 1

@@ -9,9 +9,9 @@ module Enemies
       when "Roadrunner"
         args.state.enemies.roadrunners ||= []
         tracks.each do |track|
-            track = TrackBuilder.new(args, track).build_track
-            entity = TrackingEntity.new(track: TrackLoop.new(track))
-            args.state.enemies.roadrunners << entity
+          track = TrackBuilder.new(args, track).build_track
+          entity = TrackingEntity.new(track: TrackLoop.new(track), sprite: Roadrunner)
+          args.state.enemies.roadrunners << entity
         end
       end
     end
@@ -20,13 +20,12 @@ module Enemies
   def tick(args)
     sprites = []
 
-    args.state.enemies.roadrunners.each do |entity|
-      pos = entity.tick(args).position
-      sprites << Roadrunner.new(pos.serialize)
+    # args.state.enemies.roadrunners.each do |entity|
+    #   sprites << entity.tick(args).sprite
 
-      entity.show_debug(args)
-      entity.track.show_debug(args)
-    end
+    #   entity.show_debug(args)
+    #   # entity.track.show_debug(args)
+    # end
 
     args.outputs.sprites << sprites
   end
