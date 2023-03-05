@@ -71,7 +71,6 @@ class TrackingEntity
     ps = Vector.build(track.previous_step)
     cs = Vector.build(track.current_step)
     ns = Vector.build(track.next_step)
-    nns = Vector.build(track.lookup_step_after(track.next_step))
 
     v = Vector.new(x: cs.x - ps.x, y: cs.y - ps.y).normalize
     t = Vector.new(x: v.y, y: -v.x)
@@ -93,10 +92,42 @@ class TrackingEntity
       [200, 50, 50]
     end
 
-    args.outputs.lines << [position.x, position.y, v2.x, v2.y, *color]
-    args.outputs.debug << [ 100, 50, "vt: #{vt}" ].label
-    args.outputs.debug << [ 100, 25, "angle: #{angle}" ].label
 
+    nps = (cs - ps).normalize
+    nns = (ns - ps).normalize
+    d = (nps.x * nns.x) + (nps.y * nns.y)
+    target_angle_change = 180 - (180 * (Math.atan(d) ** -1))
+
+    # d_y = track.next_step.y - track.current_step.y
+    # d_x = track.next_step.x - track.current_step.x
+    # tat = Math.atan2(d_y, d_x)
+    # ta = Math::PI.+(tat)
+    # target_angle = ta.to_degrees
+
+    # nd = Vector.new(x: d_x, y: d_y).normalize
+    # ntat = Math.atan2(nd.x, nd.y)
+
+    # target_angle = $geometry.angle_to(track.current_step, track.next_step) + 90
+    current_angle = sprite.angle
+
+    torque = (45 / speed / check_position_ticks)
+
+    a = if angle == 0.0
+      sprite.angle = step_angle - 90
+    elsif angle > 0.0
+     sprite.angle -= torque
+    elsif angle < 0.0
+      sprite.angle += torque
+    end
+
+    # diff = ((track.next_step.angle - target_angle_change) * (speed / 60))
+    # delta = a
+
+    # sprite.angle = step_angle - 90
+
+    # args.outputs.lines << [position.x, position.y, v2.x, v2.y, *color]
+    # args.outputs.debug << [ 100, 75, "target_angle: #{target_angle_change}" ].label
+    # args.outputs.debug << [ 100, 50, "diff: #{diff.to_i}, delta: #{delta.to_i}" ].label
   end
 
   def step_angle
