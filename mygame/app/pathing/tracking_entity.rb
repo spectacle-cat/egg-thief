@@ -65,118 +65,38 @@ class TrackingEntity
   end
 
   def turn(progress:, args:)
-    # v = (Vector.build(track.current_step) - Vector.build(track.next_step)).normalize
-    v = (Vector.build(track.next_step) - Vector.build(track.current_step)).normalize
-    t = tangent(track.current_step, track.next_step)
-    d = t.dot(v)
-
-    w = (Vector.build(track.current_step) - Vector.build(track.previous_step)).normalize
-    tt = tangent(track.previous_step, track.current_step)
-    dd = t.dot(v)
-
-
-    # a = step_angle
-    theta = (d * 180)
-    a = theta > 90 ? 180 - theta : theta
-    delta = ((a / check_position_ticks) * progress) * speed
-
-    # puts "v: #{v}"
-    # puts "t: #{t}"
-    # puts "d: #{d}"
-    # puts "check_position_ticks: #{check_position_ticks}"
-    # puts "progress: #{progress}"
-    # puts "step_angle: #{step_angle}"
-    # puts "delta: #{delta}"
-    # puts "theta: #{theta}"
-    # puts "a: #{a}"
-    # raise "turning"
-
-    scale = 50
     position = next_point(direction, speed)
-    v1 = v + position
-    v2 = (v * scale) + position
-    t1 = t + position
-    t2 = (t * scale) + position
+    scale = 50
 
-    v3 = w + position
-    v4 = (w * scale) + position
-    t3 = tt + position
-    t4 = (tt * scale) + position
+    ps = Vector.build(track.previous_step)
+    cs = Vector.build(track.current_step)
+    ns = Vector.build(track.next_step)
+    nns = Vector.build(track.lookup_step_after(track.next_step))
 
-    args.outputs.lines << [v1.x, v1.y, v2.x, v2.y, 150, 0, 0]
-    # args.outputs.lines << [t1.x, t1.y, t2.x, t2.y, 0, 0, 150]
-    args.outputs.lines << [v3.x, v3.y, v4.x, v4.y, 200, 200, 200]
-    # args.outputs.lines << [t3.x, t3.y, t4.x, t4.y, 250, 250, 250]
+    v = Vector.new(x: cs.x - ps.x, y: cs.y - ps.y).normalize
+    t = Vector.new(x: v.y, y: -v.x)
 
-    if d < 0
-      # sprite.angle -= delta
+    pt = t + position
+    pt2 = (t * scale) + pt
+    args.outputs.lines << [position.x, position.y, pt2.x, pt2.y, 250, 250, 250]
 
+    origin = cs
+    vt = (t - origin).normalize
+    vns = (ns - origin).normalize
+
+    angle = (t.x * vns.x) + (t.y * vns.y)
+    v2 = (vns * scale) + position
+
+    color = if angle < 0
+      [50, 50, 200]
     else
-      # sprite.angle += delta
+      [200, 50, 50]
     end
-  end
 
-  def tangent(prev_point, point, length: 1)
-    v = { x: point.x - prev_point.x, y: point.y - prev_point.y }
+    args.outputs.lines << [position.x, position.y, v2.x, v2.y, *color]
+    args.outputs.debug << [ 100, 50, "vt: #{vt}" ].label
+    args.outputs.debug << [ 100, 25, "angle: #{angle}" ].label
 
-    normal = Vector.new(x: v.x, y: v.y).normalize
-    t = { x: normal.y, y: -normal.x }
-
-    Vector.new(x: t[:x] * length, y: t[:y] * length)
-  end
-
-  def unit_vector_x
-    v1 = Vector.new(x: sprite.origin_point.x, y: sprite.origin_point.y)
-    v2 = (Vector.new(x: track.next_step.x, y: track.next_step.y))
-
-    unit_vector = (v1 - v2).normalize
-    unit_vector.x
-  end
-
-  def unit_vector_x_test(args)
-    vp = Vector.new(x: track.previous_step.x, y: track.previous_step.y)
-    v1 = Vector.new(x: track.current_step.x, y: track.current_step.y) - vp
-    v2 = Vector.new(x: track.next_step.x, y: track.next_step.y) - vp
-
-    # vp = vp.normalize
-    v1 = v1.normalize
-    v2 = v2.normalize
-    vc = Vector.new(x: -v1.y, y: v1.x)
-
-    args.outputs.debug << [
-      vp.x, vp.y,
-      v1.x, v1.y, 255, 0, 255
-    ].line
-
-    args.outputs.debug << [
-      vp.x, vp.y,
-      v2.x, v2.y, 255, 255, 0
-    ].line
-
-    args.outputs.debug << [
-      vp.x, vp.y,
-      vc.x, vc.y, 0, 0, 0
-    ].line
-
-    "#{Math.atan2(v1.x, v1.y)} #{Math.atan2(v2.x, v2.y)}"
-
-    # v1 = (v1 - vp).normalize
-    # v2 = (v2 - vp).normalize
-
-    # args.outputs.debug << [
-    #   0 + 500, 0 + 500,
-    #   (v1.x * 100) + 500, (v1.y * 100) + 500, 255, 0, 255
-    # ].line
-
-    # args.outputs.debug << [
-    #   0 + 500, 0 + 500,
-    #   (v2.x * 100) + 500, (v2.y * 100) + 500, 255, 255, 0
-    # ].line
-
-
-    # d = v1.dot(v2)
-    # unit_vector = (v2 - v1)
-    # Math.cos(d)
   end
 
   def step_angle
