@@ -1,10 +1,11 @@
 class TrackingEntity
   attr_reader :track
-  attr_accessor :sprite, :speed, :direction, :sprint
+  attr_accessor :sprite, :speed, :direction, :sprint,
+  :last_update_angle, :last_updated_at
 
   BASE_SPEED = 20
   SPRINT_SPEED = 1.0
-  CORNER_SPEED = 0.7
+  CORNER_SPEED = 1.0
   TICKS_PER_TILE = 20
 
   def initialize(track:, sprite: )
@@ -13,6 +14,8 @@ class TrackingEntity
     @track = track
     step = track.current_step.dup
     @sprite = sprite.new(origin_point: Vector.build(step), angle: step[:angle])
+    @last_update_angle = step[:angle]
+    @last_updated_at = 0
 
     @speed = step_speed
     @direction = direction_from_position
@@ -30,6 +33,8 @@ class TrackingEntity
 
       self.speed = step_speed
       self.direction = direction_from_position
+      self.last_update_angle = sprite.angle
+      self.last_updated_at = args.state.tick_count
     end
 
     move
@@ -61,17 +66,9 @@ class TrackingEntity
     vns = (ns - origin).normalize
 
     angle = (t.x * vns.x) + (t.y * vns.y)
+    torque = 45 / TICKS_PER_TILE
 
-    current_progress = args.easing.ease(
-      args.state.tick_count - (args.state.tick_count % TICKS_PER_TILE),
-      args.state.tick_count,
-      TICKS_PER_TILE,
-      :identity
-    )
-
-    torque = (45 / TICKS_PER_TILE)
-
-    a = if angle == 0.0
+    if angle == 0.0
       sprite.angle = step_angle - 90
     elsif angle > 0.0
      sprite.angle -= torque
@@ -92,26 +89,7 @@ class TrackingEntity
   end
 
   def step_speed
-      # top_speed = track.top_speed / 60
-
-      # if sprint
-      #   base_speed = top_speed * SPRINT_SPEED
-      # else
-      #   base_speed = top_speed * BASE_SPEED
-      # end
-    # base_speed = BASE_SPEED
-
-    base_speed = TileBoard::TILE_SIZE / TICKS_PER_TILE
-
-    if track.current_step[:corner]
-      base_speed * CORNER_SPEED
-    elsif track.next_step[:corner]
-      base_speed * CORNER_SPEED
-    elsif track.previous_step[:corner]
-      base_speed * CORNER_SPEED
-    else
-      base_speed
-    end
+    TileBoard::TILE_SIZE / TICKS_PER_TILE
   end
 
   def reached_current_point?

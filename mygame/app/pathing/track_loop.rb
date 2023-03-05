@@ -1,11 +1,10 @@
 class TrackLoop
-  attr_reader :steps, :last_index, :top_speed
+  attr_reader :steps, :last_index
   attr_accessor :previous_step, :current_step, :next_step
 
   def initialize(steps)
     @steps = steps
     reindex!
-    @top_speed = find_track_top_speed
 
     @current_step = steps[0]
     @previous_step = find_previous_step
@@ -22,12 +21,6 @@ class TrackLoop
     #   # set_current_step(find_closest_step(position))
     #   raise "TODO: implement finding the closest step to get back on track"
     # end
-  end
-
-  def find_track_top_speed
-    add_distances_to_steps
-
-    step_distances.min
   end
 
   def on_track?(position)
@@ -83,17 +76,6 @@ class TrackLoop
     end
 
     @last_index = index - 1
-  end
-
-  def add_distances_to_steps
-    steps.each do |step|
-      step[:distance_to_next_step] =
-        Vector.distance_between(step, lookup_step_after(step))
-    end
-  end
-
-  def step_distances
-    steps.map { |step| step[:distance_to_next_step] }
   end
 
   def show_debug(args)
