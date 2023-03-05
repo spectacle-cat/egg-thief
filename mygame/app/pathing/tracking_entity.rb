@@ -4,9 +4,9 @@ class TrackingEntity
     :sprite, :speed, :direction, :sprint
 
   BASE_SPEED = 0.6
-  SPRINT_SPEED = 1.1
+  SPRINT_SPEED = 1.0
   CORNER_SPEED = 0.7
-  CHECK_POSITION_TICKS = 10
+  CHECK_POSITION_TICKS = 5
 
   def initialize(track:, sprite: )
     @check_position_ticks = CHECK_POSITION_TICKS # frames
@@ -85,7 +85,7 @@ class TrackingEntity
       :identity
     )
 
-    torque = (45 / speed / check_position_ticks)
+    torque = (45 / speed) * 0.4
 
     a = if angle == 0.0
       sprite.angle = step_angle - 90
