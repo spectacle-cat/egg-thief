@@ -1,16 +1,13 @@
 class TrackingEntity
   attr_reader :track
-  attr_accessor :check_position_ticks, :last_checked_at,
-    :sprite, :speed, :direction, :sprint
+  attr_accessor :sprite, :speed, :direction, :sprint
 
-  BASE_SPEED = 0.6
+  BASE_SPEED = 20
   SPRINT_SPEED = 1.0
   CORNER_SPEED = 0.7
-  CHECK_POSITION_TICKS = 5
+  TICKS_PER_TILE = 20
 
   def initialize(track:, sprite: )
-    @check_position_ticks = CHECK_POSITION_TICKS # frames
-    last_checked_at = 0
     @sprint = false
 
     @track = track
@@ -28,14 +25,11 @@ class TrackingEntity
       self.sprint = false
     end
 
-    if check_position?(args)
-      last_checked_at = args.tick_count
-      if reached_current_point?
-        track.update!
+    if args.tick_count % TICKS_PER_TILE == 0
+      track.update!
 
-        self.speed = step_speed
-        self.direction = direction_from_position
-      end
+      self.speed = step_speed
+      self.direction = direction_from_position
     end
 
     move
@@ -46,22 +40,12 @@ class TrackingEntity
 
   private
 
-  def check_position?(args)
-    (args.tick_count % check_position_ticks) == 0
-  end
-
-  def ticks_since_last_check(args)
-    remainder = (args.tick_count % check_position_ticks)
-
-    check_position_ticks - remainder
-  end
-
   def move
-    self.sprite.origin_point = next_point(direction, speed)
+    self.sprite.origin_point = next_point
   end
 
-  def next_point(normalized_direction, speed)
-    sprite.origin_point + Vector.build(normalized_direction) * speed
+  def next_point
+    sprite.origin_point + (Vector.build(direction) / TICKS_PER_TILE)
   end
 
   def turn(args:)
@@ -79,13 +63,13 @@ class TrackingEntity
     angle = (t.x * vns.x) + (t.y * vns.y)
 
     current_progress = args.easing.ease(
-      args.state.tick_count - ticks_since_last_check(args),
+      args.state.tick_count - (args.state.tick_count % TICKS_PER_TILE),
       args.state.tick_count,
-      check_position_ticks,
+      TICKS_PER_TILE,
       :identity
     )
 
-    torque = (45 / speed) * 0.4
+    torque = (45 / TICKS_PER_TILE)
 
     a = if angle == 0.0
       sprite.angle = step_angle - 90
@@ -97,12 +81,6 @@ class TrackingEntity
   end
 
   def step_angle
-    # if track.previous_step[:corner] == true && track.current_step[:corner] == true
-    #   (($geometry.angle_to current_step, track.lookup_step_after(next_step))) - 90
-    # else
-    #   (($geometry.angle_to current_step, next_step)) - 90
-    # end
-
     $geometry.angle_to track.current_step, track.next_step
   end
 
@@ -110,21 +88,25 @@ class TrackingEntity
     direction_x = (track.next_step[:x] - sprite.origin_point.x)
     direction_y = (track.next_step[:y] - sprite.origin_point.y)
 
-    Vector.new(x: direction_x, y: direction_y).normalize
+    Vector.new(x: direction_x, y: direction_y) # .normalize
   end
 
   def step_speed
-    top_speed = track.top_speed / check_position_ticks
-    if sprint
-      base_speed = top_speed * SPRINT_SPEED
-    else
-      base_speed = top_speed * BASE_SPEED
-    end
+      # top_speed = track.top_speed / 60
+
+      # if sprint
+      #   base_speed = top_speed * SPRINT_SPEED
+      # else
+      #   base_speed = top_speed * BASE_SPEED
+      # end
+    # base_speed = BASE_SPEED
+
+    base_speed = TileBoard::TILE_SIZE / TICKS_PER_TILE
 
     if track.current_step[:corner]
       base_speed * CORNER_SPEED
     elsif track.next_step[:corner]
-      base_speed # * CORNER_SPEED
+      base_speed * CORNER_SPEED
     elsif track.previous_step[:corner]
       base_speed * CORNER_SPEED
     else
@@ -143,7 +125,7 @@ class TrackingEntity
         buffer = 30 # pixels
         distance_between(track.current_step, track.next_step) - buffer
       when :percent
-        buffer = 0.7
+        buffer = 0.9
         distance_between(track.current_step, track.next_step) * buffer
       else
         raise "Unknown strategy: #{strategy}"
@@ -162,8 +144,6 @@ class TrackingEntity
 
   def serialize
     {
-      check_position_ticks: check_position_ticks.to_s,
-      last_checked_at: last_checked_at.to_s,
       position: sprite.serialize,
       speed: speed.to_s,
       direction: direction.to_s,

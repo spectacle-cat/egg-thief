@@ -22,6 +22,15 @@ class Vector
     end
   end
 
+  def /(amount)
+    if amount.is_a?(Float) || amount.is_a?(Integer)
+      Vector.new(x: x / amount, y: y / amount)
+    else
+      vamount = Vector.build(amount)
+      Vector.new(x: x / vamount.x, y: y / vamount.y)
+    end
+  end
+
   def +(amount)
     if amount.is_a?(Float) || amount.is_a?(Integer)
       Vector.new(x: x + amount, y: y + amount)
