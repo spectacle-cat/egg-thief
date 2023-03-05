@@ -1,7 +1,7 @@
 class TrackingEntity
   attr_reader :track
   attr_accessor :check_position_ticks, :last_checked_at,
-    :sprite, :speed, :direction, :target_angle, :sprint
+    :sprite, :speed, :direction, :sprint
 
   BASE_SPEED = 0.6
   SPRINT_SPEED = 1.1
@@ -19,7 +19,6 @@ class TrackingEntity
 
     @speed = step_speed
     @direction = direction_from_position
-    @target_angle = angle_delta
   end
 
   def tick(args)
@@ -36,12 +35,11 @@ class TrackingEntity
 
         self.speed = step_speed
         self.direction = direction_from_position
-        # self.target_angle = angle_delta
       end
     end
 
     move
-    turn
+    turn(progress: ticks_since_last_check(args), args: args)
 
     self
   end
@@ -52,6 +50,12 @@ class TrackingEntity
     (args.tick_count % check_position_ticks) == 0
   end
 
+  def ticks_since_last_check(args)
+    remainder = (args.tick_count % check_position_ticks)
+
+    check_position_ticks - remainder
+  end
+
   def move
     self.sprite.origin_point = next_point(direction, speed)
   end
@@ -60,26 +64,65 @@ class TrackingEntity
     sprite.origin_point + Vector.build(normalized_direction) * speed
   end
 
-  def turn
-    sprite.angle = angle_delta
-  end
+  def turn(progress:, args:)
+    # v = (Vector.build(track.current_step) - Vector.build(track.next_step)).normalize
+    v = (Vector.build(track.next_step) - Vector.build(track.current_step)).normalize
+    t = tangent(track.current_step, track.next_step)
+    d = t.dot(v)
 
-  def angle_delta
-    a = 180 - degrees
+    w = (Vector.build(track.current_step) - Vector.build(track.previous_step)).normalize
+    tt = tangent(track.previous_step, track.current_step)
+    dd = t.dot(v)
 
-    if unit_vector_x > 0
-      a + 180
+
+    # a = step_angle
+    theta = (d * 180)
+    a = theta > 90 ? 180 - theta : theta
+    delta = ((a / check_position_ticks) * progress) * speed
+
+    # puts "v: #{v}"
+    # puts "t: #{t}"
+    # puts "d: #{d}"
+    # puts "check_position_ticks: #{check_position_ticks}"
+    # puts "progress: #{progress}"
+    # puts "step_angle: #{step_angle}"
+    # puts "delta: #{delta}"
+    # puts "theta: #{theta}"
+    # puts "a: #{a}"
+    # raise "turning"
+
+    scale = 50
+    position = next_point(direction, speed)
+    v1 = v + position
+    v2 = (v * scale) + position
+    t1 = t + position
+    t2 = (t * scale) + position
+
+    v3 = w + position
+    v4 = (w * scale) + position
+    t3 = tt + position
+    t4 = (tt * scale) + position
+
+    args.outputs.lines << [v1.x, v1.y, v2.x, v2.y, 150, 0, 0]
+    # args.outputs.lines << [t1.x, t1.y, t2.x, t2.y, 0, 0, 150]
+    args.outputs.lines << [v3.x, v3.y, v4.x, v4.y, 200, 200, 200]
+    # args.outputs.lines << [t3.x, t3.y, t4.x, t4.y, 250, 250, 250]
+
+    if d < 0
+      # sprite.angle -= delta
+
     else
-      a
+      # sprite.angle += delta
     end
   end
 
-  def degrees
-    180 - (cos_angle * 180)
-  end
+  def tangent(prev_point, point, length: 1)
+    v = { x: point.x - prev_point.x, y: point.y - prev_point.y }
 
-  def cos_angle
-    Math.cos(unit_vector_x)
+    normal = Vector.new(x: v.x, y: v.y).normalize
+    t = { x: normal.y, y: -normal.x }
+
+    Vector.new(x: t[:x] * length, y: t[:y] * length)
   end
 
   def unit_vector_x
@@ -223,9 +266,8 @@ class TrackingEntity
     #   next_point.x, next_point.y, 0, 0, 0
     # ].line
 
-    args.outputs.debug << [ 100, 100, "theta: #{angle_delta.to_i}, degrees: #{degrees}, cos: #{cos_angle}" ].label
-    args.outputs.debug << [ 100, 75, "uvx: #{unit_vector_x}, sprite angle: #{sprite.angle.to_i}" ].label
-    args.outputs.debug << [ 100, 50, "uvx_test: #{unit_vector_x_test(args)}" ].label
+    # args.outputs.debug << [ 100, 75, "uvx: #{unit_vector_x}, sprite angle: #{sprite.angle.to_i}" ].label
+    # args.outputs.debug << [ 100, 50, "uvx_test: #{unit_vector_x_test(args)}" ].label
 
   end
 end

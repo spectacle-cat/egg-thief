@@ -20,12 +20,12 @@ module Enemies
   def tick(args)
     sprites = []
 
-    # args.state.enemies.roadrunners.each do |entity|
-    #   sprites << entity.tick(args).sprite
+    args.state.enemies.roadrunners.each do |entity|
+      sprites << entity.tick(args).sprite
 
-    #   entity.show_debug(args)
-    #   # entity.track.show_debug(args)
-    # end
+      # entity.track.show_debug(args)
+      entity.show_debug(args)
+    end
 
     args.outputs.sprites << sprites
   end

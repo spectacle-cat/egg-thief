@@ -106,9 +106,9 @@ class TrackLoop
         [step[:x], step[:y], stepb[:x], stepb[:y], 200, 200, 0].line
       end
     end
-    args.outputs.debug << [
-      current_step[:x], current_step[:y],
-      next_step[:x], next_step[:y], 0, 200, 0
-    ].line
+    # args.outputs.debug << [
+    #   current_step[:x], current_step[:y],
+    #   next_step[:x], next_step[:y], 0, 200, 0
+    # ].line
   end
 end
