@@ -39,7 +39,7 @@ class TrackingEntity
     end
 
     move
-    turn(progress: ticks_since_last_check(args), args: args)
+    turn(args: args)
 
     self
   end
@@ -64,10 +64,7 @@ class TrackingEntity
     sprite.origin_point + Vector.build(normalized_direction) * speed
   end
 
-  def turn(progress:, args:)
-    position = next_point(direction, speed)
-    scale = 50
-
+  def turn(args:)
     ps = Vector.build(track.previous_step)
     cs = Vector.build(track.current_step)
     ns = Vector.build(track.next_step)
@@ -75,40 +72,18 @@ class TrackingEntity
     v = Vector.new(x: cs.x - ps.x, y: cs.y - ps.y).normalize
     t = Vector.new(x: v.y, y: -v.x)
 
-    pt = t + position
-    pt2 = (t * scale) + pt
-    args.outputs.lines << [position.x, position.y, pt2.x, pt2.y, 250, 250, 250]
-
     origin = cs
     vt = (t - origin).normalize
     vns = (ns - origin).normalize
 
     angle = (t.x * vns.x) + (t.y * vns.y)
-    v2 = (vns * scale) + position
 
-    color = if angle < 0
-      [50, 50, 200]
-    else
-      [200, 50, 50]
-    end
-
-
-    nps = (cs - ps).normalize
-    nns = (ns - ps).normalize
-    d = (nps.x * nns.x) + (nps.y * nns.y)
-    target_angle_change = 180 - (180 * (Math.atan(d) ** -1))
-
-    # d_y = track.next_step.y - track.current_step.y
-    # d_x = track.next_step.x - track.current_step.x
-    # tat = Math.atan2(d_y, d_x)
-    # ta = Math::PI.+(tat)
-    # target_angle = ta.to_degrees
-
-    # nd = Vector.new(x: d_x, y: d_y).normalize
-    # ntat = Math.atan2(nd.x, nd.y)
-
-    # target_angle = $geometry.angle_to(track.current_step, track.next_step) + 90
-    current_angle = sprite.angle
+    current_progress = args.easing.ease(
+      args.state.tick_count - ticks_since_last_check(args),
+      args.state.tick_count,
+      check_position_ticks,
+      :identity
+    )
 
     torque = (45 / speed / check_position_ticks)
 
@@ -119,15 +94,6 @@ class TrackingEntity
     elsif angle < 0.0
       sprite.angle += torque
     end
-
-    # diff = ((track.next_step.angle - target_angle_change) * (speed / 60))
-    # delta = a
-
-    # sprite.angle = step_angle - 90
-
-    # args.outputs.lines << [position.x, position.y, v2.x, v2.y, *color]
-    # args.outputs.debug << [ 100, 75, "target_angle: #{target_angle_change}" ].label
-    # args.outputs.debug << [ 100, 50, "diff: #{diff.to_i}, delta: #{delta.to_i}" ].label
   end
 
   def step_angle
