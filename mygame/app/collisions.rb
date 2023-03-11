@@ -72,6 +72,7 @@ class Collisions
       end
 
       fov_tiles.compact!
+      fov_tiles << standing_tile.merge(fov_col: 0, fov_row: 0)
 
       fov_tiles = fov_tiles.select do |tile|
         col = tile[:fov_col]
@@ -84,66 +85,16 @@ class Collisions
           r: 250, g: 250, b: 250, a: 200
         }.label if tile
 
-        insight = false
+        in_sight = Fov.new(fov_tiles: fov_tiles).in_sight?(fov_col: col, fov_row: row)
 
-        original_col = col
-        original_row = row
-
-        while col != 0 && row != 0
-          col = col - col.sign unless col = 0
-          row = row - row.sign unless row = 0
-
-          if col == 0 && row == 0
-            insight = true
-            break
-          end
-
-          break unless fov_tiles.find { |ftile| ftile[:fov_col] == col && ftile[:fov_row] == row }
-        end
-
-        col = original_col
-        row = original_row
-
-        unless insight
-          original_col = col
-          while col != 0
-            col = col - col.sign unless col = 0
-
-            if col == 0 && row == 0
-              insight = true
-              break
-            end
-
-            break unless fov_tiles.find { |ftile| ftile[:fov_col] == col && ftile[:fov_row] == row }
-          end
-          col = original_col
-        end
-
-        unless insight
-          original_row = row
-          while row != 0
-            row = row - row.sign unless row = 0
-
-            if col == 0 && row == 0
-              insight = true
-              break
-            end
-
-            break unless fov_tiles.find { |ftile| ftile[:fov_col] == col && ftile[:fov_row] == row }
-          end
-          row = original_row
-        end
-
-        if insight
+        if in_sight
           args.outputs.debug << tile.merge(g: 100, b: 200, a: 50).solid
         else
           args.outputs.debug << tile.merge(r: 200, g: 20, b: 20, a: 50).solid
         end
 
-        insight
+        in_sight
       end
-
-      fov_tiles << standing_tile
 
       hit = fov_tiles.any_intersect_rect?(player_collider)
 
