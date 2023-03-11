@@ -32,4 +32,67 @@ class Roadrunner < Sprite
   def y
     origin_point.y - (TileBoard::TILE_SIZE)
   end
+
+  def fov
+    quarter = (angle / 90).round
+    # puts angle
+    # puts quarter
+    # raise
+    case quarter % 4
+    when 0 || 4
+      <<~FOV
+      xxx
+      xxx
+      x^x
+      FOV
+
+      [
+        [:info, :up],
+        [-1, 3], [0, 3], [1, 3],
+        [-1, 2], [0, 2], [1, 2],
+        [-1, 1], [0, 1], [1, 1],
+      ]
+    when 3
+      <<~FOV
+      xxx
+      ^xx
+      xxx
+      FOV
+
+      [
+        [:info, :right],
+        [0,  1], [1,  1], [2,  1],
+        [0,  0], [1,  0], [2,  0],
+        [0, -1], [1, -1], [2, -1],
+      ]
+    when 2
+      <<~FOV
+      x^x
+      xxx
+      xxx
+      FOV
+
+      [
+        [:info, :down],
+        [-1,  0], [0,  0], [1,  0],
+        [-1, -1], [0, -1], [1, -1],
+        [-1, -2], [0, -2], [1, -2],
+      ]
+    when 1
+      <<~FOV
+      xxx
+      xx^
+      xxx
+      FOV
+
+      [
+        [:info, :left],
+        [-2,  1], [-1,  1], [0,  1],
+        [-2,  0], [-1,  0], [0,  0],
+        [-2, -1], [-1, -1], [0, -1],
+      ]
+    else
+      raise "missing: #{quarter % 4}"
+    end
+  end
 end

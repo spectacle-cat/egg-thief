@@ -65,7 +65,8 @@ module TileBoard
           y: y,
           x: x,
           w: TILE_SIZE,
-          h: TILE_SIZE
+          h: TILE_SIZE,
+          hide_from_enemy_fov: ['b', 'B', 'C', 'F', 'S'].include?(tile_data)
         }
 
         args.state.tiles << tile

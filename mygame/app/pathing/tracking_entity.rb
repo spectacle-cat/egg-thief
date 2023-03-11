@@ -6,7 +6,7 @@ class TrackingEntity
   BASE_SPEED = 20
   SPRINT_SPEED = 1.0
   CORNER_SPEED = 1.0
-  TICKS_PER_TILE = 20
+  TICKS_PER_TILE = 15
 
   def initialize(track:, sprite: )
     @sprint = false
