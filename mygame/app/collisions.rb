@@ -83,14 +83,14 @@ class Collisions
           y: tile.y + 50,
           text: "(#{row},#{col})",
           r: 250, g: 250, b: 250, a: 200
-        }.label if tile
+        }.label if tile && args.state.debug
 
-        in_sight = Fov.new(fov_tiles: fov_tiles).in_sight?(fov_col: col, fov_row: row)
+        in_sight = Fov.new(fov_tiles: fov_tiles, facing: fov_direction, base_width: 3).in_sight?(fov_col: col, fov_row: row)
 
         if in_sight
-          args.outputs.debug << tile.merge(g: 100, b: 200, a: 50).solid
+          args.outputs.debug << tile.merge(g: 100, b: 200, a: 50).solid if args.state.debug
         else
-          args.outputs.debug << tile.merge(r: 200, g: 20, b: 20, a: 50).solid
+          args.outputs.debug << tile.merge(r: 200, g: 20, b: 20, a: 50).solid if args.state.debug
         end
 
         in_sight
@@ -99,13 +99,13 @@ class Collisions
       hit = fov_tiles.any_intersect_rect?(player_collider)
 
       # fov_tiles.each { |tile| args.outputs.debug << tile.merge(g: 100, b: 200, a: 50).solid }
-      args.outputs.debug << standing_tile.merge(a: 50).solid
+      args.outputs.debug << standing_tile.merge(a: 50).solid if args.state.debug
       args.outputs.debug << {
         x: standing_tile.x + 25,
         y: standing_tile.y + 50,
         text: fov_direction,
         r: 250, g: 250, b: 250, a: 200
-      }.label
+      }.label if args.state.debug
 
       Game.restart_level!(args) if hit
     end

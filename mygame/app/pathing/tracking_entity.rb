@@ -3,10 +3,7 @@ class TrackingEntity
   attr_accessor :sprite, :speed, :direction, :sprint,
   :last_update_angle, :last_updated_at
 
-  BASE_SPEED = 20
-  SPRINT_SPEED = 1.0
-  CORNER_SPEED = 1.0
-  TICKS_PER_TILE = 15
+  TICKS_PER_TILE = 30
 
   def initialize(track:, sprite: )
     @sprint = false
@@ -22,11 +19,11 @@ class TrackingEntity
   end
 
   def tick(args)
-    if args.inputs.keyboard.key_down.space
-      self.sprint = true
-    elsif args.inputs.keyboard.key_up.space
-      self.sprint = false
-    end
+    # if args.inputs.keyboard.key_down.space
+    #   self.sprint = true
+    # elsif args.inputs.keyboard.key_up.space
+    #   self.sprint = false
+    # end
 
     if args.tick_count % TICKS_PER_TILE == 0
       track.update!
