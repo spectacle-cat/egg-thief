@@ -4,10 +4,6 @@ class TrackBuilder
 
   ALPHABET = %w[a b c d e f g h i j k l m n o p q r s t u v w x y z]
 
-  # pixels per frame
-  SPEED = 2
-  # SPEED = 1000
-
   def initialize(args, track)
     @args = args
     @track = track
@@ -137,12 +133,9 @@ class TrackBuilder
       end
 
       acc << step.dup.merge(p_override).merge(corner_angle: true, angle: pstep[:angle] - 45)
-      acc << step.dup.merge(n_override)#.merge(corner_angle: true)
-      # raise
+      acc << step.dup.merge(n_override)
     end
 
-    # acc.each { |a| puts a.slice(:x, :y, :corner_angle, :corner, :previous_direction, :direction, :next_direction).inspect }
-    # raise
     acc
   end
 
@@ -160,9 +153,6 @@ class TrackBuilder
       step[:next_direction] = nstep[:direction]
       step[:previous_direction] = pstep[:direction]
     end
-
-    # steps.map { |step| puts step.slice(:corner, :direction, :next_direction) }.inspect
-    # raise
 
     steps
   end

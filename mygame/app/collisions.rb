@@ -57,6 +57,9 @@ class Collisions
         point_inside_rect?(point, tile)
       end
 
+      hit = standing_tile.intersect_rect?(player_collider)
+      Game.restart_level!(args) && return if hit
+
       fov = roadrunner.sprite.fov
       _, fov_direction = fov.shift
 
@@ -96,18 +99,21 @@ class Collisions
         in_sight
       end
 
-      hit = fov_tiles.any_intersect_rect?(player_collider)
+      sighted = fov_tiles.find { |tile| tile.intersect_rect?(player_collider) }
 
-      # fov_tiles.each { |tile| args.outputs.debug << tile.merge(g: 100, b: 200, a: 50).solid }
-      args.outputs.debug << standing_tile.merge(a: 50).solid if args.state.debug
-      args.outputs.debug << {
-        x: standing_tile.x + 25,
-        y: standing_tile.y + 50,
-        text: fov_direction,
-        r: 250, g: 250, b: 250, a: 200
-      }.label if args.state.debug
+      if sighted
+        roadrunner.chasing_player!(sighted)
+      end
 
-      Game.restart_level!(args) if hit
+      if args.state.debug
+        args.outputs.debug << standing_tile.merge(a: 50, g: sighted ? 250 : 0).solid
+        args.outputs.debug << {
+          x: standing_tile.x + 25,
+          y: standing_tile.y + 50,
+          text: fov_direction,
+          r: 250, g: 250, b: 250, a: 200
+        }.label
+      end
     end
   end
 

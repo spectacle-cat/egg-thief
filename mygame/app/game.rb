@@ -147,8 +147,11 @@ module Game
 
   def last_level?(args)
     next_level = args.state.level + 1
-    data = args.gtk.read_file(level_path(next_level))
+    data = args.gtk.read_file(LevelLoader.level_path(next_level))
+    puts "next level: #{next_level}"
+    puts "file data: #{data}"
     result = data.to_s.length == 0
+    puts "result: #{result}"
 
     result
   end

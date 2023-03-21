@@ -12,27 +12,7 @@ class TrackLoop
   end
 
   def update!
-    # if on_track?(position)
-    #   puts "increment step"
-    #   puts "next step: #{next_step[:index]}"
-      increment_step
-    #   puts "new next step: #{next_step[:index]}"
-    # else
-    #   # set_current_step(find_closest_step(position))
-    #   raise "TODO: implement finding the closest step to get back on track"
-    # end
-  end
-
-  def on_track?(position)
-    distance_from_current_step =
-      Vector.distance_between(position, current_step)
-    distance_from_next_step =
-      Vector.distance_between(position, next_step)
-    distance_from_next_next_step =
-      Vector.distance_between(position, current_step)
-
-    distance_from_next_step < distance_from_current_step &&
-      distance_from_next_step < distance_from_next_next_step
+    increment_step
   end
 
   def increment_step

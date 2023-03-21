@@ -15,10 +15,7 @@ class Roadrunner < Sprite
     @h = TileBoard::TILE_SIZE * 2
     @w = TileBoard::TILE_SIZE
     @path = "sprites/roadrunner_#{sprite_index}.png"
-
     @angle = angle
-    @angle_anchor_x = 0.5
-    @angle_anchor_y = 0.5
   end
 
   def origin_point=(point)

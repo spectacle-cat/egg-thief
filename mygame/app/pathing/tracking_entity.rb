@@ -1,35 +1,36 @@
 class TrackingEntity
   attr_reader :track
   attr_accessor :sprite, :speed, :direction, :sprint,
-  :last_update_angle, :last_updated_at
+  :last_update_angle, :last_updated_at,
+  :chase_track, :chasing_player, :player_last_spotted
 
   TICKS_PER_TILE = 30
+  SPRINT_MULTIPLIER = 1.3
 
   def initialize(track:, sprite: )
     @sprint = false
 
     @track = track
+    @chase_track = nil
     step = track.current_step.dup
     @sprite = sprite.new(origin_point: Vector.build(step), angle: step[:angle])
     @last_update_angle = step[:angle]
     @last_updated_at = 0
 
     @speed = step_speed
-    @direction = direction_from_position
+    @direction = direction_from_position(step)
+
+    @chasing_player = false
+    @player_last_spotted = nil
   end
 
   def tick(args)
-    # if args.inputs.keyboard.key_down.space
-    #   self.sprint = true
-    # elsif args.inputs.keyboard.key_up.space
-    #   self.sprint = false
-    # end
-
     if args.tick_count % TICKS_PER_TILE == 0
-      track.update!
+      self.speed = chasing_player? ? sprint_speed : step_speed
 
-      self.speed = step_speed
-      self.direction = direction_from_position
+      current_track.update!
+      self.direction = direction_from_position(current_track.next_step)
+
       self.last_update_angle = sprite.angle
       self.last_updated_at = args.state.tick_count
     end
@@ -40,7 +41,35 @@ class TrackingEntity
     self
   end
 
+  def chasing_player?
+    chasing_player == true
+  end
+
+  def chasing_player!(tile)
+    return # TURNED OFF FOR NOW
+    self.chasing_player = true
+
+    if self.player_last_spotted != tile
+      self.player_last_spotted = tile
+      build_new_chase_track(destination: tile)
+    end
+  end
+
   private
+
+  def current_track
+    return track
+
+    if chasing_player?
+      chase_track
+    else
+      track
+    end
+  end
+
+  def build_new_chase_track(destination)
+    PointsPath.new(destination: destination, from: sprite.origin_point)
+  end
 
   def move
     self.sprite.origin_point = next_point
@@ -78,11 +107,15 @@ class TrackingEntity
     $geometry.angle_to track.current_step, track.next_step
   end
 
-  def direction_from_position
+  def direction_from_position(destination)
     direction_x = (track.next_step[:x] - sprite.origin_point.x)
     direction_y = (track.next_step[:y] - sprite.origin_point.y)
 
     Vector.new(x: direction_x, y: direction_y) # .normalize
+  end
+
+  def sprint_speed
+    step_speed * SPRINT_MULTIPLIER
   end
 
   def step_speed

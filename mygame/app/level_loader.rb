@@ -4,15 +4,15 @@ class LevelLoader
   def initialize(args, level_number: 1)
     @level_number = level_number
     @args = args
-    @file_data = args.gtk.read_file(level_path(level_number))
+    @file_data = args.gtk.read_file(self.class.level_path(level_number))
     @level_data = parse_file
   end
 
-  private
-
-  def level_path(level)
+  def self.level_path(level)
     "data/levels/level_#{level}.txt"
   end
+
+  private
 
   def parse_file
     types = file_data.split('---')

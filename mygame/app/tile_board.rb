@@ -156,10 +156,17 @@ module TileBoard
 
   def render_finish(args)
     fp = args.state.finish_point
-    args.state.interactables.finish_rect = finish_border =
-      [fp.x, fp.y, TILE_SIZE, TILE_SIZE, 255, 255, 255, 50 ]
-    args.outputs.primitives << finish_border.solid
-    args.outputs.labels << [fp.x + 30, fp.y + 20, "EXIT"]
+    args.state.interactables.finish_rect = [fp.x, fp.y, TILE_SIZE, TILE_SIZE]
+    # args.outputs.primitives << finish_border.solid
+    # args.outputs.labels << [fp.x + 30, fp.y + 20, "EXIT"]
+
+    args.outputs.sprites << {
+      x: fp.x,
+      y: fp.y,
+      w: TILE_SIZE,
+      h: TILE_SIZE,
+      path: 'sprites/exit.png'
+    }
   end
 
   def render_obstacles(args)
