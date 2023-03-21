@@ -91,10 +91,11 @@ module TileBoard
           args.state.roadrunner_path << { x: x, y: y, w: 100, h: 200 }
         end
 
-        if tile_data == 'E'
+        if ['1', '2', '3', '4'].include?(tile_data)
           args.state.nests << {
             x: x, y: y,
-            collision_box: { x: x + 33, y: y + 33, w: 33, h: 33 }
+            collision_box: { x: x + 33, y: y + 33, w: 33, h: 33 },
+            egg_type: tile_data
           }
           args.state.total_nests += 1
         end
@@ -200,16 +201,18 @@ module TileBoard
 
   def render_nests(args)
     sprites = []
+    eggs = []
 
     sprites << args.state.nests.map do |nest|
-      nest_sprite(x: nest[:x], y: nest[:y])
+      eggs << egg_sprite(x: nest[:x], y: nest[:y], egg_type: nest[:egg_type])
     end
 
     sprites << args.state.empty_nests.map do |nest|
-      nest_sprite(x: nest[:x], y: nest[:y], empty: true)
+      nest_sprite(x: nest[:x], y: nest[:y])
     end
 
     args.outputs.sprites << sprites
+    args.outputs.sprites << eggs
   end
 
   def tile_sprite(x:, y: )
@@ -244,14 +247,23 @@ module TileBoard
     }
   end
 
-  def nest_sprite(x:, y:, empty: false )
+  def nest_sprite(x:, y: )
     {
-      x: x,
-      y: y,
-      w: 100,
-      h: 100,
-      path: "sprites/nest#{'_empty' if empty}.png",
-      angle: (x + y) % 360,
+      x: x - 50,
+      y: y - 50,
+      w: 200,
+      h: 200,
+      path: "sprites/nest_empty.png",
+    }
+  end
+
+  def egg_sprite(x:, y: , egg_type: )
+    {
+      x: x - 50,
+      y: y - 50,
+      w: 200,
+      h: 200,
+      path: "sprites/EGG_#{egg_type}.png",
     }
   end
 end
