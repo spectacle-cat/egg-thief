@@ -141,8 +141,6 @@ module TileBoard
 
     sprites << Scoring::BackgroundSprite.new
 
-    # found_score = args.state.empty_nests.count # 1
-
     args.state.nests.each do |n|
       sprites << Scoring::EggCounter.new(index: n[:egg_type].to_i, enabled: false)
     end
