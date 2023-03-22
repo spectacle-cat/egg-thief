@@ -141,15 +141,14 @@ module TileBoard
 
     sprites << Scoring::BackgroundSprite.new
 
-    left_to_find = args.state.nests.count # 3
-    found_score = args.state.empty_nests.count # 1
+    # found_score = args.state.empty_nests.count # 1
 
-    left_to_find.times do |n|
-      sprites << Scoring::EggCounter.new(index: found_score + n + 1, enabled: false)
+    args.state.nests.each do |n|
+      sprites << Scoring::EggCounter.new(index: n[:egg_type].to_i, enabled: false)
     end
 
-    found_score.times do |n|
-      sprites << Scoring::EggCounter.new(index: n + 1, enabled: true)
+    args.state.empty_nests.each do |n|
+      sprites << Scoring::EggCounter.new(index: n[:egg_type].to_i, enabled: true)
     end
 
     args.outputs.sprites << sprites
@@ -258,6 +257,9 @@ module TileBoard
   end
 
   def egg_sprite(x:, y: , egg_type: )
+    egg_type = egg_type.to_i
+    egg_type = egg_type - 3 if egg_type > 3
+
     {
       x: x - 50,
       y: y - 50,
