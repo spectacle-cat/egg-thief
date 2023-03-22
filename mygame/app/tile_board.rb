@@ -72,7 +72,7 @@ module TileBoard
         args.state.tiles << tile
 
         if tile_data == 'C'
-          args.state.cover << { x: x, y: y, index: [1, 2, 3].sample }
+          args.state.cover << { x: x, y: y, index: [1, 2, 3, 4].sample }
         end
 
         if tile_data == 'B' || tile_data == 'b'
@@ -222,7 +222,7 @@ module TileBoard
     }
   end
 
-  def shrub_sprite(x:, y: , index: [1, 2, 3].sample)
+  def shrub_sprite(x:, y: , index: [1, 2, 3, 4].sample)
     expand_by = 50
 
     {
