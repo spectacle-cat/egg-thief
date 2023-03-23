@@ -35,8 +35,10 @@ class TrackingEntity
       self.last_updated_at = args.state.tick_count
     end
 
-    move
-    turn(args: args)
+    # move
+    # turn(args: args)
+
+    chase_track.show_debug(args) if chase_track
 
     self
   end
@@ -45,14 +47,9 @@ class TrackingEntity
     chasing_player == true
   end
 
-  def chasing_player!(tile)
-    return # TURNED OFF FOR NOW
+  def chasing_player!(chase_track: )
     self.chasing_player = true
-
-    if self.player_last_spotted != tile
-      self.player_last_spotted = tile
-      build_new_chase_track(destination: tile)
-    end
+    self.chase_track = chase_track
   end
 
   private
@@ -65,10 +62,6 @@ class TrackingEntity
     else
       track
     end
-  end
-
-  def build_new_chase_track(destination)
-    PointsPath.new(destination: destination, from: sprite.origin_point)
   end
 
   def move
@@ -165,14 +158,9 @@ class TrackingEntity
     #   sprite.origin_point.x, sprite.origin_point.y, 0, 200, 250
     # ].line
 
-    # next_point = next_point(direction_from_position, speed)
     # args.outputs.debug << [
     #   sprite.origin_point.x, sprite.origin_point.y,
-    #   next_point.x, next_point.y, 0, 0, 0
+    #   direction.x, direction.y, 0, 0, 0
     # ].line
-
-    # args.outputs.debug << [ 100, 75, "uvx: #{unit_vector_x}, sprite angle: #{sprite.angle.to_i}" ].label
-    # args.outputs.debug << [ 100, 50, "uvx_test: #{unit_vector_x_test(args)}" ].label
-
   end
 end

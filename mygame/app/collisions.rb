@@ -102,7 +102,14 @@ class Collisions
       sighted = fov_tiles.find { |tile| tile.intersect_rect?(player_collider) }
 
       if sighted
-        roadrunner.chasing_player!(sighted)
+        path = PointsPath.new(
+          destination: sighted,
+          from: standing_tile,
+          candidate_tiles: fov_tiles,
+          args: args
+        ).build
+
+        roadrunner.chasing_player!(chase_track: SingleTrack.new(path))
       end
 
       if args.state.debug

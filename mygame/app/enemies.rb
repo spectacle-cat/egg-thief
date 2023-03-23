@@ -23,8 +23,8 @@ module Enemies
     args.state.enemies.roadrunners.each do |entity|
       sprites << entity.tick(args).sprite
 
-      # entity.track.show_debug(args)
-      # entity.show_debug(args)
+      entity.current_track.show_debug(args)
+      entity.show_debug(args)
     end
 
     args.outputs.sprites << sprites
