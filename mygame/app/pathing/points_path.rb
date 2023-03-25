@@ -9,29 +9,20 @@ class PointsPath
     @args = args
   end
 
-  # have a starting point
-  # find the neighbours
-    # exclude empty
-    # next if already visited
-    # record where we came from for each neighbour
-    # are we are then desintation?
-      # Yes -> break
-      # No -> find the next set of neighbours
-  # [
-  #   { came_from: Point, step_count: Integer, tile: Tile, at_destination: Bool },
-  # ]
-
   def build
     destination_found = false
     potential_tiles = candidate_tiles.map { |tile| tile.merge(visited: false) }
 
     destination_tile = nil
+    routes = []
 
     frontiers = [destination[:fov_col].abs, destination[:fov_row].abs].max
 
     frontiers.times do |frontier|
+      next if destination_found
+
       frontier_tiles(frontier, potential_tiles).each do |ft|
-        args.outputs.debug << ft.merge(r: 0, g: 200, b: 200).solid
+        # args.outputs.debug << ft.merge(r: 0, g: 90, b: 200, a: 100).solid
 
         absolute_neighbours = relative_neighbours(1).map do |(x, y)|
           [ft[:row] + x, ft[:column] + y]
@@ -58,7 +49,7 @@ class PointsPath
             args.outputs.debug << neighbour.merge(r: 200, g: 250, b: 0).solid
             break
           else
-            args.outputs.debug << neighbour.merge(r: 0, g: 170, b: 170, a: 150).solid
+            # args.outputs.debug << neighbour.merge(r: 0, g: 170, b: 170, a: 150).solid
           end
         end
       end
@@ -72,33 +63,6 @@ class PointsPath
     end
     path << from
 
-    # while (!destination_tile && potential_tiles.any?) do
-    #   frontier_tiles(frontier).each do |origin_tile|
-    #     next if destination_found
-
-    #     neighbours(origin_tile).each do |neighbour|
-    #       next if destination_found
-    #       next if neighbour[:visited]
-    #       potential_tiles.delete(neighbour)
-
-    #       neighbour[:visited] = true
-    #       neighbour[:came_from] = origin_tile
-    #       neighbour[:path_index] = frontier
-
-    #       destination_found = neighbour[:fov_col] == destination[:fov_col] &&
-    #         neighbour[:fov_row] == destination[:fov_row]
-
-    #       if destination_found
-    #         neighbour[:destination] = true
-    #         destination_tile = neighbour
-    #       end
-    #     end
-    #   end
-
-    #   frontier += 1
-    # end
-
-    # loop through came_from tiles to get the path!
     path
   end
 
@@ -116,6 +80,7 @@ class PointsPath
     right = (-frontier).upto(frontier).map { |y| [frontier, y]  }
     bottom = (-frontier).upto(frontier).map { |x| [x, (-frontier)]  }
 
-    top + left + right + bottom
+    points = top + left + right + bottom
+    points.uniq
   end
 end
