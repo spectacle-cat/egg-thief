@@ -67,9 +67,9 @@ class SingleTrack < TrackLoop
       args.outputs.debug << [step[:x] + 50, step[:y] + 50, stepb[:x] + 50, stepb[:y] + 50, 200, 200, 0].line
     end
 
-    args.outputs.debug << [
-      current_step[:x] + 50, current_step[:y] + 50,
-      next_step[:x] + 50, next_step[:y] + 50, 0, 200, 0
-    ].line
+    # args.outputs.debug << [
+    #   current_step[:x] + 50, current_step[:y] + 50,
+    #   next_step[:x] + 50, next_step[:y] + 50, 0, 200, 0
+    # ].line
   end
 end

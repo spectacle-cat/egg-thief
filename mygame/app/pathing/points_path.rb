@@ -20,15 +20,14 @@ class PointsPath
 
     max_attempts = 30
     attempts = 0
+    closest_to_start = nil
 
-    frontiers.times do |frontier|
+    (frontiers + 1).times do |frontier|
       next if destination_found
 
       frontier_tiles(frontier, potential_tiles).sort_by do |tile|
           proximity_to_destination(x: tile[:x], y: tile[:y])
       end.each do |ft|
-        # args.outputs.debug << ft.merge(r: 0, g: 90, b: 200, a: 100).solid
-
         absolute_neighbours = relative_neighbours(1).map do |(x, y)|
           row = ft[:row] + x
           col = ft[:column] + y
@@ -41,17 +40,27 @@ class PointsPath
         end
 
         neighbours.each do |neighbour|
-          next if destination_found
+          next if destination_found && frontier != 0
           next if neighbour[:visited]
-          neighbour[:visited] = true
 
+          neighbour[:visited] = true
           neighbour[:came_from] = ft
           neighbour[:path_index] = frontier
+
+          if frontier == 0
+            distance = proximity_to_start(x: neighbour[:x], y: neighbour[:y])
+
+            if distance % 100 == 0 # not a diagonal
+              closest_to_start = neighbour unless closest_to_start
+
+              closest_to_start = neighbour if distance < proximity_to_start(x: closest_to_start[:x], y: closest_to_start[:y])
+            end
+          end
 
           destination_found = neighbour[:fov_col] == destination[:fov_col] &&
           neighbour[:fov_row] == destination[:fov_row]
 
-          if destination_found
+          if destination_found && frontier != 0
             neighbour[:destination] = true
             destination_tile = neighbour
 
@@ -70,7 +79,6 @@ class PointsPath
               break if circuit_count >= short_circuit
             end
             path << from
-
             routes << path
 
             break
@@ -101,6 +109,11 @@ class PointsPath
 
     shortest_route = routes.sort { |r| r.count }.last
 
+    if shortest_route && closest_to_start && !shortest_route.include?(closest_to_start)
+      shortest_route.pop
+      shortest_route =  shortest_route + [closest_to_start, from]
+    end
+
     (shortest_route || [from, destination])
   end
 
@@ -120,13 +133,6 @@ class PointsPath
 
     points = top + left + right + bottom
     points.uniq
-
-    # [
-    #   [frontier, frontier],
-    #   [-frontier, frontier],
-    #   [frontier, -frontier],
-    #   [-frontier, -frontier],
-    # ]
   end
 
   def proximity_to_destination(x:, y:)
@@ -134,18 +140,20 @@ class PointsPath
     d_vector = destination_vector
 
     $geometry.distance(d_vector, p_vector)
+  end
 
-    # distance_x = (d_vector.x - p_vector.x).abs
-    # distance_y = (d_vector.y - p_vector.y).abs
+  def proximity_to_start(x:, y:)
+    p_vector = Vector.new(x: x, y: y)
+    s_vector = start_vector
 
-    # if distance_x > distance_y
-    #   distance_x
-    # else
-    #   distance_y
-    # end
+    $geometry.distance(s_vector, p_vector)
   end
 
   def destination_vector
     @destination_vector ||= Vector.new(x: destination[:x], y: destination[:y])
+  end
+
+  def start_vector
+    @start_vector ||= Vector.new(x: from[:x], y: from[:y])
   end
 end
