@@ -11,12 +11,15 @@ class PointsPath
 
   def build
     destination_found = false
-    potential_tiles = candidate_tiles.map { |tile| tile.merge(visited: false) }
+    potential_tiles = candidate_tiles.uniq # .map { |tile| tile.merge(visited: -1) }.uniq
 
     destination_tile = nil
     routes = []
 
     frontiers = [destination[:fov_col].abs, destination[:fov_row].abs].max
+
+    max_attempts = 30
+    attempts = 0
 
     frontiers.times do |frontier|
       next if destination_found
@@ -28,14 +31,14 @@ class PointsPath
           [ft[:row] + x, ft[:column] + y]
         end
 
-        neighbouring_tiles = absolute_neighbours.map do |(row, col)|
+        absolute_neighbours.each do |(row, col)|
           neighbour = potential_tiles.find { |pt| pt[:row] == row && pt[:column] == col }
 
           next unless neighbour
-          next if destination_found
-          next if neighbour[:visited]
+          # next if destination_found
+          next if neighbour[:visited] && neighbour[:visited] < frontier
+          neighbour[:visited] = frontier
 
-          neighbour[:visited] = true
           neighbour[:came_from] = ft
           neighbour[:path_index] = frontier
 
@@ -47,31 +50,76 @@ class PointsPath
             destination_tile = neighbour
 
             args.outputs.debug << neighbour.merge(r: 200, g: 250, b: 0).solid
+
+            path = []
+            i = neighbour
+            short_circuit = 20
+            circuit_count = 0
+            while [i[:fov_col], i[:fov_row]] != [0,0]  do
+              circuit_count += 1
+              path << i
+              i = i[:came_from]
+
+              break if i.nil?
+              break if circuit_count >= short_circuit
+            end
+            path << from
+
+            routes << path
+
             break
           else
             # args.outputs.debug << neighbour.merge(r: 0, g: 170, b: 170, a: 150).solid
           end
+
+          attempts += 1
+          break if attempts >= max_attempts
         end
       end
     end
 
-    path = []
-    i = destination_tile
-    while [i[:fov_col], i[:fov_row]] != [0,0]  do
-      path << i
-      i = i[:came_from]
+    if attempts >= max_attempts
+      puts "routes: #{routes.count}"
+      puts "attempts: #{attempts}"
+      # raise
     end
-    path << from
 
-    path
+    routes.uniq!
+    if routes.count > 3
+      puts "routes: #{routes.count}"
+      routes.each do |route|
+        puts route.map { |r| [r[:fov_col], r[:fov_row]] }
+      end
+      raise
+    end
+
+    shortest_route = routes.sort { |r| r.count }.last
+
+    (shortest_route || [from, destination])
   end
 
   def frontier_tiles(frontier, tiles)
     frontier_coords = relative_neighbours(frontier)
 
-    tiles.select do |tile|
+    # puts "-----"
+    # puts "frontier: #{frontier}"
+    # puts "frontier_coords: #{frontier_coords}"
+    j = tiles.select do |tile|
       frontier_coords.find { |(x, y)| tile[:fov_col] == y && tile[:fov_row] == x }
     end
+
+    # puts "j: #{j}"
+    i = j.sort_by do |tile|
+      r = proximity_to_destination(x: tile[:x], y: tile[:y])
+
+      # puts "distance: #{r} - x: #{tile[:x]}, y: #{tile[:y]}, fov_col: #{tile[:fov_col]}, fov_row: #{tile[:fov_row]}"
+      r
+    end.reverse
+
+    # puts "destination-  x: #{destination[:x]}, y: #{destination[:y]}"
+    # raise if frontier >= 3
+
+    i
   end
 
   def relative_neighbours(frontier)
@@ -82,5 +130,25 @@ class PointsPath
 
     points = top + left + right + bottom
     points.uniq
+  end
+
+  def proximity_to_destination(x:, y:)
+    p_vector = Vector.new(x: x, y: y)
+    d_vector = destination_vector
+
+    $geometry.distance(d_vector, p_vector)
+
+    # distance_x = (d_vector.x - p_vector.x).abs
+    # distance_y = (d_vector.y - p_vector.y).abs
+
+    # if distance_x > distance_y
+    #   distance_x
+    # else
+    #   distance_y
+    # end
+  end
+
+  def destination_vector
+    @destination_vector ||= Vector.new(x: destination[:x], y: destination[:y])
   end
 end

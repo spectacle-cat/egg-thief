@@ -64,17 +64,12 @@ class SingleTrack < TrackLoop
       stepb = lookup_step_after(step)
       next unless stepb
 
-      args.outputs.debug <<
-      if step[:corner_angle] == true
-        [step[:x], step[:y], stepb[:x], stepb[:y], 0, 150, 250].line
-      else
-        [step[:x], step[:y], stepb[:x], stepb[:y], 200, 200, 0].line
-      end
+      args.outputs.debug << [step[:x] + 50, step[:y] + 50, stepb[:x] + 50, stepb[:y] + 50, 200, 200, 0].line
     end
 
     args.outputs.debug << [
-      current_step[:x], current_step[:y],
-      next_step[:x], next_step[:y], 0, 200, 0
+      current_step[:x] + 50, current_step[:y] + 50,
+      next_step[:x] + 50, next_step[:y] + 50, 0, 200, 0
     ].line
   end
 end
