@@ -11,7 +11,7 @@ class PointsPath
 
   def build
     destination_found = false
-    potential_tiles = candidate_tiles.uniq # .map { |tile| tile.merge(visited: -1) }.uniq
+    potential_tiles = candidate_tiles.uniq.map { |tile| tile.merge(visited: false) }
 
     destination_tile = nil
     routes = []
@@ -24,20 +24,26 @@ class PointsPath
     frontiers.times do |frontier|
       next if destination_found
 
-      frontier_tiles(frontier, potential_tiles).each do |ft|
+      frontier_tiles(frontier, potential_tiles).sort_by do |tile|
+          proximity_to_destination(x: tile[:x], y: tile[:y])
+      end.each do |ft|
         # args.outputs.debug << ft.merge(r: 0, g: 90, b: 200, a: 100).solid
 
         absolute_neighbours = relative_neighbours(1).map do |(x, y)|
-          [ft[:row] + x, ft[:column] + y]
+          row = ft[:row] + x
+          col = ft[:column] + y
+
+          potential_tiles.find { |pt| pt[:row] == row && pt[:column] == col }
+        end.compact
+
+        neighbours = absolute_neighbours.sort_by do |tile|
+          proximity_to_destination(x: tile[:x], y: tile[:y])
         end
 
-        absolute_neighbours.each do |(row, col)|
-          neighbour = potential_tiles.find { |pt| pt[:row] == row && pt[:column] == col }
-
-          next unless neighbour
-          # next if destination_found
-          next if neighbour[:visited] && neighbour[:visited] < frontier
-          neighbour[:visited] = frontier
+        neighbours.each do |neighbour|
+          next if destination_found
+          next if neighbour[:visited]
+          neighbour[:visited] = true
 
           neighbour[:came_from] = ft
           neighbour[:path_index] = frontier
@@ -81,7 +87,7 @@ class PointsPath
     if attempts >= max_attempts
       puts "routes: #{routes.count}"
       puts "attempts: #{attempts}"
-      # raise
+      raise
     end
 
     routes.uniq!
@@ -101,25 +107,9 @@ class PointsPath
   def frontier_tiles(frontier, tiles)
     frontier_coords = relative_neighbours(frontier)
 
-    # puts "-----"
-    # puts "frontier: #{frontier}"
-    # puts "frontier_coords: #{frontier_coords}"
-    j = tiles.select do |tile|
+    tiles.select do |tile|
       frontier_coords.find { |(x, y)| tile[:fov_col] == y && tile[:fov_row] == x }
     end
-
-    # puts "j: #{j}"
-    i = j.sort_by do |tile|
-      r = proximity_to_destination(x: tile[:x], y: tile[:y])
-
-      # puts "distance: #{r} - x: #{tile[:x]}, y: #{tile[:y]}, fov_col: #{tile[:fov_col]}, fov_row: #{tile[:fov_row]}"
-      r
-    end.reverse
-
-    # puts "destination-  x: #{destination[:x]}, y: #{destination[:y]}"
-    # raise if frontier >= 3
-
-    i
   end
 
   def relative_neighbours(frontier)
@@ -130,6 +120,13 @@ class PointsPath
 
     points = top + left + right + bottom
     points.uniq
+
+    # [
+    #   [frontier, frontier],
+    #   [-frontier, frontier],
+    #   [frontier, -frontier],
+    #   [-frontier, -frontier],
+    # ]
   end
 
   def proximity_to_destination(x:, y:)
