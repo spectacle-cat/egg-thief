@@ -24,26 +24,47 @@ class PointsPath
   def build
     destination_found = false
     potential_tiles = candidate_tiles.map { |tile| tile.merge(visited: false) }
-    frontier = 1
+
     destination_tile = nil
 
-    frontier_tiles(frontier, potential_tiles).each do |ft|
-      args.outputs.debug << ft.merge(r: 0, g: 200, b: 200).solid
+    frontiers = [destination[:fov_col].abs, destination[:fov_row].abs].max
 
-      absolute_neighbours = relative_neighbours(1).map do |(x, y)|
-        [ft[:row] + x, ft[:column] + y]
+    frontiers.times do |frontier|
+      frontier_tiles(frontier, potential_tiles).each do |ft|
+        args.outputs.debug << ft.merge(r: 0, g: 200, b: 200).solid
+
+        absolute_neighbours = relative_neighbours(1).map do |(x, y)|
+          [ft[:row] + x, ft[:column] + y]
+        end
+
+        neighbouring_tiles = absolute_neighbours.map do |(row, col)|
+          neighbour = potential_tiles.find { |pt| pt[:row] == row && pt[:column] == col }
+
+          next unless neighbour
+          next if destination_found
+          next if neighbour[:visited]
+
+          neighbour[:visited] = true
+          neighbour[:came_from] = ft
+          neighbour[:path_index] = frontier
+
+          destination_found = neighbour[:fov_col] == destination[:fov_col] &&
+          neighbour[:fov_row] == destination[:fov_row]
+
+          if destination_found
+            neighbour[:destination] = true
+            destination_tile = neighbour
+
+            args.outputs.debug << neighbour.merge(r: 200, g: 250, b: 0).solid
+            break(neighbour)
+          else
+            args.outputs.debug << neighbour.merge(r: 0, g: 170, b: 170, a: 150).solid
+          end
+        end
       end
 
-      neighbouring_tiles = absolute_neighbours.map do |(row, col)|
-        potential_tiles.find { |pt| pt[:row] == row && pt[:column] == col }
-      end.compact
-
-      puts "pts: #{potential_tiles}"
-      puts "nts: #{neighbouring_tiles}"
-
-      neighbouring_tiles.each do |nt|
-        args.outputs.debug << nt.merge(r: 0, g: 10, b: 0, a: 20).solid
-      end
+      # puts "pts: #{potential_tiles}"
+      # puts "nts: #{neighbouring_tiles}"
     end
 
     # while (!destination_tile && potential_tiles.any?) do
