@@ -56,16 +56,21 @@ class PointsPath
             destination_tile = neighbour
 
             args.outputs.debug << neighbour.merge(r: 200, g: 250, b: 0).solid
-            break(neighbour)
+            break
           else
             args.outputs.debug << neighbour.merge(r: 0, g: 170, b: 170, a: 150).solid
           end
         end
       end
-
-      # puts "pts: #{potential_tiles}"
-      # puts "nts: #{neighbouring_tiles}"
     end
+
+    path = []
+    i = destination_tile
+    while [i[:fov_col], i[:fov_row]] != [0,0]  do
+      path << i
+      i = i[:came_from]
+    end
+    path << from
 
     # while (!destination_tile && potential_tiles.any?) do
     #   frontier_tiles(frontier).each do |origin_tile|
@@ -94,8 +99,7 @@ class PointsPath
     # end
 
     # loop through came_from tiles to get the path!
-    destination_tile
-    [from, destination]
+    path
   end
 
   def frontier_tiles(frontier, tiles)
