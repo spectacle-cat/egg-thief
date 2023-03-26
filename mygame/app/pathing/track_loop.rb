@@ -63,6 +63,8 @@ class TrackLoop
   end
 
   def show_debug(args)
+    return unless args.state.debug
+
     steps.each do |step|
       stepb = lookup_step_after(step)
       args.outputs.debug <<

@@ -63,8 +63,6 @@ class Collisions
         return
       end
 
-      next if roadrunner.chase_track
-
       fov = roadrunner.sprite.fov
       _, fov_direction = fov.shift
 
@@ -106,25 +104,10 @@ class Collisions
 
       sighted = fov_tiles.find { |tile| tile.intersect_rect?(player_collider) }
 
-      if sighted && !roadrunner.chasing_player
-        path = PointsPath.new(
-          destination: sighted,
-          from: standing_tile,
-          candidate_tiles: fov_tiles,
-          args: args
-        ).build
-
-        roadrunner.chasing_player!(chase_track: SingleTrack.new(path))
-      end
-
-      if args.state.debug
-        args.outputs.debug << standing_tile.merge(a: 50, g: sighted ? 250 : 0).solid
-        args.outputs.debug << {
-          x: standing_tile.x + 25,
-          y: standing_tile.y + 50,
-          text: fov_direction,
-          r: 250, g: 250, b: 250, a: 200
-        }.label
+      if sighted
+        roadrunner.sighted_enemy!
+      else
+        roadrunner.idle_walk
       end
     end
   end

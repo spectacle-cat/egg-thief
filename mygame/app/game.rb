@@ -22,7 +22,7 @@ module Game
 
   def tick args
     # args.gtk.slowmo! 60
-    args.state.debug = true # false
+    args.state.debug = false
     args.outputs.background_color = [52, 43, 14]
     args.state.collected_nests ||= []
     args.state.total_nests ||= 0
@@ -131,8 +131,6 @@ module Game
   end
 
   def restart_level(args)
-    args.state.enemies.roadrunners.each { |rr| rr.reset }
-
     TileBoard.render_tiles(args)
     TileBoard.render_finish(args)
     TileBoard.render_nests(args)
