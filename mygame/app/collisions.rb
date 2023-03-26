@@ -42,8 +42,6 @@ class Collisions
 
   def check_enemies
     args.state.scorpions.each do |scorpion|
-      # args.outputs.debug << scorpion.sprite.border
-
       hit = Enemies::Scorpion.hit_box(args, scorpion).intersect_rect?(player_collider)
       if hit
         Game.restart_level!(args)
@@ -51,8 +49,18 @@ class Collisions
       end
     end
 
-    args.state.enemies.roadrunners.each.with_index do |roadrunner, index|
-      point = roadrunner.sprite.origin_point
+    check_fov_collisions(args.state.enemies.roadrunners)
+    check_fov_collisions(args.state.enemies.hawks)
+    check_fov_collisions(args.state.enemies.owls)
+  end
+
+  def point_inside_rect?(point, rect)
+    (point.x - rect.x) <= rect.w && (point.y - rect.y) <= rect.h
+  end
+
+  def check_fov_collisions(enemies)
+    enemies.each do |enemy|
+      point = enemy.sprite.origin_point
       standing_tile = args.state.tiles.find do |tile|
         point_inside_rect?(point, tile)
       end.dup
@@ -63,7 +71,7 @@ class Collisions
         return
       end
 
-      fov = roadrunner.sprite.fov
+      fov = enemy.sprite.fov
       _, fov_direction = fov.shift
 
       fov_tiles = fov.map do |(col_offset, row_offset)|
@@ -105,14 +113,10 @@ class Collisions
       sighted = fov_tiles.find { |tile| tile.intersect_rect?(player_collider) }
 
       if sighted
-        roadrunner.sighted_enemy!
+        enemy.sighted_enemy!
       else
-        roadrunner.idle_walk
+        enemy.idle_walk
       end
     end
-  end
-
-  def point_inside_rect?(point, rect)
-    (point.x - rect.x) <= rect.w && (point.y - rect.y) <= rect.h
   end
 end
