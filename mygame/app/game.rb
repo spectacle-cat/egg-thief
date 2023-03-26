@@ -7,6 +7,8 @@ require 'app/player.rb'
 require 'app/enemies.rb'
 require 'app/enemies/scorpion.rb'
 require 'app/enemies/roadrunner.rb'
+require 'app/enemies/hawk.rb'
+require 'app/enemies/owl.rb'
 require 'app/pathing/track_builder.rb'
 require 'app/pathing/track_loop.rb'
 require 'app/pathing/single_track.rb'
@@ -24,7 +26,7 @@ module Game
 
   def tick args
     # args.gtk.slowmo! 60
-    args.state.debug = false
+    args.state.debug = true
     args.outputs.background_color = [52, 43, 14]
     args.state.collected_nests ||= []
     args.state.total_nests ||= 0

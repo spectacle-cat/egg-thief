@@ -10,8 +10,15 @@ module Enemies
         args.state.enemies.roadrunners ||= []
         tracks.each do |track|
           track = TrackBuilder.new(args, track).build_track
-          entity = TrackingEntity.new(track: TrackLoop.new(track), sprite: Roadrunner)
+          entity = TrackingEntity.new(track: TrackLoop.new(track), sprite: Enemies::Roadrunner)
           args.state.enemies.roadrunners << entity
+        end
+      when "Hawk"
+        args.state.enemies.hawks ||= []
+        tracks.each do |track|
+          track = TrackBuilder.new(args, track).build_track
+          entity = TrackingEntity.new(track: TrackLoop.new(track), sprite: Enemies::Hawk)
+          args.state.enemies.hawks << entity
         end
       end
     end
@@ -23,9 +30,17 @@ module Enemies
     args.state.enemies.roadrunners.each do |entity|
       sprites << entity.tick(args).sprite
 
+      # entity.current_track.show_debug(args)
+      # entity.show_debug(args)
+    end
+
+    args.state.enemies.hawks.each do |entity|
+      sprites << entity.tick(args).sprite
+
       entity.current_track.show_debug(args)
       entity.show_debug(args)
     end
+
 
     args.outputs.sprites << sprites
   end
