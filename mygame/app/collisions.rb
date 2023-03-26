@@ -44,7 +44,7 @@ class Collisions
     args.state.scorpions.each do |scorpion|
       # args.outputs.debug << scorpion.sprite.border
 
-      hit = Scorpion.hit_box(args, scorpion).intersect_rect?(player_collider)
+      hit = Enemies::Scorpion.hit_box(args, scorpion).intersect_rect?(player_collider)
       if hit
         Game.restart_level!(args)
         break

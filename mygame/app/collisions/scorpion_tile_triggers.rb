@@ -8,7 +8,7 @@ module ScorpionTileTriggers
       end.each do |tile|
         # args.outputs.debug << [tile[:x], tile[:y], 100, 100, 255].border
 
-        unless Scorpion.animating?(args, scorpion)
+        unless Enemies::Scorpion.animating?(args, scorpion)
           scorpion[:attack_started_at] = args.tick_count
           scorpion[:attack_direction] = tile[:direction]
         end

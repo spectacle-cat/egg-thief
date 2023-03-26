@@ -1,6 +1,3 @@
-require 'app/scorpion.rb'
-require 'app/roadrunner.rb'
-
 module TileBoard
   extend self
 
@@ -171,8 +168,8 @@ module TileBoard
     sprites = []
 
     sprites << args.state.scorpions.map do |scorpion|
-      scorpion.sprite = Scorpion.sprite(x: scorpion[:x], y: scorpion[:y], attack_direction: scorpion[:attack_direction])
-      Scorpion.animate(
+      scorpion.sprite = Enemies::Scorpion.sprite(x: scorpion[:x], y: scorpion[:y], attack_direction: scorpion[:attack_direction])
+      Enemies::Scorpion.animate(
         args: args,
         scorpion: scorpion.sprite,
         attack_started_at: scorpion[:attack_started_at],
@@ -190,7 +187,7 @@ module TileBoard
 
     if args.state.roadrunner_path.any?
       roadrunner = args.state.roadrunner_path.find { |path| path[:start] }
-      sprites << Roadrunner.new(roadrunner)
+      sprites << Enemies::Roadrunner.new(roadrunner)
     end
 
     args.outputs.sprites << sprites
