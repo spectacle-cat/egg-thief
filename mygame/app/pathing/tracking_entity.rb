@@ -18,25 +18,41 @@ class TrackingEntity
     @last_updated_at = 0
 
     @speed = step_speed
-    @direction = direction_from_position(step)
+    @direction = direction_from_position
 
     @chasing_player = false
     @player_last_spotted = nil
   end
 
+  def reset
+    self.chasing_player = false
+    self.chase_track = nil
+  end
+
   def tick(args)
     if args.tick_count % TICKS_PER_TILE == 0
-      self.speed = chasing_player? ? sprint_speed : step_speed
+      self.speed = step_speed # chasing_player? ? sprint_speed : step_speed
 
       current_track.update!
-      self.direction = direction_from_position(current_track.next_step)
+
+      if chasing_player && current_track.next_step == nil
+        self.chasing_player = false
+        self.chase_track = nil
+
+        # Back to non-chase
+        # current_track.update!
+      end
+
+      self.direction = direction_from_position
 
       self.last_update_angle = sprite.angle
       self.last_updated_at = args.state.tick_count
     end
 
-    # move
-    # turn(args: args)
+    if current_track.next_step
+      move
+      turn(args: args)
+    end
 
     chase_track.show_debug(args) if chase_track
 
@@ -55,8 +71,6 @@ class TrackingEntity
   private
 
   def current_track
-    return track
-
     if chasing_player?
       chase_track
     else
@@ -73,9 +87,9 @@ class TrackingEntity
   end
 
   def turn(args:)
-    ps = Vector.build(track.previous_step)
-    cs = Vector.build(track.current_step)
-    ns = Vector.build(track.next_step)
+    ps = Vector.build(current_track.previous_step || current_track.current_step)
+    cs = Vector.build(current_track.current_step)
+    ns = Vector.build(current_track.next_step || current_track.current_step)
 
     v = Vector.new(x: cs.x - ps.x, y: cs.y - ps.y).normalize
     t = Vector.new(x: v.y, y: -v.x)
@@ -100,43 +114,22 @@ class TrackingEntity
     $geometry.angle_to track.current_step, track.next_step
   end
 
-  def direction_from_position(destination)
-    direction_x = (track.next_step[:x] - sprite.origin_point.x)
-    direction_y = (track.next_step[:y] - sprite.origin_point.y)
+  def direction_from_position
+    return direction if current_track.next_step.nil?
+
+    direction_x = (current_track.next_step[:x] - sprite.origin_point.x)
+    direction_y = (current_track.next_step[:y] - sprite.origin_point.y)
 
     Vector.new(x: direction_x, y: direction_y) # .normalize
   end
 
   def sprint_speed
-    step_speed * SPRINT_MULTIPLIER
+    # step_speed * SPRINT_MULTIPLIER
+    step_speed
   end
 
   def step_speed
     TileBoard::TILE_SIZE / TICKS_PER_TILE
-  end
-
-  def reached_current_point?
-    close_enough?
-  end
-
-  def close_enough?(strategy: :percent)
-    distance_allowance =
-      case strategy
-      when :pixels
-        buffer = 30 # pixels
-        distance_between(track.current_step, track.next_step) - buffer
-      when :percent
-        buffer = 0.9
-        distance_between(track.current_step, track.next_step) * buffer
-      else
-        raise "Unknown strategy: #{strategy}"
-      end
-
-    distance_between(sprite.origin_point, track.next_step) < distance_allowance
-  end
-
-  def distance_between(a_vector, b_vector)
-    $geometry.distance(a_vector, b_vector)
   end
 
   def inspect
@@ -153,14 +146,36 @@ class TrackingEntity
   end
 
   def show_debug(args)
-    # args.outputs.debug << [
-    #   track.current_step[:x], track.current_step[:y],
-    #   sprite.origin_point.x, sprite.origin_point.y, 0, 200, 250
-    # ].line
+    args.outputs.debug << [
+      track.current_step[:x], track.current_step[:y],
+      sprite.origin_point.x, sprite.origin_point.y, 0, 200, 250
+    ].line
 
     # args.outputs.debug << [
     #   sprite.origin_point.x, sprite.origin_point.y,
     #   direction.x, direction.y, 0, 0, 0
     # ].line
+
+    args.outputs.labels << [800, 125, "on_last_step? - #{current_track.on_last_step?}"]
+    args.outputs.labels << [800, 100, "chasing player - #{chasing_player}"]
+
+    args.outputs.labels << [600, 75, "direction - x: #{direction.x}, y: #{direction.y}"]
+    args.outputs.labels << [600, 50, "next_point - x: #{next_point.x}, y: #{next_point.y}"]
+
+    args.outputs.labels << [50, 100, "origin_point - x: #{sprite.origin_point.x}, y: #{sprite.origin_point.y}"]
+
+    if current_track.next_step
+      args.outputs.labels << [50, 75, "next_step - x: #{current_track.next_step[:x]}, y: #{current_track.next_step[:y]}"]
+    else
+      args.outputs.labels << [50, 75, "next_step - x:  , y:  "]
+    end
+
+    args.outputs.labels << [50, 50, "current_step - x: #{current_track.current_step[:x]}, y: #{current_track.current_step[:y]}"]
+
+    if current_track.previous_step
+      args.outputs.labels << [50, 25, "prev_step - x: #{current_track.previous_step[:x]}, y: #{current_track.previous_step[:y]}"]
+    else
+      args.outputs.labels << [50, 25, "prev_step - x:  , y:  "]
+    end
   end
 end

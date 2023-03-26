@@ -15,6 +15,10 @@ class TrackLoop
     increment_step
   end
 
+  def on_last_step?
+    false
+  end
+
   def increment_step
     self.previous_step = current_step
     self.current_step = next_step

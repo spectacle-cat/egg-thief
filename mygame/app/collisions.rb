@@ -55,10 +55,15 @@ class Collisions
       point = roadrunner.sprite.origin_point
       standing_tile = args.state.tiles.find do |tile|
         point_inside_rect?(point, tile)
-      end
+      end.dup
 
       hit = standing_tile.intersect_rect?(player_collider)
-      Game.restart_level!(args) && return if hit
+      if hit
+        Game.restart_level!(args)
+        return
+      end
+
+      next if roadrunner.chase_track
 
       fov = roadrunner.sprite.fov
       _, fov_direction = fov.shift
@@ -67,7 +72,7 @@ class Collisions
         board_row = standing_tile[:row] + row_offset
         board_col = standing_tile[:column] + col_offset
 
-        tile = args.state.tiles.find { |tile| tile[:row] == board_row && tile[:column] == board_col }
+        tile = args.state.tiles.find { |tile| tile[:row] == board_row && tile[:column] == board_col }.clone
 
         if tile && !tile.hide_from_enemy_fov
           tile.merge(fov_col: col_offset, fov_row: row_offset)
@@ -101,7 +106,7 @@ class Collisions
 
       sighted = fov_tiles.find { |tile| tile.intersect_rect?(player_collider) }
 
-      if sighted
+      if sighted && !roadrunner.chasing_player
         path = PointsPath.new(
           destination: sighted,
           from: standing_tile,

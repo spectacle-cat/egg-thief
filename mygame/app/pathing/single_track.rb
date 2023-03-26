@@ -3,8 +3,9 @@ class SingleTrack < TrackLoop
   attr_accessor :previous_step, :current_step, :next_step
 
   def initialize(steps)
-    @steps = steps
+    @steps = steps.dup
     reindex!
+    offset_points_to_center
 
     @current_step = @steps[0]
     @previous_step = find_previous_step
@@ -12,13 +13,23 @@ class SingleTrack < TrackLoop
   end
 
   def update!
-    # increment_step
+    increment_step
   end
 
   def increment_step
-    self.previous_step = current_step
-    self.current_step = next_step
-    self.next_step = find_next_step
+    if find_next_step
+      self.previous_step = current_step
+      self.current_step = next_step
+      self.next_step = find_next_step
+    end
+  end
+
+  def on_last_step?
+    find_next_step == nil
+  end
+
+  def on_first_step?
+    current_step[:index] == 0
   end
 
   def find_next_step
@@ -26,10 +37,13 @@ class SingleTrack < TrackLoop
   end
 
   def find_previous_step
+    return nil if on_first_step?
+
     lookup_step_before(current_step)
   end
 
   def lookup_step_after(step)
+    return if step.nil?
     i = step[:index]
     if i == last_index
       nil
@@ -40,8 +54,8 @@ class SingleTrack < TrackLoop
 
   def lookup_step_before(step)
     i = step[:index]
-    if i == last_index
-      steps[0]
+    if i == 0
+      nil
     else
       steps[i - 1]
     end
@@ -59,7 +73,8 @@ class SingleTrack < TrackLoop
   end
 
   def show_debug(args)
-    args.outputs.labels << [50, 50, "current_step: #{current_step}"]
+    # args.outputs.labels << [50, 50, "current_step: #{current_step}"]
+    # args.outputs.labels << [50, 75, "next_step: #{next_step}"]
     steps.each do |step|
       stepb = lookup_step_after(step)
       next unless stepb
@@ -67,9 +82,20 @@ class SingleTrack < TrackLoop
       args.outputs.debug << [step[:x] + 50, step[:y] + 50, stepb[:x] + 50, stepb[:y] + 50, 200, 200, 0].line
     end
 
-    # args.outputs.debug << [
-    #   current_step[:x] + 50, current_step[:y] + 50,
-    #   next_step[:x] + 50, next_step[:y] + 50, 0, 200, 0
-    # ].line
+    # if next_step
+    #   args.outputs.debug << [
+    #     current_step[:x] + 50, current_step[:y] + 50,
+    #     next_step[:x] + 50, next_step[:y] + 50, 0, 200, 0
+    #   ].line
+    # end
+  end
+
+  private
+
+  def offset_points_to_center
+    steps.each do |step|
+      step[:x] += 50
+      step[:y] += 50
+    end
   end
 end

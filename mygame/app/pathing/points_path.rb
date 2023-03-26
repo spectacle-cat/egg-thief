@@ -5,7 +5,7 @@ class PointsPath
   def initialize(destination: , from: , candidate_tiles:, args:)
     @destination = destination
     @from = from
-    @candidate_tiles = candidate_tiles
+    @candidate_tiles = candidate_tiles.dup
     @args = args
   end
 
@@ -116,6 +116,7 @@ class PointsPath
 
     (shortest_route || [from, destination])
   end
+
 
   def frontier_tiles(frontier, tiles)
     frontier_coords = relative_neighbours(frontier)

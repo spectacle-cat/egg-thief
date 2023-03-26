@@ -131,6 +131,8 @@ module Game
   end
 
   def restart_level(args)
+    args.state.enemies.roadrunners.each { |rr| rr.reset }
+
     TileBoard.render_tiles(args)
     TileBoard.render_finish(args)
     TileBoard.render_nests(args)
