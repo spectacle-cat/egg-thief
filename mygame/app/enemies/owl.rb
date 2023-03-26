@@ -5,8 +5,8 @@ module Enemies
     def initialize(origin_point:, angle: 0)
       self.origin_point = origin_point
 
-      @h = TileBoard::TILE_SIZE * 2
-      @w = TileBoard::TILE_SIZE
+      @h = TileBoard::TILE_SIZE
+      @w = TileBoard::TILE_SIZE * 2
       @path = "sprites/owl_centre.png"
       @angle = angle
     end
@@ -16,11 +16,11 @@ module Enemies
     end
 
     def x
-      origin_point.x - (TileBoard::TILE_SIZE / 2)
+      origin_point.x - (TileBoard::TILE_SIZE)
     end
 
     def y
-      origin_point.y - (TileBoard::TILE_SIZE)
+      origin_point.y - (TileBoard::TILE_SIZE / 2)
     end
 
     def fov

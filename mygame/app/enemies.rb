@@ -20,6 +20,13 @@ module Enemies
           entity = TrackingEntity.new(track: TrackLoop.new(track), sprite: Enemies::Hawk)
           args.state.enemies.hawks << entity
         end
+      when "Owl"
+        args.state.enemies.owls ||= []
+        tracks.each do |track|
+          track = TrackBuilder.new(args, track).build_track
+          entity = TrackingEntity.new(track: TrackLoop.new(track), sprite: Enemies::Owl)
+          args.state.enemies.owls << entity
+        end
       end
     end
   end
@@ -37,10 +44,16 @@ module Enemies
     args.state.enemies.hawks.each do |entity|
       sprites << entity.tick(args).sprite
 
-      entity.current_track.show_debug(args)
-      entity.show_debug(args)
+      # entity.current_track.show_debug(args)
+      # entity.show_debug(args)
     end
 
+    args.state.enemies.owls.each do |entity|
+      sprites << entity.tick(args).sprite
+
+      # entity.current_track.show_debug(args)
+      # entity.show_debug(args)
+    end
 
     args.outputs.sprites << sprites
   end
