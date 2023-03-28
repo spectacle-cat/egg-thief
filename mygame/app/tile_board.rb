@@ -52,7 +52,7 @@ module TileBoard
         y = (row * 100) + ROW_GUTTER
         x = (col * 100) + COLUMN_GUTTER
 
-        tile_data = args.state.level_data["Tiles"][row][col]
+        tile_data = args.state.level_data["Tiles"][:tiles][row][col]
 
         tile = {
           type: :floor,
@@ -220,7 +220,7 @@ module TileBoard
   end
 
   def shrub_sprite(x:, y: , index: [1, 2, 3, 4].sample)
-    expand_by = 50
+    expand_by = 20
 
     {
       x: x - (expand_by / 2),

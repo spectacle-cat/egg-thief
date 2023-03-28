@@ -2,28 +2,28 @@ module Enemies
   extend self
 
   def setup(args)
-    enemies = args.state.level_data.except("tiles")
+    enemies = args.state.level_data.except("Tiles")
 
-    enemies.each do |(enemy_type, tracks)|
+    enemies.each do |(enemy_type, level_data)|
       case enemy_type
       when "Roadrunner"
         args.state.enemies.roadrunners ||= []
-        tracks.each do |track|
-          track = TrackBuilder.new(args, track).build_track
+        level_data.each do |level|
+          track = TrackBuilder.new(args, level[:tiles]).build_track
           entity = TrackingEntity.new(track: TrackLoop.new(track), sprite: Enemies::Roadrunner)
           args.state.enemies.roadrunners << entity
         end
       when "Hawk"
         args.state.enemies.hawks ||= []
-        tracks.each do |track|
-          track = TrackBuilder.new(args, track).build_track
+        level_data.each do |level|
+          track = TrackBuilder.new(args, level[:tiles]).build_track
           entity = TrackingEntity.new(track: TrackLoop.new(track), sprite: Enemies::Hawk)
           args.state.enemies.hawks << entity
         end
       when "Owl"
         args.state.enemies.owls ||= []
-        tracks.each do |track|
-          track = TrackBuilder.new(args, track).build_track
+        level_data.each do |level|
+          track = TrackBuilder.new(args, level[:tiles]).build_track
           entity = TrackingEntity.new(track: TrackLoop.new(track), sprite: Enemies::Owl)
           args.state.enemies.owls << entity
         end

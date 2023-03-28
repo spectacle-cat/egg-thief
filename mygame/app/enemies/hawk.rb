@@ -5,8 +5,8 @@ module Enemies
     def initialize(origin_point:, angle: 0)
       self.origin_point = origin_point
 
-      @h = TileBoard::TILE_SIZE
-      @w = TileBoard::TILE_SIZE * 2
+      @h = TileBoard::TILE_SIZE * 2
+      @w = TileBoard::TILE_SIZE * 3
       @path = "sprites/hawk_centre.png"
       @angle = angle
     end
