@@ -1,39 +1,66 @@
 class TrackingEntity
   attr_reader :track
   attr_accessor :sprite, :speed, :direction, :sprint,
-  :last_update_angle, :last_updated_at
+  :last_update_angle, :last_updated_at, :level_attributes,
+  :offscreen
 
   TICKS_PER_TILE = 20
   SPRINT_MULTIPLIER = 2
 
-  def initialize(track:, sprite: )
+  def initialize(track:, sprite: , attributes: {})
+    @level_attributes = default_attributes.merge(attributes)
     @sprint = false
     @speed = step_speed
-
     @track = track
-    @chase_track = nil
     step = track.current_step.dup
     @sprite = sprite.new(origin_point: Vector.build(step), angle: step[:angle])
     @last_update_angle = step[:angle]
     @last_updated_at = 0
 
     @direction = direction_from_position
+    @offscreen = false
+  end
+
+  def reset!
+    current_track.reset!
+
+    self.sprint = false
+    self.speed = step_speed
+
+    step = track.current_step.dup
+    sprite.origin_point = Vector.build(step)
+    sprite.angle = step[:angle]
+
+    @last_update_angle = step[:angle]
+
+    @direction = direction_from_position
+    @offscreen = false
   end
 
   def tick(args)
+    return self if offscreen && args.state.tick_count < (self.last_updated_at + offscreen_time)
+
+    if offscreen
+      self.offscreen = false
+      reset!
+    end
+
     if args.tick_count % speed == 0
       current_track.update!
-
-      self.speed = sprint ? sprint_speed : step_speed
-      self.direction = direction_from_position
-      self.last_update_angle = sprite.angle
       self.last_updated_at = args.state.tick_count
+
+      if current_track.next_step.nil?
+        self.offscreen = true
+        return self
+      else
+        self.speed = sprint ? sprint_speed : step_speed
+        self.direction = direction_from_position
+        self.last_update_angle = sprite.angle
+      end
     end
 
-    if current_track.next_step
-      move
-      turn(args: args)
-    end
+    move
+    turn(args: args)
 
     self
   end
@@ -98,11 +125,11 @@ class TrackingEntity
   end
 
   def step_speed
-    TICKS_PER_TILE
+    (level_attributes["speed"] || TICKS_PER_TILE).to_i
   end
 
   def sprint_speed
-    TICKS_PER_TILE / SPRINT_MULTIPLIER
+    step_speed / SPRINT_MULTIPLIER
   end
 
   def inspect
@@ -121,14 +148,28 @@ class TrackingEntity
   def show_debug(args)
     return unless args.state.debug
 
-    args.outputs.debug << [
-      track.current_step[:x], track.current_step[:y],
-      sprite.origin_point.x, sprite.origin_point.y, 0, 200, 250
-    ].line
+    if track.current_step
+      args.outputs.debug << [
+        track.current_step[:x], track.current_step[:y],
+        sprite.origin_point.x, sprite.origin_point.y, 0, 200, 250
+      ].line
+    end
 
     # args.outputs.debug << [
     #   sprite.origin_point.x, sprite.origin_point.y,
     #   direction.x, direction.y, 0, 0, 0
     # ].line
+
+    args.outputs.debug << [100, 50, "offscreen: #{offscreen}"].label
+  end
+
+  def offscreen_time
+    level_attributes["seconds_between_flights"].to_i * 60
+  end
+
+  def default_attributes
+    {
+      "speed" => speed,
+     }
   end
 end

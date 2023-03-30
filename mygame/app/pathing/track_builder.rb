@@ -1,6 +1,6 @@
 class TrackBuilder
   attr_reader :args, :track
-  attr_accessor :points, :steps, :position, :from_step, :last_stepped_at
+  attr_accessor :points, :steps
 
   ALPHABET = %w[a b c d e f g h i j k l m n o p q r s t u v w x y z]
 
@@ -8,10 +8,6 @@ class TrackBuilder
     @args = args
     @track = track
     @steps = build_track
-    @from_step = steps[0]
-    @position = @from_step
-    @last_stepped_at = 0
-    @last_up_was_zero = true
   end
 
   def next_step(step)
@@ -55,16 +51,27 @@ class TrackBuilder
     end
   end
 
-  def build_track
+  def build_track(loops: true)
     build_points
     add_facing_angles_to_points
     add_distance_to_points
 
-    reindex_coll(
-      make_corners_45_degrees(
-        calculate_angles(
-          add_corners_to_steps(
-            add_steps_between_points))))
+    result =
+      reindex_coll(
+        make_corners_45_degrees(
+          calculate_angles(
+            add_corners_to_steps(
+              add_steps_between_points
+            )
+          )
+        )
+      )
+
+    if loops
+      TrackLoop.new(result)
+    else
+      SingleTrack.new(result)
+    end
   end
 
   def calculate_angles(steps)
@@ -286,9 +293,8 @@ class TrackBuilder
 
   def serialize
     {
-      position: position,
-      from_step: from_step,
-      last_stepped_at: last_stepped_at
+      track: track,
+      steps: steps
     }
   end
 end

@@ -170,7 +170,7 @@ module Player
     end
 
     args.state.player_collider = player_collider
-    # args.outputs.debug << player_collider.border
+    args.outputs.debug << player_collider.border
     player_collider
   end
 

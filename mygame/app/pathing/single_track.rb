@@ -12,16 +12,20 @@ class SingleTrack < TrackLoop
     @next_step = find_next_step
   end
 
+  def reset!
+    self.current_step = @steps[0]
+    self.previous_step = find_previous_step
+    self.next_step = find_next_step
+  end
+
   def update!
     increment_step
   end
 
   def increment_step
-    if find_next_step
-      self.previous_step = current_step
-      self.current_step = next_step
-      self.next_step = find_next_step
-    end
+    self.previous_step = current_step
+    self.current_step = next_step
+    self.next_step = find_next_step
   end
 
   def on_last_step?
@@ -88,6 +92,19 @@ class SingleTrack < TrackLoop
     #     next_step[:x] + 50, next_step[:y] + 50, 0, 200, 0
     #   ].line
     # end
+  end
+
+  def to_s
+    serialize
+  end
+
+  def serialize
+    {
+      loops: false,
+      previous_step: previous_step,
+      current_step: current_step,
+      next_step: next_step,
+    }
   end
 
   private

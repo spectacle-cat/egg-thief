@@ -11,6 +11,12 @@ class TrackLoop
     @next_step = find_next_step
   end
 
+  def reset!
+    self.current_step = @steps[0]
+    self.previous_step = find_previous_step
+    self.next_step = find_next_step
+  end
+
   def update!
     increment_step
   end
@@ -78,5 +84,18 @@ class TrackLoop
     #   current_step[:x], current_step[:y],
     #   next_step[:x], next_step[:y], 0, 200, 0
     # ].line
+  end
+
+  def to_s
+    serialize
+  end
+
+  def serialize
+    {
+      loops: true,
+      previous_step: previous_step,
+      current_step: current_step,
+      next_step: next_step,
+    }
   end
 end
