@@ -77,6 +77,7 @@ class SingleTrack < TrackLoop
   end
 
   def show_debug(args)
+    return unless args.state.debug
     # args.outputs.labels << [50, 50, "current_step: #{current_step}"]
     # args.outputs.labels << [50, 75, "next_step: #{next_step}"]
     steps.each do |step|

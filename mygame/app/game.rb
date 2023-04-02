@@ -26,7 +26,7 @@ module Game
 
   def tick args
     # args.gtk.slowmo! 60
-    args.state.debug ||= true
+    args.state.debug ||= false
     args.outputs.background_color = [52, 43, 14]
     args.state.collected_nests ||= []
     args.state.total_nests ||= 0

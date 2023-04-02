@@ -24,6 +24,8 @@ module Enemies
     end
 
     def fov
+      return unless angle
+
       quarter = (angle / 90).round
 
       case quarter % 4

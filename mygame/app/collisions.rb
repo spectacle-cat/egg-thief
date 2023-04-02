@@ -65,6 +65,8 @@ class Collisions
         point_inside_rect?(point, tile)
       end.dup
 
+      next unless standing_tile
+
       hit = standing_tile.intersect_rect?(player_collider)
       if hit
         Game.restart_level!(args)

@@ -53,19 +53,28 @@ class TrackBuilder
 
   def build_track(loops: true)
     build_points
+
     add_facing_angles_to_points
     add_distance_to_points
 
+    result = add_steps_between_points
+    result = extend_steps(result) unless loops
     result =
       reindex_coll(
         make_corners_45_degrees(
           calculate_angles(
             add_corners_to_steps(
-              add_steps_between_points
+              result
             )
           )
         )
       )
+
+    unless loops
+      result.each do |point|
+        puts "i: #{point[:index]} x: #{point[:x]} y: #{point[:y]}"
+      end
+    end
 
     if loops
       TrackLoop.new(result)
@@ -168,6 +177,7 @@ class TrackBuilder
     steps = []
 
     points.each do |point|
+      puts "points #{point}"
       point[:tile_distance].abs.times do |n|
         step = point.dup
 
@@ -196,6 +206,8 @@ class TrackBuilder
   def add_distance_to_points
     0.upto(points.count - 1).each do |i|
       point = points[i]
+      next if point[:tile_distance]
+
       next_point =
         if i == (points.count - 1)
           points[0]
@@ -229,6 +241,7 @@ class TrackBuilder
   def add_facing_angles_to_points
     0.upto(points.count - 1).each do |i|
       point = points[i]
+
       next_point =
         if i == (points.count - 1)
           points[0]
@@ -280,11 +293,68 @@ class TrackBuilder
           row: row,
           column: col,
           index: ALPHABET.index(char),
+          offscreen: false,
         }
       end
     end
 
     @points = @points.sort_by { |point| point[:index] }
+  end
+
+  def extend_steps(coll)
+    first_point = coll[0]
+    second_point = coll[1]
+
+    v1 = Vector.build(x: first_point[:x], y: first_point[:y])
+    v2 = Vector.build(x: second_point[:x], y: second_point[:y])
+    v3 = v1 + (v1 - v2)
+
+    offset = TileBoard::TILE_SIZE * 2
+    x = first_point[:x]
+    if v1.x != v3.x
+      x = v3.x > v1.x ? (x + offset) : (x - offset)
+    end
+
+    y = first_point[:y]
+    if v1.y != v3.y
+      y = v3.y > v1.y ? (y + offset) : (y - offset)
+    end
+
+    beginning_point = first_point.dup.merge({
+      x: x,
+      y: y,
+      offscreen: true,
+      tile_distance: 1,
+    })
+    coll.unshift(beginning_point)
+
+    penultimate, last_point = coll.last(2)
+
+    v1 = Vector.build(x: last_point[:x], y: last_point[:y])
+    v2 = Vector.build(x: penultimate[:x], y: penultimate[:y])
+    v3 = v1 + (v1 - v2)
+
+    offset = TileBoard::TILE_SIZE * 2
+    x = last_point[:x]
+    if v1.x != v3.x
+      x = v3.x > v1.x ? (x + offset) : (x - offset)
+    end
+
+    y = first_point[:y]
+    if v1.y != v3.y
+      y = v3.y > v1.y ? (y + offset) : (y - offset)
+    end
+
+    ending_point = last_point.dup.merge({
+      x: x,
+      y: y,
+      offscreen: true,
+      tile_distance: 1,
+    })
+
+    coll.push(ending_point)
+
+    coll
   end
 
   def inspect
