@@ -203,6 +203,12 @@ module Game
       size_enum: 10,
     ]
 
+    labels << [
+      x: args.grid.left.shift_right(720 - 270),
+      y: args.grid.top.shift_down(400),
+      text: "Eggs #{args.state.collected_nests.count} / #{args.state.total_nests}",
+      size_enum: 5,
+    ]
 
     labels << [
       x: args.grid.left.shift_right(720 - 270),
