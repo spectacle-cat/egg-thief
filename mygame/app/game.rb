@@ -53,7 +53,7 @@ module Game
       raise "UNKNOWN SCENE STATE: #{args.state.scene}"
     end
 
-    args.outputs.debug << args.gtk.framerate_diagnostics_primitives
+    args.outputs.debug << args.gtk.framerate_diagnostics_primitives if args.state.debug
 
     args.state.enemy_tracks.each do |point|
       args.outputs.debug << point.border
@@ -82,7 +82,6 @@ module Game
     end
 
     render_level(args)
-    show_score(args)
     continue_fade_in(args) if args.state.fade_in_started_at
   end
 
@@ -203,12 +202,6 @@ module Game
       size_enum: 10,
     ]
 
-    labels << [
-      x: args.grid.left.shift_right(720 - 270),
-      y: args.grid.top.shift_down(400),
-      text: "Eggs #{args.state.collected_nests.count} / #{args.state.total_nests}",
-      size_enum: 5,
-    ]
 
     labels << [
       x: args.grid.left.shift_right(720 - 270),
@@ -217,15 +210,6 @@ module Game
       size_enum: 5,
     ]
     args.outputs.labels << labels
-  end
-
-  def show_score(args)
-    args.outputs.labels << [
-      x: 50,
-      y: 700,
-      text: "Eggs: #{args.state.collected_nests.count}",
-      size_enum: 10,
-    ]
   end
 
   def background(args)
