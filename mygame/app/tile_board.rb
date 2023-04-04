@@ -37,9 +37,11 @@ module TileBoard
     args.state.nests = []
     args.state.cover = []
     args.state.roadrunner_path = []
-    args.state.enemies = []
+    args.state.enemies.roadrunners ||= []
+    args.state.enemies.hawks ||= []
+    args.state.enemies.owls ||= []
+    args.state.enemies.scorpions ||= []
     args.state.finish_point = nil
-    # reset egg counter
   end
 
   def reset_score!(args)

@@ -35,6 +35,10 @@ module Game
     args.state.scene ||= :level
     args.state.fade_in_started_at ||= nil
     args.state.fade_out_started_at ||= nil
+    args.state.enemies.roadrunners ||= []
+    args.state.enemies.hawks ||= []
+    args.state.enemies.owls ||= []
+    args.state.enemies.scorpions ||= []
 
     case args.state.scene
     when :level
