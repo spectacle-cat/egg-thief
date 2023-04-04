@@ -21,7 +21,6 @@ module TileBoard
     args.state.cover ||= []
     args.state.boulders ||= []
     args.state.scorpions ||= []
-    args.state.roadrunner_path ||= []
     args.state.finish_point = nil
 
     build_tiles(args)
@@ -36,7 +35,6 @@ module TileBoard
     args.state.scorpions = []
     args.state.nests = []
     args.state.cover = []
-    args.state.roadrunner_path = []
     args.state.enemies.roadrunners = []
     args.state.enemies.hawks = []
     args.state.enemies.owls = []
@@ -89,14 +87,6 @@ module TileBoard
 
         if tile_data == 'b'
           args.state.scorpions << { x: x, y: y, w: 100, h: 100 }
-        end
-
-        if tile_data == 'r'
-          args.state.roadrunner_path << { x: x , y: y, start: true }
-        end
-
-        if tile_data == 'R'
-          args.state.roadrunner_path << { x: x, y: y, w: 100, h: 200 }
         end
 
         if ['1', '2', '3', '4'].include?(tile_data)
@@ -194,11 +184,6 @@ module TileBoard
 
     sprites << args.state.cover.map do |cover|
       shrub_sprite(x: cover[:x], y: cover[:y], index: cover[:index])
-    end
-
-    if args.state.roadrunner_path.any?
-      roadrunner = args.state.roadrunner_path.find { |path| path[:start] }
-      sprites << Enemies::Roadrunner.new(roadrunner)
     end
 
     args.outputs.sprites << sprites

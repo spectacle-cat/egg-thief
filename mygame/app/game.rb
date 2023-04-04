@@ -177,6 +177,7 @@ module Game
     TileBoard.reset(args)
     load_level(args)
     TileBoard.setup(args)
+    Enemies.setup(args)
 
     args.state.exit_level = false
   end

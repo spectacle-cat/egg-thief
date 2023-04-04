@@ -9,21 +9,21 @@ module Enemies
       when "Roadrunner"
         args.state.enemies.roadrunners ||= []
         level_data.each do |level|
-          track = TrackBuilder.new(args, level[:tiles]).build_track(loops: level[:loops] == '0')
+          track = TrackBuilder.new(args, level[:tiles]).build_track(loops: level["loops"] != "false")
           entity = TrackingEntity.new(track: track, sprite: Enemies::Roadrunner, attributes: level.except(:tiles))
           args.state.enemies.roadrunners << entity
         end
       when "Hawk"
         args.state.enemies.hawks ||= []
         level_data.each do |level|
-          track = TrackBuilder.new(args, level[:tiles]).build_track(loops: level[:loops] == '0')
+          track = TrackBuilder.new(args, level[:tiles]).build_track(loops: level["loops"] != "false")
           entity = TrackingEntity.new(track: track, sprite: Enemies::Hawk, attributes: level.except(:tiles))
           args.state.enemies.hawks << entity
         end
       when "Owl"
         args.state.enemies.owls ||= []
         level_data.each do |level|
-          track = TrackBuilder.new(args, level[:tiles]).build_track(loops: level[:loops] == '0')
+          track = TrackBuilder.new(args, level[:tiles]).build_track(loops: level["loops"] != "false")
           entity = TrackingEntity.new(track: track, sprite: Enemies::Owl, attributes: level.except(:tiles))
           args.state.enemies.owls << entity
         end
