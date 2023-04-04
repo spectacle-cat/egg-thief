@@ -132,6 +132,10 @@ module Game
   def restart_level!(args)
     args.state.restarted_level_at = args.tick_count
     args.state.scene = :restart_level
+
+    args.state.enemies[:hawks].each { |enemy| enemy.reset! }
+    args.state.enemies[:owls].each { |enemy| enemy.reset! }
+    args.state.enemies[:roadrunners].each { |enemy| enemy.reset! }
   end
 
   def restart_level(args)
@@ -148,6 +152,7 @@ module Game
       args.state.restarted_level_at = nil
       Player.reset(args)
       Player.place_at_start(args)
+
     end
   end
 
