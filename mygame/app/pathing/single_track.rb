@@ -84,7 +84,7 @@ class SingleTrack < TrackLoop
       stepb = lookup_step_after(step)
       next unless stepb
 
-      args.outputs.debug << [step[:x] + 50, step[:y] + 50, stepb[:x] + 50, stepb[:y] + 50, 200, 200, 0].line
+      args.outputs.debug << [step[:x], step[:y], stepb[:x], stepb[:y], 200, 200, 0].line
     end
 
     # if next_step
