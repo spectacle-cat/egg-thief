@@ -70,12 +70,6 @@ class TrackBuilder
         )
       )
 
-    unless loops
-      result.each do |point|
-        puts "i: #{point[:index]} x: #{point[:x]} y: #{point[:y]}"
-      end
-    end
-
     if loops
       TrackLoop.new(result)
     else
@@ -177,7 +171,6 @@ class TrackBuilder
     steps = []
 
     points.each do |point|
-      puts "points #{point}"
       point[:tile_distance].abs.times do |n|
         step = point.dup
 

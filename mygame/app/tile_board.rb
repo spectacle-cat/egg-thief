@@ -42,6 +42,14 @@ module TileBoard
     # reset egg counter
   end
 
+  def reset_score!(args)
+    nests = args.state.empty_nests
+    args.state.nests = args.state.nests + nests
+    args.state.empty_nests = []
+
+    args.state.collected_nests = args.state.collected_nests - nests
+  end
+
   def build_tiles(args)
     args.state.board[:tiles] = []
     index_counter = 0

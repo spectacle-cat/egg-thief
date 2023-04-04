@@ -152,7 +152,7 @@ module Game
       args.state.restarted_level_at = nil
       Player.reset(args)
       Player.place_at_start(args)
-
+      TileBoard.reset_score!(args)
     end
   end
 
