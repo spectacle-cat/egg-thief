@@ -37,10 +37,10 @@ module TileBoard
     args.state.nests = []
     args.state.cover = []
     args.state.roadrunner_path = []
-    args.state.enemies.roadrunners ||= []
-    args.state.enemies.hawks ||= []
-    args.state.enemies.owls ||= []
-    args.state.enemies.scorpions ||= []
+    args.state.enemies.roadrunners = []
+    args.state.enemies.hawks = []
+    args.state.enemies.owls = []
+    args.state.enemies.scorpions = []
     args.state.finish_point = nil
   end
 
