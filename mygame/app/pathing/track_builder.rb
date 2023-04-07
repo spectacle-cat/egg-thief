@@ -57,7 +57,8 @@ class TrackBuilder
     add_facing_angles_to_points
     add_distance_to_points
 
-    result = add_steps_between_points
+    result = add_steps_between_points(loops: loops)
+
     result = extend_steps(result) unless loops
     result =
       reindex_coll(
@@ -167,10 +168,12 @@ class TrackBuilder
     steps
   end
 
-  def add_steps_between_points
+  def add_steps_between_points(loops: true)
     steps = []
 
-    points.each do |point|
+    points.each.with_index do |point, index|
+      next if !loops && (index + 1) == points.count
+
       point[:tile_distance].abs.times do |n|
         step = point.dup
 
