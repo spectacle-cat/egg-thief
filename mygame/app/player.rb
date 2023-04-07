@@ -69,17 +69,17 @@ module Player
 
   def set_player_input(args)
       # get the keyboard input and set player properties
-    if args.inputs.keyboard.right
+    if args.inputs.keyboard.right || args.inputs.controller_one.right
       args.state.player.lr = :right
-    elsif args.inputs.keyboard.left
+    elsif args.inputs.keyboard.left || args.inputs.controller_one.left
       args.state.player.lr = :left
     else
       args.state.player.lr = :none
     end
 
-    if args.inputs.keyboard.up
+    if args.inputs.keyboard.up || args.inputs.controller_one.up
       args.state.player.ud = :up
-    elsif args.inputs.keyboard.down
+    elsif args.inputs.keyboard.down || args.inputs.controller_one.down
       args.state.player.ud = :down
     else
       args.state.player.ud = :none

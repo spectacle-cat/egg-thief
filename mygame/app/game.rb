@@ -63,7 +63,7 @@ module Game
   def game_completed_scene(args)
     render_game_complete(args)
 
-    if args.inputs.keyboard.space
+    if args.inputs.keyboard.space || args.inputs.controller_one.truthy_keys.any?
       args.state.level = 1
       args.state.scene = :level
       reset_score(args)
@@ -213,7 +213,7 @@ module Game
     labels << [
       x: args.grid.left.shift_right(720 - 270),
       y: args.grid.top.shift_down(500),
-      text: "Press SPACE to restart",
+      text: "Press SPACE/controller button to restart",
       size_enum: 5,
     ]
     args.outputs.labels << labels
