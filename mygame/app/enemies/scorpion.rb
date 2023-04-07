@@ -3,6 +3,7 @@ module Enemies
     extend self
 
     TILE_SIZE = 100
+    SPEED = 40
 
     def to_border(scorpion)
       [
@@ -43,7 +44,7 @@ module Enemies
     end
 
     def animating?(args, scorpion)
-      duration = 60
+      duration = SPEED
       start_time = scorpion[:attack_started_at]
 
       return false unless start_time
@@ -52,7 +53,7 @@ module Enemies
     end
 
     def animate(args:, scorpion:, attack_started_at:, attack_direction:)
-      duration = 60
+      duration = SPEED
       start_time = attack_started_at
 
       return unless attack_started_at
