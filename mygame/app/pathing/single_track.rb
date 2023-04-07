@@ -5,7 +5,7 @@ class SingleTrack < TrackLoop
   def initialize(steps)
     @steps = steps.dup
     reindex!
-    offset_points_to_center
+    # offset_points_to_center
 
     @current_step = @steps[0]
     @previous_step = find_previous_step
