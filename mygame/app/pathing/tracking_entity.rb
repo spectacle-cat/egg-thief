@@ -2,7 +2,7 @@ class TrackingEntity
   attr_reader :track
   attr_accessor :sprite, :speed, :direction, :sprint,
   :last_update_angle, :last_updated_at, :level_attributes,
-  :offscreen
+  :offscreen, :loaded_at
 
   TICKS_PER_TILE = 20
   SPRINT_MULTIPLIER = 2
@@ -16,6 +16,7 @@ class TrackingEntity
     @sprite = sprite.new(origin_point: Vector.build(step), angle: step[:angle])
     @last_update_angle = step[:angle]
     @last_updated_at = 0
+    @loaded_at = 0
 
     @direction = direction_from_position
     @offscreen = false
@@ -38,7 +39,15 @@ class TrackingEntity
   end
 
   def tick(args)
-    return self if offscreen && args.state.tick_count < (self.last_updated_at + offscreen_time)
+    self.loaded_at = args.state.tick_count if loaded_at == 0
+
+    if start_delay_time > 0
+      return self if args.state.tick_count < (loaded_at + start_delay_time)
+    end
+
+    if offscreen
+      return self if args.state.tick_count < (self.last_updated_at + offscreen_time)
+    end
 
     if offscreen
       self.offscreen = false
@@ -167,10 +176,15 @@ class TrackingEntity
     level_attributes["seconds_between_flights"].to_i * 60
   end
 
+  def start_delay_time
+    level_attributes["start_delay"].to_i * 60
+  end
+
   def default_attributes
     {
       "speed" => speed,
-      "chase_player" => "false"
+      "chase_player" => "false",
+      "start_delay" => 0
      }
   end
 end
