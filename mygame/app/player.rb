@@ -115,8 +115,8 @@ module Player
     end
   end
 
-  def player_collision_box(args, x: :unset, y: :unset)
-    length = 100
+  def player_collision_box(args, x: :unset, y: :unset, buffer: 0)
+    length = 100 - buffer
     target_player_rect = {
       x: x == :unset ? args.state.player.x : x,
       y: y == :unset ? args.state.player.y : y,
