@@ -66,7 +66,7 @@ class TrackingEntity
   end
 
   def sighted_enemy!
-    self.sprint = true
+    self.sprint = true if level_attributes[:chase_player] == "true"
   end
 
   def idle_walk
@@ -170,6 +170,7 @@ class TrackingEntity
   def default_attributes
     {
       "speed" => speed,
+      "chase_player" => "false"
      }
   end
 end

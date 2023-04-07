@@ -60,6 +60,8 @@ class Collisions
 
   def check_fov_collisions(enemies)
     enemies.each do |enemy|
+      next if enemy.offscreen
+
       point = enemy.sprite.origin_point
       standing_tile = args.state.tiles.find do |tile|
         point_inside_rect?(point, tile)
@@ -67,10 +69,12 @@ class Collisions
 
       next unless standing_tile
 
-      hit = standing_tile.intersect_rect?(player_collider)
-      if hit
-        Game.restart_level!(args)
-        return
+      unless standing_tile.hide_from_enemy_fov
+        hit = standing_tile.intersect_rect?(player_collider)
+        if hit
+          Game.restart_level!(args)
+          return
+        end
       end
 
       fov = enemy.sprite.fov
@@ -88,7 +92,7 @@ class Collisions
       end
 
       fov_tiles.compact!
-      fov_tiles << standing_tile.merge(fov_col: 0, fov_row: 0)
+      fov_tiles << standing_tile.merge(fov_col: 0, fov_row: 0) unless standing_tile.hide_from_enemy_fov
 
       fov_tiles = fov_tiles.select do |tile|
         col = tile[:fov_col]
