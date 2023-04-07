@@ -4,31 +4,35 @@ module Enemies
   def setup(args)
     enemies = args.state.level_data.except("Tiles")
 
+    args.state.enemies.roadrunners ||= []
+    args.state.enemies.hawks ||= []
+    args.state.enemies.owls ||= []
+
     enemies.each do |(enemy_type, level_data)|
       case enemy_type
       when "Roadrunner"
-        args.state.enemies.roadrunners ||= []
         level_data.each do |level|
-          track = TrackBuilder.new(args, level[:tiles]).build_track(loops: level["loops"] != "false")
-          entity = TrackingEntity.new(track: track, sprite: Enemies::Roadrunner, attributes: level.except(:tiles))
-          args.state.enemies.roadrunners << entity
+          args.state.enemies.roadrunners << tracking_entity(args, level, Enemies::Roadrunner)
         end
       when "Hawk"
-        args.state.enemies.hawks ||= []
         level_data.each do |level|
-          track = TrackBuilder.new(args, level[:tiles]).build_track(loops: level["loops"] != "false")
-          entity = TrackingEntity.new(track: track, sprite: Enemies::Hawk, attributes: level.except(:tiles))
-          args.state.enemies.hawks << entity
+          args.state.enemies.hawks << tracking_entity(args, level, Enemies::Hawk)
         end
       when "Owl"
-        args.state.enemies.owls ||= []
         level_data.each do |level|
-          track = TrackBuilder.new(args, level[:tiles]).build_track(loops: level["loops"] != "false")
-          entity = TrackingEntity.new(track: track, sprite: Enemies::Owl, attributes: level.except(:tiles))
-          args.state.enemies.owls << entity
+          args.state.enemies.owls << tracking_entity(args, level, Enemies::Owl)
         end
       end
     end
+  end
+
+  def tracking_entity(args, level, sprite)
+    track = TrackBuilder
+      .new(args, level[:tiles])
+      .build_track(loops: level["loops"] != "false")
+
+    TrackingEntity
+      .new(track: track, sprite: sprite, attributes: level.except(:tiles))
   end
 
   def tick(args)
