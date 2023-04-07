@@ -7,7 +7,7 @@ class TrackBuilder
   def initialize(args, track)
     @args = args
     @track = track
-    @steps = build_track
+    @steps = []
   end
 
   def next_step(step)
@@ -58,8 +58,8 @@ class TrackBuilder
     add_distance_to_points
 
     result = add_steps_between_points(loops: loops)
-
     result = extend_steps(result) unless loops
+
     result =
       reindex_coll(
         make_corners_45_degrees(
@@ -336,7 +336,7 @@ class TrackBuilder
       x = v3.x > v1.x ? (x + offset) : (x - offset)
     end
 
-    y = first_point[:y]
+    y = last_point[:y]
     if v1.y != v3.y
       y = v3.y > v1.y ? (y + offset) : (y - offset)
     end
