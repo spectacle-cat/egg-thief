@@ -48,7 +48,7 @@ module Player
     end
 
     # if no arrow keys are being pressed, set the player as not moving
-    if !args.inputs.keyboard.directional_vector
+    if !input_for_moving_detected?(args)
       args.state.player.started_running_at = nil
     end
 
@@ -256,5 +256,9 @@ module Player
                                               does_sprite_loop
 
     args.outputs.sprites << player_sprite(args, index: sprite_index)
+  end
+
+  def input_for_moving_detected?(args)
+    args.inputs.up || args.inputs.down || args.inputs.left || args.inputs.right
   end
 end
