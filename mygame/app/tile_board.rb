@@ -43,11 +43,10 @@ module TileBoard
   end
 
   def reset_score!(args)
-    nests = args.state.empty_nests
-    args.state.nests = args.state.nests + nests
+    args.state.nests = args.state.nests + args.state.empty_nests
     args.state.empty_nests = []
 
-    args.state.collected_nests = args.state.collected_nests - nests
+    args.state.collected_nests = args.state.collected_nests - args.state.nests
   end
 
   def build_tiles(args)
@@ -93,7 +92,8 @@ module TileBoard
           args.state.nests << {
             x: x, y: y,
             collision_box: { x: x + 33, y: y + 33, w: 33, h: 33 },
-            egg_type: tile_data
+            egg_type: tile_data,
+            uid: "#{args.state.level}_#{tile_data}"
           }
           args.state.total_nests += 1
         end
@@ -216,7 +216,7 @@ module TileBoard
   end
 
   def shrub_sprite(x:, y: , index: [1, 2, 3, 4].sample)
-    expand_by = 20
+    expand_by = 15
 
     {
       x: x - (expand_by / 2),
