@@ -152,9 +152,16 @@ module TileBoard
 
   def render_finish(args)
     fp = args.state.finish_point
-    args.state.interactables.finish_rect = [fp.x, fp.y, TILE_SIZE, TILE_SIZE]
+    buffer = 30
+    args.state.interactables.finish_rect = {
+      x: fp.x + (buffer / 2),
+      y: fp.y + (buffer / 2),
+      w: TILE_SIZE - buffer,
+      h: TILE_SIZE - buffer
+    }
 
-    args.outputs.labels << { x: fp.x + 20, y: fp.y + 60, text: "FINISH", r: 250, g: 250, b: 250 }
+    args.outputs.debug << args.state.interactables.finish_rect.border if args.state.debug
+    args.outputs.primitives << { x: fp.x + 20, y: fp.y + 60, text: "FINISH", r: 250, g: 250, b: 250 }.label
 
     args.outputs.sprites << {
       x: fp.x,
