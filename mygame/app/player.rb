@@ -115,7 +115,7 @@ module Player
   end
 
   def player_collision_box(args, x: :unset, y: :unset, buffer: 0)
-    length = 100 - buffer
+    length = 100 - 10 - buffer
     target_player_rect = {
       x: x == :unset ? args.state.player.x : x,
       y: y == :unset ? args.state.player.y : y,
@@ -127,7 +127,7 @@ module Player
 
     player_collider =
       if [:left, :right].include?(lr) && [:up, :down].include?(ud)
-        { w: length / 2, h: length / 2, }
+        { w: length / 2.5, h: length / 2.5, }
       elsif lr == :right || lr == :left
         { w: length * 0.5, h: length / 3.5, }
       elsif ud == :up || ud == :down
@@ -169,7 +169,6 @@ module Player
     end
 
     args.state.player_collider = player_collider
-    args.outputs.debug << player_collider.border if args.state.debug
     player_collider
   end
 

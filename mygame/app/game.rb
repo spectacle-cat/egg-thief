@@ -126,7 +126,10 @@ module Game
     TileBoard.render_nests(args)
 
     Player.tick(args)
-    Collisions.new(args, Player.player_collision_box(args, buffer: 0)).run!
+    player_collider = Player.player_collision_box(args, buffer: 0)
+    Collisions.new(args, player_collider).run!
+
+    args.outputs.debug << player_collider.border if args.state.debug
 
     TileBoard.render_obstacles(args)
     Enemies.tick(args)
