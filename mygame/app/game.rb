@@ -122,7 +122,7 @@ module Game
 
   def render_level(args)
     TileBoard.render_tiles(args)
-    TileBoard.render_finish(args)
+    TileBoard.render_ui(args)
     TileBoard.render_nests(args)
 
     Player.tick(args)
@@ -143,7 +143,7 @@ module Game
 
   def restart_level(args)
     TileBoard.render_tiles(args)
-    TileBoard.render_finish(args)
+    TileBoard.render_ui(args)
     TileBoard.render_nests(args)
 
     Player.render_player_sprite(args, is_dead: true)

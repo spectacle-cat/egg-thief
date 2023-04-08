@@ -150,6 +150,34 @@ module TileBoard
     args.outputs.sprites << sprites
   end
 
+  def render_ui(args)
+    render_finish(args)
+    render_level_info(args)
+  end
+
+  def render_level_info(args)
+    labels = []
+    labels << {
+      x: 1280 - 57,
+      y: 76,
+      text: "Level",
+      r: 250,
+      g: 250,
+      b: 250
+    }.label
+
+    labels << {
+      x: 1280 - 48,
+      y: 51,
+      text: "#{args.state.level}/9",
+      r: 250,
+      g: 250,
+      b: 250
+    }.label
+
+    args.outputs.primitives << labels
+  end
+
   def render_finish(args)
     fp = args.state.finish_point
     buffer = 30

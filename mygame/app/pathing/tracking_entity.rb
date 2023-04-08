@@ -169,7 +169,7 @@ class TrackingEntity
     #   direction.x, direction.y, 0, 0, 0
     # ].line
 
-    args.outputs.debug << [100, 50, "offscreen: #{offscreen}"].label
+    # args.outputs.debug << [100, 50, "offscreen: #{offscreen}"].label
   end
 
   def offscreen_time
