@@ -111,6 +111,11 @@ class TrackBuilder
   def make_corners_45_degrees(steps)
     acc = []
     steps.each.with_index do |step, i|
+      if step[:offscreen]
+        acc << step
+        next
+      end
+
       pstep = previous_step(steps, step)
       nstep = next_step_in(steps, step, index: i)
 
