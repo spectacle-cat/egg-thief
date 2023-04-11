@@ -40,6 +40,7 @@ module Game
     args.state.enemies.hawks ||= []
     args.state.enemies.owls ||= []
     args.state.enemies.scorpions ||= []
+    args.state.particles ||= []
 
     case args.state.scene
     when :level
@@ -55,10 +56,6 @@ module Game
     end
 
     args.outputs.debug << args.gtk.framerate_diagnostics_primitives if args.state.debug
-
-    args.state.enemy_tracks.each do |point|
-      args.outputs.debug << point.border
-    end
   end
 
   def game_completed_scene(args)
@@ -134,9 +131,9 @@ module Game
 
     TileBoard.render_obstacles(args)
     Enemies.tick(args)
+  end
 
-    args.state.particles ||= []
-
+  def render_particles
     if args.state.player.started_running_at == args.tick_count
       emitter = Emitters::Trail.new(
         force: 2

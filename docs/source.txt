@@ -2282,11 +2282,13 @@ Follows is a source code listing for all files that have been open sourced. This
     # then the frame_index function returns nil.
     does_sprite_loop = false
   
-    sprite_index = args.state
-                       .start_looping_at
-                       .frame_index number_of_sprites,
-                                    number_of_frames_to_show_each_sprite,
-                                    does_sprite_loop
+    if args.state.start_looping_at
+      sprite_index = args.state
+                         .start_looping_at
+                         .frame_index number_of_sprites,
+                                      number_of_frames_to_show_each_sprite,
+                                      does_sprite_loop
+    end
   
     # This line sets the frame index to zero, if
     # the animation duration has passed (frame_index returned nil).
@@ -3371,6 +3373,234 @@ Follows is a source code listing for all files that have been open sourced. This
     args.outputs.debug << [640, y, text, 1, 1, 255, 255, 255].label
     args.outputs.debug << [640, y - 25, "(click to dismiss instructions)" , -2, 1, 255, 255, 255].label
   end
+
+#+end_src
+
+*** Physics And Collisions - Simple Aabb Collision - main.rb
+#+begin_src ruby
+  # ./samples/04_physics_and_collisions/01_simple_aabb_collision/app/main.rb
+  def tick args
+    # define terrain of 32x32 sized squares
+    args.state.terrain ||= [
+      { x: 640,          y: 360,          w: 32, h: 32, path: 'sprites/square/blue.png' },
+      { x: 640,          y: 360 - 32,     w: 32, h: 32, path: 'sprites/square/blue.png' },
+      { x: 640,          y: 360 - 32 * 2, w: 32, h: 32, path: 'sprites/square/blue.png' },
+      { x: 640 + 32,     y: 360 - 32 * 2, w: 32, h: 32, path: 'sprites/square/blue.png' },
+      { x: 640 + 32 * 2, y: 360 - 32 * 2, w: 32, h: 32, path: 'sprites/square/blue.png' },
+    ]
+  
+    # define player
+    args.state.player ||= {
+      x: 600,
+      y: 360,
+      w: 32,
+      h: 32,
+      dx: 0,
+      dy: 0,
+      path: 'sprites/square/red.png'
+    }
+  
+    # render terrain and player
+    args.outputs.sprites << args.state.terrain
+    args.outputs.sprites << args.state.player
+  
+    # set dx and dy based on inputs
+    args.state.player.dx = args.inputs.left_right * 2
+    args.state.player.dy = args.inputs.up_down * 2
+  
+    # check for collisions on the x and y axis independently
+  
+    # increment the player's position by dx
+    args.state.player.x += args.state.player.dx
+  
+    # check for collision on the x axis first
+    collision = args.state.terrain.find { |t| t.intersect_rect? args.state.player }
+  
+    # if there is a collision, move the player to the edge of the collision
+    # based on the direction of the player's movement and set the player's
+    # dx to 0
+    if collision
+      if args.state.player.dx > 0
+        args.state.player.x = collision.x - args.state.player.w
+      elsif args.state.player.dx < 0
+        args.state.player.x = collision.x + collision.w
+      end
+      args.state.player.dx = 0
+    end
+  
+    # increment the player's position by dy
+    args.state.player.y += args.state.player.dy
+  
+    # check for collision on the y axis next
+    collision = args.state.terrain.find { |t| t.intersect_rect? args.state.player }
+  
+    # if there is a collision, move the player to the edge of the collision
+    # based on the direction of the player's movement and set the player's
+    # dy to 0
+    if collision
+      if args.state.player.dy > 0
+        args.state.player.y = collision.y - args.state.player.h
+      elsif args.state.player.dy < 0
+        args.state.player.y = collision.y + collision.h
+      end
+      args.state.player.dy = 0
+    end
+  end
+
+#+end_src
+
+*** Physics And Collisions - Simple Aabb Collision With Map Editor - main.rb
+#+begin_src ruby
+  # ./samples/04_physics_and_collisions/01_simple_aabb_collision_with_map_editor/app/main.rb
+  # the sample app is an expansion of ./01_simple_aabb_collision
+  # but includes an in game map editor that saves map data to disk
+  def tick args
+    # if it's the first tick, read the terrain data from disk
+    # and create the player
+    if args.state.tick_count == 0
+      args.state.terrain = read_terrain_data args
+  
+      args.state.player = {
+        x: 320,
+        y: 320,
+        w: 32,
+        h: 32,
+        dx: 0,
+        dy: 0,
+        path: 'sprites/square/red.png'
+      }
+    end
+  
+    # tick the game (where input and aabb collision is processed)
+    tick_game args
+  
+    # tick the map editor
+    tick_map_editor args
+  end
+  
+  def tick_game args
+    # render terrain and player
+    args.outputs.sprites << args.state.terrain
+    args.outputs.sprites << args.state.player
+  
+    # set dx and dy based on inputs
+    args.state.player.dx = args.inputs.left_right * 2
+    args.state.player.dy = args.inputs.up_down * 2
+  
+    # check for collisions on the x and y axis independently
+  
+    # increment the player's position by dx
+    args.state.player.x += args.state.player.dx
+  
+    # check for collision on the x axis first
+    collision = args.state.terrain.find { |t| t.intersect_rect? args.state.player }
+  
+    # if there is a collision, move the player to the edge of the collision
+    # based on the direction of the player's movement and set the player's
+    # dx to 0
+    if collision
+      if args.state.player.dx > 0
+        args.state.player.x = collision.x - args.state.player.w
+      elsif args.state.player.dx < 0
+        args.state.player.x = collision.x + collision.w
+      end
+      args.state.player.dx = 0
+    end
+  
+    # increment the player's position by dy
+    args.state.player.y += args.state.player.dy
+  
+    # check for collision on the y axis next
+    collision = args.state.terrain.find { |t| t.intersect_rect? args.state.player }
+  
+    # if there is a collision, move the player to the edge of the collision
+    # based on the direction of the player's movement and set the player's
+    # dy to 0
+    if collision
+      if args.state.player.dy > 0
+        args.state.player.y = collision.y - args.state.player.h
+      elsif args.state.player.dy < 0
+        args.state.player.y = collision.y + collision.h
+      end
+      args.state.player.dy = 0
+    end
+  end
+  
+  def tick_map_editor args
+    # determine the location of the mouse, but
+    # aligned to the grid
+    grid_aligned_mouse_rect = {
+      x: args.inputs.mouse.x.idiv(32) * 32,
+      y: args.inputs.mouse.y.idiv(32) * 32,
+      w: 32,
+      h: 32
+    }
+  
+    # determine if there's a tile at the grid aligned mouse location
+    existing_terrain = args.state.terrain.find { |t| t.intersect_rect? grid_aligned_mouse_rect }
+  
+    # if there is, then render a red square to denote that
+    # the tile will be deleted
+    if existing_terrain
+      args.outputs.sprites << {
+        x: args.inputs.mouse.x.idiv(32) * 32,
+        y: args.inputs.mouse.y.idiv(32) * 32,
+        w: 32,
+        h: 32,
+        path: "sprites/square/red.png",
+        a: 128
+      }
+    else
+      # otherwise, render a blue square to denote that
+      # a tile will be added
+      args.outputs.sprites << {
+        x: args.inputs.mouse.x.idiv(32) * 32,
+        y: args.inputs.mouse.y.idiv(32) * 32,
+        w: 32,
+        h: 32,
+        path: "sprites/square/blue.png",
+        a: 128
+      }
+    end
+  
+    # if the mouse is clicked, then add or remove a tile
+    if args.inputs.mouse.click
+      if existing_terrain
+        args.state.terrain.delete existing_terrain
+      else
+        args.state.terrain << { **grid_aligned_mouse_rect, path: "sprites/square/blue.png" }
+      end
+  
+      # once the terrain state has been updated
+      # save the terrain data to disk
+      write_terrain_data args
+    end
+  end
+  
+  def read_terrain_data args
+    # create the terrain data file if it doesn't exist
+    contents = args.gtk.read_file "data/terrain.txt"
+    if !contents
+      args.gtk.write_file "data/terrain.txt", ""
+    end
+  
+    # read the terrain data from disk which is a csv
+    args.gtk.read_file('data/terrain.txt').split("\n").map do |line|
+      x, y, w, h = line.split(',').map(&:to_i)
+      { x: x, y: y, w: w, h: h, path: 'sprites/square/blue.png' }
+    end
+  end
+  
+  def write_terrain_data args
+    terrain_csv = args.state.terrain.map { |t| "#{t.x},#{t.y},#{t.w},#{t.h}" }.join "\n"
+    args.gtk.write_file 'data/terrain.txt', terrain_csv
+  end
+
+#+end_src
+
+*** Physics And Collisions - Simple Aabb Collision With Map Editor - Data - terrain.txt
+#+begin_src ruby
+  # ./samples/04_physics_and_collisions/01_simple_aabb_collision_with_map_editor/data/terrain.txt
 
 #+end_src
 
@@ -6782,7 +7012,7 @@ Follows is a source code listing for all files that have been open sourced. This
     args.state.num_balls ||= 0
     args.state.ball_created_at ||= args.state.tick_count
     args.state.ball_hypotenuse = (10**2 + 10**2)**0.5
-    args.state.ballParents ||=nil
+    args.state.ballParents ||= []
   
     init_blocks args
     init_balls args
@@ -8005,6 +8235,566 @@ Follows is a source code listing for all files that have been open sourced. This
     $game ||= BouncingBall.new
     $game.args = args
     $game.tick
+  end
+
+#+end_src
+
+*** Physics And Collisions - Ramp Collision - main.rb
+#+begin_src ruby
+  # ./samples/04_physics_and_collisions/12_ramp_collision/app/main.rb
+  # sample app shows how to do ramp collision
+  # based off of the writeup here:
+  # http://higherorderfun.com/blog/2012/05/20/the-guide-to-implementing-2d-platformers/
+  
+  # NOTE: at the bottom of the file you'll find $gtk.reset_and_replay "replay.txt"
+  #       whenever you make changes to this file, a replay will automatically run so you can
+  #       see how your changes affected the game. Comment out the line at the bottom if you
+  #       don't want the replay to autmatically run.
+  
+  # toolbar interaction is in a seperate file
+  require 'app/toolbar.rb'
+  
+  def tick args
+    tick_toolbar args
+    tick_game args
+  end
+  
+  def tick_game args
+    game_defaults args
+    game_input args
+    game_calc args
+    game_render args
+  end
+  
+  def game_input args
+    # if space is pressed or held (signifying a jump)
+    if args.inputs.keyboard.space
+      # change the player's dy to the jump power if the
+      # player is not currently touching a ceiling
+      if !args.state.player.on_ceiling
+        args.state.player.dy = args.state.player.jump_power
+        args.state.player.on_floor = false
+        args.state.player.jumping = true
+      end
+    else
+      # if the space key is released, then jumping is false
+      # and the player will no longer be on the ceiling
+      args.state.player.jumping = false
+      args.state.player.on_ceiling = false
+    end
+  
+    # set the player's dx value to the left/right input
+    # NOTE: that the speed of the player's dx movement has
+    #       a sensitive relation ship with collision detection.
+    #       If you increase the speed of the player, you may
+    #       need to tweak the collision code to compensate for
+    #       the extra horizontal speed.
+    args.state.player.dx = args.inputs.left_right * 2
+  end
+  
+  def game_render args
+    # for each terrain entry, render the line that represents the connection
+    # from the tile's left_height to the tile's right_height
+    args.outputs.primitives << args.state.terrain.map { |t| t.line }
+  
+    # determine if the player sprite needs to be flipped hoizontally
+    flip_horizontally = args.state.player.facing == -1
+  
+    # render the player
+    args.outputs.sprites << args.state.player.merge(flip_horizontally: flip_horizontally)
+  
+    args.outputs.labels << {
+      x: 640,
+      y: 100,
+      alignment_enum: 1,
+      text: "Left and Right to move player. Space to jump. Use the toolbar at the top to add more terrain."
+    }
+  
+    args.outputs.labels << {
+      x: 640,
+      y: 60,
+      alignment_enum: 1,
+      text: "Click any existing terrain on the map to delete it."
+    }
+  end
+  
+  def game_calc args
+    # set the direction the player is facing based on the
+    # the dx value of the player
+    if args.state.player.dx > 0
+      args.state.player.facing = 1
+    elsif args.state.player.dx < 0
+      args.state.player.facing = -1
+    end
+  
+    # preform the calcuation of ramp collision
+    calc_collision args
+  
+    # reset the player if the go off screen
+    calc_off_screen args
+  end
+  
+  def game_defaults args
+    # how much gravity is in the game
+    args.state.gravity ||= 0.1
+  
+    # initialized the player to the center of the screen
+    args.state.player ||= {
+      x: 640,
+      y: 360,
+      w: 16,
+      h: 16,
+      dx: 0,
+      dy: 0,
+      jump_power: 3,
+      path: 'sprites/square/blue.png',
+      on_floor: false,
+      on_ceiling: false,
+      facing: 1
+    }
+  end
+  
+  def calc_collision args
+    # increment the players x position by the dx value
+    args.state.player.x += args.state.player.dx
+  
+    # if the player is not on the floor
+    if !args.state.player.on_floor
+      # then apply gravity
+      args.state.player.dy -= args.state.gravity
+      # clamp the max dy value to -12 to 12
+      args.state.player.dy = args.state.player.dy.clamp(-12, 12)
+  
+      # update the player's y position by the dy value
+      args.state.player.y += args.state.player.dy
+    end
+  
+    # get all colisions between the player and the terrain
+    collisions = args.state.geometry.find_all_intersect_rect args.state.player, args.state.terrain
+  
+    # if there are no collisions, then the player is not on the floor or ceiling
+    # return from the method since there is nothing more to process
+    if collisions.length == 0
+      args.state.player.on_floor = false
+      args.state.player.on_ceiling = false
+      return
+    end
+  
+    # set a local variable to the player since
+    # we'll be accessing it a lot
+    player = args.state.player
+  
+    # sort the collisions by the distance from the collision's center to the player's center
+    sorted_collisions = collisions.sort_by do |collision|
+      player_center = player.x + player.w / 2
+      collision_center = collision.x + collision.w / 2
+      (player_center - collision_center).abs
+    end
+  
+    # define a one pixel wide rectangle that represents the center of the player
+    # we'll use this value to determine the location of the player's feet on
+    # a ramp
+    player_center_rect = {
+      x: player.x + player.w / 2 - 0.5,
+      y: player.y,
+      w: 1,
+      h: player.h
+    }
+  
+    # for each collision...
+    sorted_collisions.each do |collision|
+      # if the player doesn't intersect with the collision,
+      # then set the player's on_floor and on_ceiling values to false
+      # and continue to the next collision
+      if !collision.intersect_rect? player_center_rect
+        player.on_floor = false
+        player.on_ceiling = false
+        next
+      end
+  
+      if player.dy < 0
+        # if the player is falling
+        # the percentage of the player's center relative to the collision
+        # is a difference from the collision to the player (as opposed to the player to the collision)
+        perc = (collision.x - player_center_rect.x) / player.w
+        height_of_slope = collision.tile.left_height - collision.tile.right_height
+  
+        new_y = (collision.y + collision.tile.left_height + height_of_slope * perc)
+        diff = new_y - player.y
+  
+        if diff < 0
+          # if the current fall rate of the player is less than the difference
+          # of the player's new y position and the player's current y position
+          # then don't set the player's y position to the new y position
+          # and wait for another application of gravity to bring the player a little
+          # closer
+          if player.dy.abs >= diff.abs
+            # if the player's current fall speed can cover the distance to the
+            # new y position, then set the player's y position to the new y position
+            # and mark them as being on the floor so that gravity no longer get's processed
+            player.y = new_y
+            player.on_floor = true
+  
+            # given the player's speed, set the player's dy to a value that will
+            # keep them from bouncing off the floor when the ramp is steep
+            # NOTE: if you change the player's speed, then this value will need to be adjusted
+            #       to keep the player from bouncing off the floor
+            player.dy = -1
+          end
+        elsif diff > 0 && diff < 8
+          # there's a small edge case where collision may be processed from
+          # below the terrain (eg when the player is jumping up and hitting the
+          # ramp from below). The moment when jump is released, the player's dy
+          # value could result in the player tunneling through the terrain,
+          # and get popped on to the top side.
+  
+          # testing to make sure the distance that will be displaced is less than
+          # 8 pixels will keep this tunneling from happening
+          player.y = new_y
+          player.on_floor = true
+  
+          # given the player's speed, set the player's dy to a value that will
+          # keep them from bouncing off the floor when the ramp is steep
+          # NOTE: if you change the player's speed, then this value will need to be adjusted
+          #       to keep the player from bouncing off the floor
+          player.dy = -1
+        end
+      elsif player.dy > 0
+        # if the player is jumping
+        # the percentage of the player's center relative to the collision
+        # is a difference is reversed from the player to the collision (as opposed to the player to the collision)
+        perc = (player_center_rect.x - collision.x) / player.w
+  
+        # the height of the slope is also reversed when approaching the collision from the bottom
+        height_of_slope = collision.tile.right_height - collision.tile.left_height
+  
+        new_y = collision.y + collision.tile.left_height + height_of_slope * perc
+  
+        # since this collision is being processed from below, the difference
+        # between the current players position and the new y position is
+        # based off of the player's top position (their head)
+        player_top = player.y + player.h
+  
+        diff = new_y - player_top
+  
+        # we also need to calculate the difference between the player's bottom
+        # and the new position. This will be used to determine if the player
+        # can jump from the new_y position
+        diff_bottom = new_y - player.y
+  
+  
+        # if the player's current rising speed can cover the distance to the
+        # new y position, then set the player's y position to the new y position
+        # an mark them as being on the floor so that gravity no longer get's processed
+        can_cover_distance_to_new_y = player.dy >= diff.abs && player.dy.sign == diff.sign
+  
+        # another scenario that needs to be covered is if the player's top is already passed
+        # the new_y position (their rising speed made them partially clip through the collision)
+        player_top_above_new_y = player_top > new_y
+  
+        # if either of the conditions above is true then we want to set the player's y position
+        if can_cover_distance_to_new_y || player_top_above_new_y
+          # only set the player's y position to the new y position if the player's
+          # cannot escape the collision by jumping up from the new_y position
+          if diff_bottom >= player.jump_power
+            player.y = new_y.floor - player.h
+  
+            # after setting the new_y position, we need to determine if the player
+            # if the player is touching the ceiling or not
+            # touching the ceiling disables the ability for the player to jump/increase
+            # their dy value any more than it already is
+            if player.jumping
+              # disable jumping if the player is currently moving upwards
+              player.on_ceiling = true
+  
+              # NOTE: if you change the player's speed, then this value will need to be adjusted
+              #       to keep the player from bouncing off the ceiling as they move right and left
+              player.dy = 1
+            else
+              # if the player is not currently jumping, then set their dy to 0
+              # so they can immediately start falling after the collision
+              # this also means that they are no longer on the ceiling and can jump again
+              player.dy = 0
+              player.on_ceiling = false
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  def calc_off_screen args
+    below_screen = args.state.player.y + args.state.player.h < 0
+    above_screen = args.state.player.y > 720 + args.state.player.h
+    off_screen_left = args.state.player.x + args.state.player.w < 0
+    off_screen_right = args.state.player.x > 1280
+  
+    # if the player is off the screen, then reset them to the top of the screen
+    if below_screen || above_screen || off_screen_left || off_screen_right
+      args.state.player.x = 640
+      args.state.player.y = 720
+      args.state.player.dy = 0
+      args.state.player.on_floor = false
+    end
+  end
+  
+  $gtk.reset_and_replay "replay.txt", speed: 2
+
+#+end_src
+
+*** Physics And Collisions - Ramp Collision - toolbar.rb
+#+begin_src ruby
+  # ./samples/04_physics_and_collisions/12_ramp_collision/app/toolbar.rb
+  def tick_toolbar args
+    # ================================================
+    # tollbar defaults
+    # ================================================
+    if !args.state.toolbar
+      # these are the tiles you can select from
+      tile_definitions = [
+        { name: "16-12", left_height: 16, right_height: 12  },
+        { name: "12-8",  left_height: 12, right_height: 8   },
+        { name: "8-4",   left_height: 8,  right_height: 4   },
+        { name: "4-0",   left_height: 4,  right_height: 0   },
+        { name: "0-4",   left_height: 0,  right_height: 4   },
+        { name: "4-8",   left_height: 4,  right_height: 8   },
+        { name: "8-12",  left_height: 8,  right_height: 12  },
+        { name: "12-16", left_height: 12, right_height: 16  },
+  
+        { name: "16-8",  left_height: 16, right_height: 8   },
+        { name: "8-0",   left_height: 8,  right_height: 0   },
+        { name: "0-8",   left_height: 0,  right_height: 8   },
+        { name: "8-16",  left_height: 8,  right_height: 16  },
+  
+        { name: "0-0",   left_height: 0,  right_height: 0   },
+        { name: "8-8",   left_height: 8,  right_height: 8   },
+        { name: "16-16", left_height: 16, right_height: 16  },
+      ]
+  
+      # toolbar data representation which will be used to render the toolbar.
+      # the buttons array will be used to render the buttons
+      # the toolbar_rect will be used to restrict the creation of tiles
+      # within the toolbar area
+      args.state.toolbar = {
+        toolbar_rect: nil,
+        buttons: []
+      }
+  
+      # for each tile definition, create a button
+      args.state.toolbar.buttons = tile_definitions.map_with_index do |spec, index|
+        left_height  = spec.left_height
+        right_height = spec.right_height
+        button_size  = 48
+        column_size  = 15
+        column_padding = 2
+        column = index % column_size
+        column_padding = column * column_padding
+        margin = 10
+        row = index.idiv(column_size)
+        row_padding = row * 2
+        x = margin + column_padding + (column * button_size)
+        y = (margin + button_size + row_padding + (row * button_size)).from_top
+  
+        # when a tile is added, the data of this button will be used
+        # to construct the terrain
+  
+        # each tile has an x, y, w, h which represents the bounding box
+        # of the button.
+        # the button also contains the left_height and right_height which is
+        # important when determining collision of the ramps
+        {
+          name: spec.name,
+          left_height: left_height,
+          right_height: right_height,
+          button_rect: {
+            x: x,
+            y: y,
+            w: 48,
+            h: 48
+          }
+        }
+      end
+  
+      # with the buttons populated, compute the bounding box of the entire
+      # toolbar (again this will be used to restrict the creation of tiles)
+      min_x = args.state.toolbar.buttons.map { |t| t.button_rect.x }.min
+      min_y = args.state.toolbar.buttons.map { |t| t.button_rect.y }.min
+  
+      max_x = args.state.toolbar.buttons.map { |t| t.button_rect.x }.max
+      max_y = args.state.toolbar.buttons.map { |t| t.button_rect.y }.max
+  
+      args.state.toolbar.rect = {
+        x: min_x - 10,
+        y: min_y - 10,
+        w: max_x - min_x + 10 + 64,
+        h: max_y - min_y + 10 + 64
+      }
+    end
+  
+    # set the selected tile to the last button in the toolbar
+    args.state.selected_tile ||= args.state.toolbar.buttons.last
+  
+    # ================================================
+    # starting terrain generation
+    # ================================================
+    if !args.state.terrain
+      world = [
+        { row: 14, col: 25, name: "0-8"   },
+        { row: 14, col: 26, name: "8-16"  },
+        { row: 15, col: 27, name: "0-8"   },
+        { row: 15, col: 28, name: "8-16"  },
+        { row: 16, col: 29, name: "0-8"   },
+        { row: 16, col: 30, name: "8-16"  },
+        { row: 17, col: 31, name: "0-8"   },
+        { row: 17, col: 32, name: "8-16"  },
+        { row: 18, col: 33, name: "0-8"   },
+        { row: 18, col: 34, name: "8-16"  },
+        { row: 18, col: 35, name: "16-12" },
+        { row: 18, col: 36, name: "12-8"  },
+        { row: 18, col: 37, name: "8-4"   },
+        { row: 18, col: 38, name: "4-0"   },
+        { row: 18, col: 39, name: "0-0"   },
+        { row: 18, col: 40, name: "0-0"   },
+        { row: 18, col: 41, name: "0-0"   },
+        { row: 18, col: 42, name: "0-4"   },
+        { row: 18, col: 43, name: "4-8"   },
+        { row: 18, col: 44, name: "8-12"  },
+        { row: 18, col: 45, name: "12-16" },
+      ]
+  
+      args.state.terrain = world.map do |tile|
+        template = tile_by_name(args, tile.name)
+        next if !template
+        grid_rect = grid_rect_for(tile.row, tile.col)
+        new_terrain_definition(grid_rect, template)
+      end
+    end
+  
+    # ================================================
+    # toolbar input and rendering
+    # ================================================
+    # store the mouse position alligned to the tile grid
+    mouse_grid_aligned_rect = grid_aligned_rect args.inputs.mouse, 16
+  
+    # determine if the mouse intersects the toolbar
+    mouse_intersects_toolbar = args.state.toolbar.rect.intersect_rect? args.inputs.mouse
+  
+    # determine if the mouse intersects a toolbar button
+    toolbar_button = args.state.toolbar.buttons.find { |t| t.button_rect.intersect_rect? args.inputs.mouse }
+  
+    # determine if the mouse click occurred over a tile in the terrain
+    terrain_tile = args.geometry.find_intersect_rect mouse_grid_aligned_rect, args.state.terrain
+  
+  
+    # if a mouse click occurs....
+    if args.inputs.mouse.click
+      if toolbar_button
+        # if a toolbar button was clicked, set the currently selected tile to the toolbar tile
+        args.state.selected_tile = toolbar_button
+      elsif terrain_tile
+        # if a tile was clicked, delete it from the terrain
+        args.state.terrain.delete terrain_tile
+      elsif !args.state.toolbar.rect.intersect_rect? args.inputs.mouse
+        # if the mouse was not clicked in the toolbar area
+        # add a new terrain based off of the information in the selected tile
+        args.state.terrain << new_terrain_definition(mouse_grid_aligned_rect, args.state.selected_tile)
+      end
+    end
+  
+    # render a light blue background for the toolbar button that is currently
+    # being hovered over (if any)
+    if toolbar_button
+      args.outputs.primitives << toolbar_button.button_rect.merge(primitive_marker: :solid, a: 10, b: 255)
+    end
+  
+    # put a blue background around the currently selected tile
+    args.outputs.primitives << args.state.selected_tile.button_rect.merge(primitive_marker: :solid, b: 255)
+  
+    if !mouse_intersects_toolbar
+      if terrain_tile
+        # if the mouse is hoving over an existing terrain tile, render a red border around the
+        # tile to signify that it will be deleted if the mouse is clicked
+        args.outputs.borders << terrain_tile.merge(a: 255, r: 255)
+      else
+        # if the mouse is not hovering over an existing terrain tile, render the currently
+        # selected tile at the mouse position
+        grid_aligned_rect = grid_aligned_rect args.inputs.mouse, 16
+  
+        args.outputs.solids << {
+          **grid_aligned_rect,
+          a: 30,
+          g: 128
+        }
+  
+        args.outputs.lines << {
+          x:  grid_aligned_rect.x,
+          y:  grid_aligned_rect.y + args.state.selected_tile.left_height,
+          x2: grid_aligned_rect.x + grid_aligned_rect.w,
+          y2: grid_aligned_rect.y + args.state.selected_tile.right_height,
+        }
+      end
+    end
+  
+    # render each toolbar button using two primitives, a border to denote
+    # the click area of the button, and a line to denote the terrain that
+    # will be created when the button is clicked
+    args.outputs.primitives << args.state.toolbar.buttons.map do |toolbar_tile|
+      primitives = []
+      scale = toolbar_tile.button_rect.w / 16
+  
+      primitive_type = :border
+  
+      [
+        {
+          **toolbar_tile.button_rect,
+          primitive_marker: primitive_type,
+          a: 64,
+        },
+        {
+          x:  toolbar_tile.button_rect.x,
+          y:  toolbar_tile.button_rect.y + toolbar_tile.left_height * scale,
+          x2: toolbar_tile.button_rect.x + toolbar_tile.button_rect.w,
+          y2: toolbar_tile.button_rect.y + toolbar_tile.right_height * scale
+        }
+      ]
+    end
+  end
+  
+  # ================================================
+  # helper methods
+  #=================================================
+  
+  # converts a row and column on the grid to
+  # a rect
+  def grid_rect_for row, col
+    { x: col * 16, y: row * 16, w: 16, h: 16 }
+  end
+  
+  # find a tile by name
+  def tile_by_name args, name
+    args.state.toolbar.buttons.find { |b| b.name == name }
+  end
+  
+  # data structure containing terrain information
+  # specifcially tile.left_height and tile.right_height
+  def new_terrain_definition grid_rect, tile
+    grid_rect.merge(
+      tile: tile,
+      line: {
+        x:  grid_rect.x,
+        y:  grid_rect.y + tile.left_height,
+        x2: grid_rect.x + grid_rect.w,
+        y2: grid_rect.y + tile.right_height
+      }
+    )
+  end
+  
+  # helper method that returns a grid aligned rect given
+  # an arbitrary rect and a grid size
+  def grid_aligned_rect point, size
+    grid_aligned_x = point.x - (point.x % size)
+    grid_aligned_y = point.y - (point.y % size)
+    { x: grid_aligned_x.to_i, y: grid_aligned_y.to_i, w: size.to_i, h: size.to_i }
   end
 
 #+end_src
@@ -10686,6 +11476,63 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
+*** Advanced Rendering - Render Targets Combining Sprites - main.rb
+#+begin_src ruby
+  # ./samples/07_advanced_rendering/01_render_targets_combining_sprites/app/main.rb
+  # sample app shows how to use a render target to
+  # create a combined sprite
+  def tick args
+    create_combined_sprite args
+  
+    # render the combined sprite
+    # using its name :two_squares
+    # have it move across the screen and rotate
+    args.outputs.sprites << { x: args.state.tick_count % 1280,
+                              y: 0,
+                              w: 80,
+                              h: 80,
+                              angle: args.state.tick_count,
+                              path: :two_squares }
+  end
+  
+  def create_combined_sprite args
+    # NOTE: you can have the construction of the combined
+    #       sprite to happen every tick or only once (if the
+    #       combined sprite never changes).
+    #
+    # if the combined sprite never changes, comment out the line
+    # below to only construct it on the first frame and then
+    # use the cached texture
+    # return if args.state.tick_count != 0 # <---- guard clause to only construct on first frame and cache
+  
+    # define the dimensions of the combined sprite
+    # the name of the combined sprite is :two_squares
+    args.outputs[:two_squares].w = 80
+    args.outputs[:two_squares].h = 80
+  
+    # put a blue sprite within the combined sprite
+    # who's width is "thin"
+    args.outputs[:two_squares].sprites << {
+      x: 40 - 10,
+      y: 0,
+      w: 20,
+      h: 80,
+      path: 'sprites/square/blue.png'
+    }
+  
+    # put a red sprite within the combined sprite
+    # who's height is "thin"
+    args.outputs[:two_squares].sprites << {
+      x: 0,
+      y: 40 - 10,
+      w: 80,
+      h: 20,
+      path: 'sprites/square/red.png'
+    }
+  end
+
+#+end_src
+
 *** Advanced Rendering - Simple Render Targets - main.rb
 #+begin_src ruby
   # ./samples/07_advanced_rendering/01_simple_render_targets/app/main.rb
@@ -10741,6 +11588,92 @@ Follows is a source code listing for all files that have been open sourced. This
   end
   
   $gtk.reset
+
+#+end_src
+
+*** Advanced Rendering - Coordinate Systems And Render Targets - main.rb
+#+begin_src ruby
+  # ./samples/07_advanced_rendering/02_coordinate_systems_and_render_targets/app/main.rb
+  def tick args
+    # every 4.5 seconds, swap between origin_bottom_left and origin_center
+    args.state.origin_state ||= :bottom_left
+  
+    if args.state.tick_count.zmod? 270
+      args.state.origin_state = if args.state.origin_state == :bottom_left
+                                  :center
+                                else
+                                  :bottom_left
+                                end
+    end
+  
+    if args.state.origin_state == :bottom_left
+      tick_origin_bottom_left args
+    else
+      tick_origin_center args
+    end
+  end
+  
+  def tick_origin_center args
+    # set the coordinate system to origin_center
+    args.grid.origin_center!
+    args.outputs.labels <<  { x: 0, y: 100, text: "args.grid.origin_center! with sprite inside of a render target, centered at 0, 0", vertical_alignment_enum: 1, alignment_enum: 1 }
+  
+    # create a render target with a sprint in the center assuming the origin is center screen
+    args.outputs[:scene].sprites << { x: -50, y: -50, w: 100, h: 100, path: 'sprites/square/blue.png' }
+    args.outputs.sprites << { x: -640, y: -360, w: 1280, h: 720, path: :scene }
+  end
+  
+  def tick_origin_bottom_left args
+    args.grid.origin_bottom_left!
+    args.outputs.labels <<  { x: 640, y: 360 + 100, text: "args.grid.origin_bottom_left! with sprite inside of a render target, centered at 640, 360", vertical_alignment_enum: 1, alignment_enum: 1 }
+  
+    # create a render target with a sprint in the center assuming the origin is bottom left
+    args.outputs[:scene].sprites << { x: 640 - 50, y: 360 - 50, w: 100, h: 100, path: 'sprites/square/blue.png' }
+    args.outputs.sprites << { x: 0, y: 0, w: 1280, h: 720, path: :scene }
+  end
+
+#+end_src
+
+*** Advanced Rendering - Render Targets Thick Lines - main.rb
+#+begin_src ruby
+  # ./samples/07_advanced_rendering/02_render_targets_thick_lines/app/main.rb
+  # Sample app shows how you can use render targets to create arbitrary shapes like a thicker line
+  def tick args
+    args.state.line_cache ||= {}
+    args.outputs.primitives << thick_line(args,
+                                          args.state.line_cache,
+                                          x: 0, y: 0, x2: 640, y2: 360, thickness: 3).merge(r: 0, g: 0, b: 0)
+  end
+  
+  def thick_line args, cache, line
+    line_length = Math.sqrt((line.x2 - line.x)**2 + (line.y2 - line.y)**2)
+    name = "line-sprite-#{line_length}-#{line.thickness}"
+    cached_line = cache[name]
+    line_angle = Math.atan2(line.y2 - line.y1, line.x2 - line.x1) * 180 / Math::PI
+    if cached_line
+      perpendicular_angle = (line_angle + 90) % 360
+      return cached_line.sprite.merge(x: line.x - perpendicular_angle.vector_x * (line.thickness / 2),
+                                      y: line.y - perpendicular_angle.vector_y * (line.thickness / 2),
+                                      angle: line_angle)
+    end
+  
+    cache[name] = {
+      line: line,
+      thickness: line.thickness,
+      sprite: {
+        w: line_length,
+        h: line.thickness,
+        path: name,
+        angle_anchor_x: 0,
+        angle_anchor_y: 0
+      }
+    }
+  
+    args.outputs[name].w = line_length
+    args.outputs[name].h = line.thickness
+    args.outputs[name].solids << { x: 0, y: 0, w: line_length, h: line.thickness, r: 255, g: 255, b: 255 }
+    return thick_line args, cache, line
+  end
 
 #+end_src
 
@@ -11694,6 +12627,60 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
+*** Advanced Rendering - Buttons As Render Targets - main.rb
+#+begin_src ruby
+  # ./samples/07_advanced_rendering/06_buttons_as_render_targets/app/main.rb
+  def tick args
+    # create a texture/render_target that's composed of a border and a label
+    create_button args, :hello_world_button, "Hello World", 500, 50
+  
+    # two button primitives using the hello_world_button render_target
+    args.state.buttons ||= [
+      # one button at the top
+      { id: :top_button, x: 640 - 250, y: 80.from_top, w: 500, h: 50, path: :hello_world_button },
+  
+      # another button at the buttom, upside down, and flipped horizontally
+      { id: :bottom_button, x: 640 - 250, y: 30, w: 500, h: 50, path: :hello_world_button, angle: 180, flip_horizontally: true },
+    ]
+  
+    # check if a mouse click occurred
+    if args.inputs.mouse.click
+      # check to see if any of the buttons were intersected
+      # and set the selected button if so
+      args.state.selected_button = args.state.buttons.find { |b| b.intersect_rect? args.inputs.mouse }
+    end
+  
+    # render the buttons
+    args.outputs.sprites << args.state.buttons
+  
+    # if there was a selected button, print it's id
+    if args.state.selected_button
+      args.outputs.labels << { x: 30, y: 30.from_top, text: "#{args.state.selected_button.id} was clicked." }
+    end
+  end
+  
+  def create_button args, id, text, w, h
+    # render_targets only need to be created once, we use the the id to determine if the texture
+    # has already been created
+    args.state.created_buttons ||= {}
+    return if args.state.created_buttons[id]
+  
+    # if the render_target hasn't been created, then generate it and store it in the created_buttons cache
+    args.state.created_buttons[id] = { created_at: args.state.tick_count, id: id, w: w, h: h, text: text }
+  
+    # define the w/h of the texture
+    args.outputs[id].w = w
+    args.outputs[id].h = h
+  
+    # create a border
+    args.outputs[id].borders << { x: 0, y: 0, w: w, h: h }
+  
+    # create a label centered vertically and horizontally within the texture
+    args.outputs[id].labels << { x: w / 2, y: h / 2, text: text, vertical_alignment_enum: 1, alignment_enum: 1 }
+  end
+
+#+end_src
+
 *** Advanced Rendering - Pixel Arrays - main.rb
 #+begin_src ruby
   # ./samples/07_advanced_rendering/06_pixel_arrays/app/main.rb
@@ -12453,9 +13440,314 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
+*** Advanced Rendering - Camera And Large Map - main.rb
+#+begin_src ruby
+  # ./samples/07_advanced_rendering/10_camera_and_large_map/app/main.rb
+  def tick args
+    # you want to make sure all of your pngs are a maximum size of 1280x1280
+    # low-end android devices and machines with underpowered GPUs are unable to
+    # load very large textures.
+  
+    # this sample app creates 640x640 tiles of a 6400x6400 pixel png and displays them
+    # on the screen relative to the player's position
+  
+    # tile creation process
+    create_tiles_if_needed args
+  
+    # if tiles are already present the show map
+    display_tiles args
+  end
+  
+  def display_tiles args
+    # set the player's starting location
+    args.state.player ||= {
+      x:  0,
+      y:  0,
+      w: 40,
+      h: 40,
+      path: "sprites/square/blue.png"
+    }
+  
+    # if all tiles have been created, then we are
+    # in "displaying_tiles" mode
+    if args.state.displaying_tiles
+      # create a render target that can hold 9 640x640 tiles
+      args.outputs[:scene].background_color = [0, 0, 0, 0]
+      args.outputs[:scene].w = 1920
+      args.outputs[:scene].h = 1920
+  
+      # allow player to be moved with arrow keys
+      args.state.player.x += args.inputs.left_right * 10
+      args.state.player.y += args.inputs.up_down * 10
+  
+      # given the player's location, return a collection of primitives
+      # to render that are within the 1920x1920 viewport
+      args.outputs[:scene].primitives << tiles_in_viewport(args)
+  
+      # place the player in the center of the render_target
+      args.outputs[:scene].primitives << {
+        x: 960 - 20,
+        y: 960 - 20,
+        w: 40,
+        h: 40,
+        path: "sprites/square/blue.png"
+      }
+  
+      # center the 1920x1920 render target within the 1280x720 window
+      args.outputs.sprites << {
+        x: -320,
+        y: -600,
+        w: 1920,
+        h: 1920,
+        path: :scene
+      }
+    end
+  end
+  
+  def tiles_in_viewport args
+    state = args.state
+    # define the size of each tile
+    tile_size = 640
+  
+    # determine what tile the player is on
+    tile_player_is_on = { x: state.player.x.idiv(tile_size), y: state.player.y.idiv(tile_size) }
+  
+    # calculate the x and y offset of the player so that tiles are positioned correctly
+    offset_x = 960 - (state.player.x - (tile_player_is_on.x * tile_size))
+    offset_y = 960 - (state.player.y - (tile_player_is_on.y * tile_size))
+  
+    primitives = []
+  
+    # get 9 tiles in total (the tile the player is on and the 8 surrounding tiles)
+  
+    # center tile
+    primitives << (tile_in_viewport size:       tile_size,
+                                    from_row:   tile_player_is_on.y,
+                                    from_col:   tile_player_is_on.x,
+                                    offset_row: 0,
+                                    offset_col: 0,
+                                    dy:         offset_y,
+                                    dx:         offset_x)
+  
+    # tile to the right
+    primitives << (tile_in_viewport size:       tile_size,
+                                    from_row:   tile_player_is_on.y,
+                                    from_col:   tile_player_is_on.x,
+                                    offset_row: 0,
+                                    offset_col: 1,
+                                    dy:         offset_y,
+                                    dx:         offset_x)
+    # tile to the left
+    primitives << (tile_in_viewport size:        tile_size,
+                                    from_row:    tile_player_is_on.y,
+                                    from_col:    tile_player_is_on.x,
+                                    offset_row:  0,
+                                    offset_col: -1,
+                                    dy:          offset_y,
+                                    dx:          offset_x)
+  
+    # tile directly above
+    primitives << (tile_in_viewport size:       tile_size,
+                                    from_row:   tile_player_is_on.y,
+                                    from_col:   tile_player_is_on.x,
+                                    offset_row: 1,
+                                    offset_col: 0,
+                                    dy:         offset_y,
+                                    dx:         offset_x)
+    # tile directly below
+    primitives << (tile_in_viewport size:         tile_size,
+                                    from_row:     tile_player_is_on.y,
+                                    from_col:     tile_player_is_on.x,
+                                    offset_row:  -1,
+                                    offset_col:   0,
+                                    dy:           offset_y,
+                                    dx:           offset_x)
+    # tile up and to the left
+    primitives << (tile_in_viewport size:        tile_size,
+                                    from_row:    tile_player_is_on.y,
+                                    from_col:    tile_player_is_on.x,
+                                    offset_row:  1,
+                                    offset_col: -1,
+                                    dy:          offset_y,
+                                    dx:          offset_x)
+  
+    # tile up and to the right
+    primitives << (tile_in_viewport size:       tile_size,
+                                    from_row:   tile_player_is_on.y,
+                                    from_col:   tile_player_is_on.x,
+                                    offset_row: 1,
+                                    offset_col: 1,
+                                    dy:         offset_y,
+                                    dx:         offset_x)
+  
+    # tile down and to the left
+    primitives << (tile_in_viewport size:        tile_size,
+                                    from_row:    tile_player_is_on.y,
+                                    from_col:    tile_player_is_on.x,
+                                    offset_row: -1,
+                                    offset_col: -1,
+                                    dy:          offset_y,
+                                    dx:          offset_x)
+  
+    # tile down and to the right
+    primitives << (tile_in_viewport size:        tile_size,
+                                    from_row:    tile_player_is_on.y,
+                                    from_col:    tile_player_is_on.x,
+                                    offset_row: -1,
+                                    offset_col:  1,
+                                    dy:          offset_y,
+                                    dx:          offset_x)
+  
+    primitives
+  end
+  
+  def tile_in_viewport size:, from_row:, from_col:, offset_row:, offset_col:, dy:, dx:;
+    x = size * offset_col + dx
+    y = size * offset_row + dy
+  
+    return nil if (from_row + offset_row) < 0
+    return nil if (from_row + offset_row) > 9
+  
+    return nil if (from_col + offset_col) < 0
+    return nil if (from_col + offset_col) > 9
+  
+    # return the tile sprite, a border demarcation, and label of which tile x and y
+    [
+      {
+        x: x,
+        y: y,
+        w: size,
+        h: size,
+        path: "sprites/tile-#{from_col + offset_col}-#{from_row + offset_row}.png",
+      },
+      {
+        x: x,
+        y: y,
+        w: size,
+        h: size,
+        r: 255,
+        primitive_marker: :border,
+      },
+      {
+        x: x + size / 2 - 150,
+        y: y + size / 2 - 25,
+        w: 300,
+        h: 50,
+        primitive_marker: :solid,
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 128
+      },
+      {
+        x: x + size / 2,
+        y: y + size / 2,
+        text: "tile #{from_col + offset_col}, #{from_row + offset_row}",
+        alignment_enum: 1,
+        vertical_alignment_enum: 1,
+        size_enum: 2,
+        r: 255,
+        g: 255,
+        b: 255
+      },
+    ]
+  end
+  
+  def create_tiles_if_needed args
+    # We are going to use args.outputs.screenshots to generate tiles of a
+    # png of size 6400x6400 called sprites/large.png.
+    if !args.gtk.stat_file("sprites/tile-9-9.png") && !args.state.creating_tiles
+      args.state.displaying_tiles = false
+      args.outputs.labels << {
+        x: 960,
+        y: 360,
+        text: "Press enter to generate tiles of sprites/large.png.",
+        alignment_enum: 1,
+        vertical_alignment_enum: 1
+      }
+    elsif !args.state.creating_tiles
+      args.state.displaying_tiles = true
+    end
+  
+    # pressing enter will start the tile creation process
+    if args.inputs.keyboard.key_down.enter && !args.state.creating_tiles
+      args.state.displaying_tiles = false
+      args.state.creating_tiles = true
+      args.state.tile_clock = 0
+    end
+  
+    # the tile creation process renders an area of sprites/large.png
+    # to the screen and takes a screenshot of it every half second
+    # until all tiles are generated.
+    # once all tiles are generated a map viewport will be rendered that
+    # stitches tiles together.
+    if args.state.creating_tiles
+      args.state.tile_x ||= 0
+      args.state.tile_y ||= 0
+  
+      # render a sub-square of the large png.
+      args.outputs.sprites << {
+        x: 0,
+        y: 0,
+        w: 640,
+        h: 640,
+        source_x: args.state.tile_x * 640,
+        source_y: args.state.tile_y * 640,
+        source_w: 640,
+        source_h: 640,
+        path: "sprites/large.png"
+      }
+  
+      # determine tile file name
+      tile_path = "sprites/tile-#{args.state.tile_x}-#{args.state.tile_y}.png"
+  
+      args.outputs.labels << {
+        x: 960,
+        y: 320,
+        text: "Generating #{tile_path}",
+        alignment_enum: 1,
+        vertical_alignment_enum: 1
+      }
+  
+      # take a screenshot on frames divisible by 29
+      if args.state.tile_clock.zmod?(29)
+        args.outputs.screenshots << {
+          x: 0,
+          y: 0,
+          w: 640,
+          h: 640,
+          path: tile_path,
+          a: 255
+        }
+      end
+  
+      # increment tile to render on frames divisible by 30 (half a second)
+      # (one frame is allotted to take screenshot)
+      if args.state.tile_clock.zmod?(30)
+        args.state.tile_x += 1
+        if args.state.tile_x >= 10
+          args.state.tile_x  = 0
+          args.state.tile_y += 1
+        end
+  
+        # once all of tile tiles are created, begin displaying map
+        if args.state.tile_y >= 10
+          args.state.creating_tiles = false
+          args.state.displaying_tiles = true
+        end
+      end
+  
+      args.state.tile_clock += 1
+    end
+  end
+  
+  $gtk.reset
+
+#+end_src
+
 *** Advanced Rendering - Blend Modes - main.rb
 #+begin_src ruby
-  # ./samples/07_advanced_rendering/10_blend_modes/app/main.rb
+  # ./samples/07_advanced_rendering/11_blend_modes/app/main.rb
   $gtk.reset
   
   def draw_blendmode args, mode
@@ -12510,7 +13802,7 @@ Follows is a source code listing for all files that have been open sourced. This
 
 *** Advanced Rendering - Render Target Noclear - main.rb
 #+begin_src ruby
-  # ./samples/07_advanced_rendering/11_render_target_noclear/app/main.rb
+  # ./samples/07_advanced_rendering/12_render_target_noclear/app/main.rb
   def tick args
     args.state.x ||= 500
     args.state.y ||= 350
@@ -12563,7 +13855,7 @@ Follows is a source code listing for all files that have been open sourced. This
 
 *** Advanced Rendering - Lighting - main.rb
 #+begin_src ruby
-  # ./samples/07_advanced_rendering/12_lighting/app/main.rb
+  # ./samples/07_advanced_rendering/13_lighting/app/main.rb
   def calc args
     args.state.swinging_light_sign     ||= 1
     args.state.swinging_light_start_at ||= 0
@@ -12641,9 +13933,9 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
-*** Advanced Rendering - Triangles - main.rb
+*** Advanced Rendering - 14 Triangles - main.rb
 #+begin_src ruby
-  # ./samples/07_advanced_rendering/13_triangles/app/main.rb
+  # ./samples/07_advanced_rendering/14_triangles/app/main.rb
   def tick args
     args.outputs.labels << {
       x: 640,
@@ -12824,9 +14116,9 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
-*** Advanced Rendering - 14 Triangles Trapezoid - main.rb
+*** Advanced Rendering - 15 Triangles Trapezoid - main.rb
 #+begin_src ruby
-  # ./samples/07_advanced_rendering/14_triangles_trapezoid/app/main.rb
+  # ./samples/07_advanced_rendering/15_triangles_trapezoid/app/main.rb
   def tick args
     args.outputs.labels << {
       x: 640,
@@ -12894,9 +14186,9 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
-*** Advanced Rendering - 15 Matrix And Triangles 2d - main.rb
+*** Advanced Rendering - 16 Matrix And Triangles 2d - main.rb
 #+begin_src ruby
-  # ./samples/07_advanced_rendering/15_matrix_and_triangles_2d/app/main.rb
+  # ./samples/07_advanced_rendering/16_matrix_and_triangles_2d/app/main.rb
   include MatrixFunctions
   
   def tick args
@@ -13052,9 +14344,9 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
-*** Advanced Rendering - 15 Matrix And Triangles 3d - main.rb
+*** Advanced Rendering - 16 Matrix And Triangles 3d - main.rb
 #+begin_src ruby
-  # ./samples/07_advanced_rendering/15_matrix_and_triangles_3d/app/main.rb
+  # ./samples/07_advanced_rendering/16_matrix_and_triangles_3d/app/main.rb
   include MatrixFunctions
   
   def tick args
@@ -13352,9 +14644,9 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
-*** Advanced Rendering - 15 Matrix Cubeworld - main.rb
+*** Advanced Rendering - 16 Matrix Cubeworld - main.rb
 #+begin_src ruby
-  # ./samples/07_advanced_rendering/15_matrix_cubeworld/app/main.rb
+  # ./samples/07_advanced_rendering/16_matrix_cubeworld/app/main.rb
   require 'app/modeling-api.rb'
   
   include MatrixFunctions
@@ -13641,9 +14933,9 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
-*** Advanced Rendering - 15 Matrix Cubeworld - modeling-api.rb
+*** Advanced Rendering - 16 Matrix Cubeworld - modeling-api.rb
 #+begin_src ruby
-  # ./samples/07_advanced_rendering/15_matrix_cubeworld/app/modeling-api.rb
+  # ./samples/07_advanced_rendering/16_matrix_cubeworld/app/modeling-api.rb
   class ModelingApi
     attr :matricies
   
@@ -13755,9 +15047,9 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
-*** Advanced Rendering - 16 Override Core Rendering - main.rb
+*** Advanced Rendering - 17 Override Core Rendering - main.rb
 #+begin_src ruby
-  # ./samples/07_advanced_rendering/16_override_core_rendering/app/main.rb
+  # ./samples/07_advanced_rendering/17_override_core_rendering/app/main.rb
   class GTK::Runtime
     # You can completely override how DR renders by defining this method
     # It is strongly recommend that you do not do this unless you know what you're doing.
@@ -14598,6 +15890,252 @@ Follows is a source code listing for all files that have been open sourced. This
 
 #+end_src
 
+*** Tweening Lerping Easing Functions - Scene Transitions - main.rb
+#+begin_src ruby
+  # ./samples/08_tweening_lerping_easing_functions/05_scene_transitions/app/main.rb
+  # This sample app shows a more advanced implementation of scenes:
+  # 1. "Scene 1" has a label on it that says "I am scene ONE. Press enter to go to scene TWO."
+  # 2. "Scene 2" has a label on it that says "I am scene TWO. Press enter to go to scene ONE."
+  # 3. When the game starts, Scene 1 is presented.
+  # 4. When the player presses enter, the scene transitions to Scene 2 (fades out Scene 1 over half a second, then fades in Scene 2 over half a second).
+  # 5. When the player presses enter again, the scene transitions to Scene 1 (fades out Scene 2 over half a second, then fades in Scene 1 over half a second).
+  # 6. During the fade transitions, spamming the enter key is ignored (scenes don't accept a transition/respond to the enter key until the current transition is completed).
+  class SceneOne
+    attr_gtk
+  
+    def tick
+      outputs[:scene].labels << { x: 640,
+                                  y: 360,
+                                  text: "I am scene ONE. Press enter to go to scene TWO.",
+                                  alignment_enum: 1,
+                                  vertical_alignment_enum: 1 }
+  
+      state.next_scene = :scene_two if inputs.keyboard.key_down.enter
+    end
+  end
+  
+  class SceneTwo
+    attr_gtk
+  
+    def tick
+      outputs[:scene].labels << { x: 640,
+                                  y: 360,
+                                  text: "I am scene TWO. Press enter to go to scene ONE.",
+                                  alignment_enum: 1,
+                                  vertical_alignment_enum: 1 }
+  
+      state.next_scene = :scene_one if inputs.keyboard.key_down.enter
+    end
+  end
+  
+  class RootScene
+    attr_gtk
+  
+    def initialize
+      @scene_one = SceneOne.new
+      @scene_two = SceneTwo.new
+    end
+  
+    def tick
+      defaults
+      render
+      tick_scene
+    end
+  
+    def defaults
+      set_current_scene! :scene_one if state.tick_count == 0
+      state.scene_transition_duration ||= 30
+    end
+  
+    def render
+      a = if state.transition_scene_at
+            255 * state.transition_scene_at.ease(state.scene_transition_duration, :flip)
+          elsif state.current_scene_at
+            255 * state.current_scene_at.ease(state.scene_transition_duration)
+          else
+            255
+          end
+  
+      outputs.sprites << { x: 0, y: 0, w: 1280, h: 720, path: :scene, a: a }
+    end
+  
+    def tick_scene
+      current_scene = state.current_scene
+  
+      @current_scene.args = args
+      @current_scene.tick
+  
+      if current_scene != state.current_scene
+        raise "state.current_scene changed mid tick from #{current_scene} to #{state.current_scene}. To change scenes, set state.next_scene."
+      end
+  
+      if state.next_scene && state.next_scene != state.transition_scene && state.next_scene != state.current_scene
+        state.transition_scene_at = state.tick_count
+        state.transition_scene = state.next_scene
+      end
+  
+      if state.transition_scene_at && state.transition_scene_at.elapsed_time >= state.scene_transition_duration
+        set_current_scene! state.transition_scene
+      end
+  
+      state.next_scene = nil
+    end
+  
+    def set_current_scene! id
+      return if state.current_scene == id
+      state.current_scene = id
+      state.current_scene_at = state.tick_count
+      state.transition_scene = nil
+      state.transition_scene_at = nil
+  
+      if state.current_scene == :scene_one
+        @current_scene = @scene_one
+      elsif state.current_scene == :scene_two
+        @current_scene = @scene_two
+      end
+    end
+  end
+  
+  def tick args
+    $game ||= RootScene.new
+    $game.args = args
+    $game.tick
+  end
+
+#+end_src
+
+*** Tweening Lerping Easing Functions - Animation Queues - main.rb
+#+begin_src ruby
+  # ./samples/08_tweening_lerping_easing_functions/06_animation_queues/app/main.rb
+  # here's how to create a "fire and forget" sprite animation queue
+  def tick args
+    args.outputs.labels << { x: 640,
+                             y: 360,
+                             text: "Click anywhere on the screen.",
+                             alignment_enum: 1,
+                             vertical_alignment_enum: 1 }
+  
+    # initialize the queue to an empty array
+    args.state.fade_out_queue ||=[]
+  
+    # if the mouse is click, add a sprite to the fire and forget
+    # queue to be processed
+    if args.inputs.mouse.click
+      args.state.fade_out_queue << {
+        x: args.inputs.mouse.x - 20,
+        y: args.inputs.mouse.y - 20,
+        w: 40,
+        h: 40,
+        path: "sprites/square/blue.png"
+      }
+    end
+  
+    # process the queue
+    args.state.fade_out_queue.each do |item|
+      # default the alpha value if it isn't specified
+      item.a ||= 255
+  
+      # decrement the alpha by 5 each frame
+      item.a -= 5
+    end
+  
+    # remove the item if it's completely faded out
+    args.state.fade_out_queue.reject! { |item| item.a <= 0 }
+  
+    # render the sprites in the queue
+    args.outputs.sprites << args.state.fade_out_queue
+  end
+
+#+end_src
+
+*** Tweening Lerping Easing Functions - Animation Queues Advanced - main.rb
+#+begin_src ruby
+  # ./samples/08_tweening_lerping_easing_functions/07_animation_queues_advanced/app/main.rb
+  # sample app shows how to perform a fire and forget animation when a collision occurs
+  def tick args
+    defaults args
+    spawn_bullets args
+    calc_bullets args
+    render args
+  end
+  
+  def defaults args
+    # place a player on the far left with sprite and hp information
+    args.state.player ||= { x: 100, y: 360 - 50, w: 100, h: 100, path: "sprites/square/blue.png", hp: 30 }
+    # create an array of bullets
+    args.state.bullets ||= []
+    # create a queue for handling bullet explosions
+    args.state.explosion_queue ||= []
+  end
+  
+  def spawn_bullets args
+    # span a bullet in a random location on the far right every half second
+    return if !args.state.tick_count.zmod? 30
+    args.state.bullets << {
+      x: 1280 - 100,
+      y: rand(720 - 100),
+      w: 100,
+      h: 100,
+      path: "sprites/square/red.png"
+    }
+  end
+  
+  def calc_bullets args
+    # for each bullet
+    args.state.bullets.each do |b|
+      # move it to the left by 20 pixels
+      b.x -= 20
+  
+      # determine if the bullet collides with the player
+      if b.intersect_rect? args.state.player
+        # decrement the player's health if it does
+        args.state.player.hp -= 1
+        # mark the bullet as exploded
+        b.exploded = true
+  
+        # queue the explosion by adding it to the explosion queue
+        args.state.explosion_queue << b.merge(exploded_at: args.state.tick_count)
+      end
+    end
+  
+    # remove bullets that have exploded so they wont be rendered
+    args.state.bullets.reject! { |b| b.exploded }
+  
+    # remove animations from the animation queue that have completed
+    # frame index will return nil once the animation has completed
+    args.state.explosion_queue.reject! { |e| !e.exploded_at.frame_index(7, 4, false) }
+  end
+  
+  def render args
+    # render the player's hp above the sprite
+    args.outputs.labels << {
+      x: args.state.player.x + 50,
+      y: args.state.player.y + 110,
+      text: "#{args.state.player.hp}",
+      alignment_enum: 1,
+      vertical_alignment_enum: 0
+    }
+  
+    # render the player
+    args.outputs.sprites << args.state.player
+  
+    # render the bullets
+    args.outputs.sprites << args.state.bullets
+  
+    # process the animation queue
+    args.outputs.sprites << args.state.explosion_queue.map do |e|
+      number_of_frames = 7
+      hold_each_frame_for = 4
+      repeat_animation = false
+      # use the exploded_at property and the frame_index function to determine when the animation should start
+      frame_index = e.exploded_at.frame_index(number_of_frames, hold_each_frame_for, repeat_animation)
+      # take the explosion primitive and set the path variariable
+      e.merge path: "sprites/misc/explosion-#{frame_index}.png"
+    end
+  end
+
+#+end_src
+
 *** Performance - Sprites As Hash - main.rb
 #+begin_src ruby
   # ./samples/09_performance/01_sprites_as_hash/app/main.rb
@@ -14951,6 +16489,8 @@ Follows is a source code listing for all files that have been open sourced. This
       args.gtk.console.set_command "reset_with count: 100"
     end
   
+    args.state.star_count ||= 0
+  
     # init
     if args.state.tick_count == 0
       args.state.stars = args.state.star_count.map { |i| Star.new args.grid }
@@ -15012,6 +16552,8 @@ Follows is a source code listing for all files that have been open sourced. This
       puts "* INFO: Please specify the number of sprites to render."
       args.gtk.console.set_command "reset_with count: 100"
     end
+  
+    args.state.star_count ||= 0
   
     # init
     if args.state.tick_count == 0
@@ -15110,6 +16652,8 @@ Follows is a source code listing for all files that have been open sourced. This
       args.gtk.console.set_command "reset_with count: 100"
     end
   
+    args.state.star_count ||= 0
+  
     # init
     if args.state.tick_count == 0
       args.state.stars = args.state.star_count.map { |i| Star.new args.grid }
@@ -15204,6 +16748,149 @@ Follows is a source code listing for all files that have been open sourced. This
   
   # Resets the game.
   $gtk.reset
+
+#+end_src
+
+*** Performance - Collision Limits Aabb - main.rb
+#+begin_src ruby
+  # ./samples/09_performance/09_collision_limits_aabb/app/main.rb
+  def tick args
+    args.state.id_seed    ||= 1
+    args.state.bullets    ||= []
+    args.state.terrain    ||= [
+      {
+        x: 40, y: 0, w: 1200, h: 40, path: :pixel, r: 0, g: 0, b: 0
+      },
+      {
+        x: 1240, y: 0, w: 40, h: 720, path: :pixel, r: 0, g: 0, b: 0
+      },
+      {
+        x: 0, y: 0, w: 40, h: 720, path: :pixel, r: 0, g: 0, b: 0
+      },
+      {
+        x: 40, y: 680, w: 1200, h: 40, path: :pixel, r: 0, g: 0, b: 0
+      },
+  
+      {
+        x: 760, y: 420, w: 180, h: 40, path: :pixel, r: 0, g: 0, b: 0
+      },
+      {
+        x: 720, y: 420, w: 40, h: 100, path: :pixel, r: 0, g: 0, b: 0
+      },
+      {
+        x: 940, y: 420, w: 40, h: 100, path: :pixel, r: 0, g: 0, b: 0
+      },
+  
+      {
+        x: 660, y: 220, w: 280, h: 40, path: :pixel, r: 0, g: 0, b: 0
+      },
+      {
+        x: 620, y: 220, w: 40, h: 100, path: :pixel, r: 0, g: 0, b: 0
+      },
+      {
+        x: 940, y: 220, w: 40, h: 100, path: :pixel, r: 0, g: 0, b: 0
+      },
+  
+      {
+        x: 460, y: 40, w: 280, h: 40, path: :pixel, r: 0, g: 0, b: 0
+      },
+      {
+        x: 420, y: 40, w: 40, h: 100, path: :pixel, r: 0, g: 0, b: 0
+      },
+      {
+        x: 740, y: 40, w: 40, h: 100, path: :pixel, r: 0, g: 0, b: 0
+      },
+    ]
+  
+    if args.inputs.keyboard.space
+        b = {
+          id: args.state.id_seed,
+          x: 60,
+          y: 60,
+          w: 10,
+          h: 10,
+          dy: rand(20) + 10,
+          dx: rand(20) + 10,
+          path: 'sprites/square/blue.png'
+        }
+  
+        args.state.bullets << b # if b.id == 122
+  
+        args.state.id_seed += 1
+    end
+  
+    terrain = args.state.terrain
+  
+    args.state.bullets.each do |b|
+      next if b.still
+      # if b.still
+      #   x_dir = if rand > 0.5
+      #             -1
+      #           else
+      #             1
+      #           end
+  
+      #   y_dir = if rand > 0.5
+      #             -1
+      #           else
+      #             1
+      #           end
+  
+      #   b.dy = rand(20) + 10 * x_dir
+      #   b.dx = rand(20) + 10 * y_dir
+      #   b.still = false
+      #   b.on_floor = false
+      # end
+  
+      if b.on_floor
+        b.dx *= 0.9
+      end
+  
+      b.x += b.dx
+  
+      collision_x = args.geometry.find_intersect_rect(b, terrain)
+  
+      if collision_x
+        if b.dx > 0
+          b.x = collision_x.x - b.w
+        elsif b.dx < 0
+          b.x = collision_x.x + collision_x.w
+        end
+        b.dx *= -0.8
+      end
+  
+      b.dy -= 0.25
+      b.y += b.dy
+  
+      collision_y = args.geometry.find_intersect_rect(b, terrain)
+  
+      if collision_y
+        if b.dy > 0
+          b.y = collision_y.y - b.h
+        elsif b.dy < 0
+          b.y = collision_y.y + collision_y.h
+        end
+  
+        if b.dy < 0 && b.dy.abs < 1
+          b.on_floor = true
+        end
+  
+        b.dy *= -0.8
+      end
+  
+      if b.on_floor && (b.dy.abs + b.dx.abs) < 0.1
+        b.still = true
+      end
+    end
+  
+    args.outputs.labels << { x: 60, y: 60.from_top, text: "Hold space bar to add squares." }
+    args.outputs.labels << { x: 60, y: 90.from_top, text: "FPS: #{args.gtk.current_framerate.to_sf}" }
+    args.outputs.labels << { x: 60, y: 120.from_top, text: "Count: #{args.state.bullets.length}" }
+    args.outputs.borders << args.state.terrain
+    args.outputs.sprites << args.state.bullets
+  end
+  
+  # $gtk.reset
 
 #+end_src
 
@@ -15371,6 +17058,74 @@ Follows is a source code listing for all files that have been open sourced. This
   
     args.outputs.background_color = [0, 0, 0]
     args.outputs.primitives << args.gtk.current_framerate_primitives
+  end
+
+#+end_src
+
+*** Ui Controls - Checkboxes - main.rb
+#+begin_src ruby
+  # ./samples/09_ui_controls/01_checkboxes/app/main.rb
+  def tick args
+    # use layout apis to position check boxes
+    args.state.checkboxes ||= [
+      args.layout.rect(row: 0, col: 0, w: 1, h: 1).merge(id: :option1, text: "Option 1", checked: false, changed_at: -120),
+      args.layout.rect(row: 1, col: 0, w: 1, h: 1).merge(id: :option1, text: "Option 2", checked: false, changed_at: -120),
+      args.layout.rect(row: 2, col: 0, w: 1, h: 1).merge(id: :option1, text: "Option 3", checked: false, changed_at: -120),
+      args.layout.rect(row: 3, col: 0, w: 1, h: 1).merge(id: :option1, text: "Option 4", checked: false, changed_at: -120),
+    ]
+  
+    # check for click of checkboxes
+    if args.inputs.mouse.click
+      args.state.checkboxes.find_all do |checkbox|
+        args.inputs.mouse.inside_rect? checkbox
+      end.each do |checkbox|
+        # mark checkbox value
+        checkbox.checked = !checkbox.checked
+        # set the time the checkbox was changed
+        checkbox.changed_at = args.state.tick_count
+      end
+    end
+  
+    # render checkboxes
+    args.outputs.primitives << args.state.checkboxes.map do |checkbox|
+      # baseline prefab for checkbox
+      prefab = {
+        x: checkbox.x,
+        y: checkbox.y,
+        w: checkbox.w,
+        h: checkbox.h
+      }
+  
+      # label for checkbox centered vertically
+      label = {
+        x: checkbox.x + checkbox.w + 10,
+        y: checkbox.y + checkbox.h / 2,
+        text: checkbox.text,
+        alignment_enum: 0,
+        vertical_alignment_enum: 1
+      }
+  
+      # rendering if checked or not
+      if checkbox.checked
+        # fade in
+        a = 255 * args.easing.ease(checkbox.changed_at, args.state.tick_count, 30, :smooth_stop_quint)
+  
+        [
+          label,
+          prefab.merge(primitive_marker: :solid, a: a),
+          prefab.merge(primitive_marker: :border)
+        ]
+      else
+        # fade out
+        a = 255 * args.easing.ease(checkbox.changed_at, args.state.tick_count, 30, :smooth_stop_quint, :flip)
+  
+        [
+          label,
+          prefab.merge(primitive_marker: :solid, a: a),
+          prefab.merge(primitive_marker: :border)
+        ]
+      end
+    end
   end
 
 #+end_src
@@ -22318,9 +24073,10 @@ Follows is a source code listing for all files that have been open sourced. This
       greedy.frontier  ||= []
       greedy.path      ||= []
   
-      a_star.frontier  ||= []
-      a_star.came_from ||= {}
-      a_star.path      ||= []
+      a_star.frontier    ||= []
+      a_star.came_from   ||= {}
+      a_star.path        ||= []
+      a_star.cost_so_far ||= {}
     end
   
     # All methods with render draw stuff on the screen
@@ -27230,7 +28986,7 @@ Follows is a source code listing for all files that have been open sourced. This
     #Your score
     🎮.💰 ||= 0
     #Spawns Food randomly
-    spawn_🍎(🎮) unless 🎮.🍎?
+    spawn_🍎(🎮) unless 🎮.🍎
   end
 
 #+end_src
@@ -27699,6 +29455,285 @@ Follows is a source code listing for all files that have been open sourced. This
     end
     [dx, dy]
   end
+#+end_src
+
+*** Board Game - Fifteen Puzzle - main.rb
+#+begin_src ruby
+  # ./samples/99_genre_board_game/01_fifteen_puzzle/app/main.rb
+  class Game
+    attr_gtk
+  
+    def tick
+      defaults
+      calc
+      render
+    end
+  
+    def defaults
+      # set a reliable seed when not in production so the
+      # saved replay works correctly
+      srand 0 if state.tick_count == 0 && !gtk.production?
+  
+      # set rendering positions/properties
+      state.cell_size     ||= 64
+      state.left_margin   ||= (grid.w - 4 * state.cell_size) / 2
+      state.bottom_margin ||= (grid.h - 4 * state.cell_size) / 2
+  
+      # if the board isn't initialized
+      if !state.board || state.win
+        # generate a solvable board
+        state.board = solvable_board
+        state.win = false
+      end
+    end
+  
+    def solvable_board
+      # create a random board with cells of the
+      # following format:
+      # {
+      #   value: 1,
+      #   loc: { row: 0, col: 0 },
+      #   previous_loc: { row: 0, col: 0 },
+      #   clicked_at: 0
+      # }
+      results = 16.map_with_index do |i|
+        { value: i + 1 }
+      end.sort_by do |cell|
+        rand
+      end.map_with_index do |cell, index|
+        row = index.idiv 4
+        col = index % 4
+        cell.merge loc: { row: row, col: col },
+                   previous_loc: { row: row, col: col },
+                   clicked_at: 0
+      end
+  
+      # determine if the board is solvable
+      # by counting the number of inversions
+      # (a board is solvable if the number of inversions is even)
+      solvable = number_of_inversions(results).even?
+  
+      # recursively call this method until a solvable board is generated
+      return solvable_board if !solvable
+  
+      return results
+    end
+  
+    def number_of_inversions board
+      # get the number of rows
+      number_of_rows = board.map { |cell| cell.loc.row }.uniq.count
+  
+      results = 0
+  
+      # for each row
+      number_of_rows.times_with_index do |row|
+        # find all the cells in the row
+        # and count the number of inversions for that single row
+        inversions_in_row = board.find_all { |cell| cell.loc.row == row }
+                                 .map { |cell| cell.value }
+                                 .each_cons(2)
+                                 .map { |cell, next_cell| cell > next_cell ? 1 : 0 }
+                                 .sum
+  
+        # add the number of inversions for that row to the total
+        results += inversions_in_row
+      end
+  
+      # return the total number of inversions
+      results
+    end
+  
+    def render
+      outputs.sprites << board.map do |cell|
+        # render the board centered in the middle of the screen
+        prefab = cell_prefab cell
+        prefab.merge x: state.left_margin + prefab.x, y: state.bottom_margin + prefab.y
+      end
+  
+      # render the win message
+      if state.won_at && state.won_at.elapsed_time < 180
+        # define a bezier spline that will be used to
+        # fade in the win message stay visible for a little bit
+        # then fade out
+        spline = [
+          [  0, 0.25, 0.75, 1.0],
+          [1.0, 1.0,  1.0,  1.0],
+          [1.0, 0.75, 0.25,   0]
+        ]
+  
+        alpha_percentage = args.easing.ease_spline state.won_at,
+                                                   state.tick_count,
+                                                   180,
+                                                   spline
+  
+        outputs.sprites << {
+          x: 0,
+          y: grid.h.half - 32,
+          w: grid.w,
+          h: 64,
+          path: :pixel,
+          r: 0,
+          g: 0,
+          b: 0,
+          a: 255 * alpha_percentage,
+        }
+  
+        outputs.labels << {
+          x: grid.w.half,
+          y: grid.h.half,
+          text: "You won!",
+          a: 255 * alpha_percentage,
+          alignment_enum: 1,
+          vertical_alignment_enum: 1,
+          size_enum: 10,
+          r: 255,
+          g: 255,
+          b: 255
+        }
+      end
+    end
+  
+    def calc
+      calc_input
+      calc_win
+    end
+  
+    def calc_input
+      # return if the mouse isn't clicked
+      return if !inputs.mouse.click
+  
+      # determine which cell was clicked
+      clicked_cell = board.find do |cell|
+        mouse_rect = {
+          x: inputs.mouse.x - state.left_margin,
+          y: inputs.mouse.y - state.bottom_margin,
+          w: 1,
+          h: 1,
+        }
+        mouse_rect.intersect_rect? render_rect(cell.loc)
+      end
+  
+      # return if no cell was clicked
+      return if !clicked_cell
+  
+      # find the empty cell
+      empty_cell = board.find do |cell|
+        cell.value == 16
+      end
+  
+      # find the clicked cell's neighbors
+      clicked_cell_neighbors = neighbors clicked_cell
+  
+      # return if the cell's neighbors doesn't include the empty cell
+      return if !clicked_cell_neighbors.include?(empty_cell)
+  
+      # otherwise swap the clicked cell with the empty cell
+      swap_with_empty clicked_cell, empty_cell
+    end
+  
+    def calc_win
+      sorted_values = board.sort_by { |cell| (cell.loc.col + 1) + (16 - (cell.loc.row * 4)) }
+                           .map { |cell| cell.value }
+  
+      state.win = sorted_values == (1..16).to_a
+  
+      state.won_at ||= state.tick_count if state.win
+    end
+  
+    def swap_with_empty cell, empty
+      # take not of the cell's current location (within previous_loc)
+      cell.previous_loc = cell.loc
+  
+      # swap the cell's location with the empty cell's location and vice versa
+      cell.loc, empty.loc = empty.loc, cell.loc
+  
+      # take note of the current tick count (which will be used for animation)
+      cell.clicked_at = state.tick_count
+    end
+  
+    def cell_prefab cell
+      # determine the percentage for the lerp that should be performed
+      percentage = if cell.clicked_at
+                     easing.ease cell.clicked_at, state.tick_count, 15, :smooth_stop_quint, :flip
+                   else
+                     1
+                   end
+  
+      # determine the cell's current render location
+      cell_rect = render_rect cell.loc
+  
+      # determine the cell's previous render location
+      previous_rect = render_rect cell.previous_loc
+  
+      # compute the difference between the current and previous render locations
+      x = cell_rect.x + (previous_rect.x - cell_rect.x) * percentage
+      y = cell_rect.y + (previous_rect.y - cell_rect.y) * percentage
+  
+      # return the cell prefab
+      { x: x,
+        y: y,
+        w: state.cell_size,
+        h: state.cell_size,
+        path: "sprites/pieces/#{cell.value}.png" }
+    end
+  
+    # helper method to determine the render location of a cell in local space
+    # which excludes the margins
+    def render_rect loc
+      {
+        x: loc.col * state.cell_size,
+        y: loc.row * state.cell_size,
+        w: state.cell_size,
+        h: state.cell_size,
+      }
+    end
+  
+    # helper methods to determine neighbors of a cell
+    def neighbors cell
+      [
+        above_cell(cell),
+        below_cell(cell),
+        left_cell(cell),
+        right_cell(cell),
+      ]
+    end
+  
+    def below_cell cell
+      find_cell cell, -1, 0
+    end
+  
+    def above_cell cell
+      find_cell cell, 1, 0
+    end
+  
+    def left_cell cell
+      find_cell cell, 0, -1
+    end
+  
+    def right_cell cell
+      find_cell cell, 0, 1
+    end
+  
+    def find_cell cell, d_row, d_col
+      board.find do |other_cell|
+        cell.loc.row == other_cell.loc.row + d_row &&
+        cell.loc.col == other_cell.loc.col + d_col
+      end
+    end
+  
+    def board
+      state.board
+    end
+  end
+  
+  def tick args
+    $game ||= Game.new
+    $game.args = args
+    $game.tick
+  end
+  
+  $gtk.reset
+
 #+end_src
 
 *** Boss Battle - Boss Battle Game Jam - main.rb
@@ -29464,6 +31499,7 @@ Follows is a source code listing for all files that have been open sourced. This
       state.buttons_frame_selection.left = 10
       state.buttons_frame_selection.top  = grid.top - 10
       state.buttons_frame_selection.size = 20
+      state.buttons_frame_selection.items ||= []
   
       defaults_canvas_sprite
   
@@ -41890,6 +43926,7 @@ Follows is a source code listing for all files that have been open sourced. This
       @args.state.hero_sprite = "sprites/herodown100.png"
       @args.state.hero_x = 608
       @args.state.hero_y = 720-656
+      @args.state.hero.sprite ||= []
       set_gem_values
     end
   

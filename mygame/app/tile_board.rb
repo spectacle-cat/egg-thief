@@ -164,7 +164,7 @@ module TileBoard
       r: 250,
       g: 250,
       b: 250
-    }.label
+    }.label!
 
     labels << {
       x: 1280 - 48,
@@ -173,7 +173,7 @@ module TileBoard
       r: 250,
       g: 250,
       b: 250
-    }.label
+    }.label!
 
     args.outputs.primitives << labels
   end
@@ -189,7 +189,7 @@ module TileBoard
     }
 
     args.outputs.debug << args.state.interactables.finish_rect.border if args.state.debug
-    args.outputs.primitives << { x: fp.x + 20, y: fp.y + 60, text: "FINISH", r: 250, g: 250, b: 250 }.label
+    args.outputs.primitives << { x: fp.x + 20, y: fp.y + 60, text: "FINISH", r: 250, g: 250, b: 250 }.label!
 
     args.outputs.sprites << {
       x: fp.x,

@@ -18,5 +18,9 @@ class Scoring
       voffset = @h * (index - 1)
       @y = 720 - @h - TileBoard::ROW_GUTTER - voffset
     end
+
+    def serialize
+      { egg_index: @egg_index, x: @x, y: @y, h: @h, w: @w }
+    end
   end
 end

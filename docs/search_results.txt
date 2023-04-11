@@ -1,8 +1,5 @@
-** How To Render A Sprite Using An Array
-** More Sprite Properties As An Array
-** Different Sprite Representations
-* DOCS: ~GTK::Outputs#sprites~ [[GTK::Outputs.docs_sprites]]
-** Rendering a sprite using an Array
-** Rendering a sprite using an Array with colors and alpha
-** Rendering a sprite using a Hash
-** Rendering a solid using a Class
+* ~args.easing~ [[GTK::Runtime.docs_api_summary_easing]]
+** ~args.easing.ease start_tick, current_tick, duration, easing_functions~
+** ~args.easing.ease_spline start_tick, current_tick, duration, spline~
+* ~args.string~ [[GTK::Runtime.docs_api_summary_easing]]
+** ~args.string.wrapped_lines string, max_character_length~

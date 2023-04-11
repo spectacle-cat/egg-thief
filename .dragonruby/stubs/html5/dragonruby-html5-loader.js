@@ -359,7 +359,7 @@ var prepareFilesystem = function()
 {
   // Download the game data and set up the filesystem!
   // set up a persistent store for save games, etc.
-  var persistent_path = '/__drgtk_persistent_store__';
+  var persistent_path = GDragonRubyWriteDir;
   FS.mkdir(persistent_path);
   FS.mount(IDBFS, {}, persistent_path);
   FS.syncfs(true, function(err) {
@@ -385,8 +385,14 @@ var statusElement = document.getElementById('status');
 var progressElement = document.getElementById('progress');
 var canvasElement = document.getElementById('canvas');
 
-canvasElement.style.width = '100%';
-canvasElement.style.height = '100%';
+if (window.self != window.top) {
+  canvasElement.style.width = window.innerWidth;
+  canvasElement.style.height = window.innerHeight;
+} else {
+  canvasElement.style.width = "100%";
+  canvasElement.style.height = "100%";
+}
+
 document.getElementById('borderdiv').style.border = '0px';
 
 //statusElement.style.display = 'none';
@@ -593,7 +599,7 @@ var Module = {
     p.style.top = '10%';
     p.style['font-family'] = "monospace";
     div.appendChild(p);
- 
+
     p = document.createElement('p');
     p.innerHTML = 'Click or tap here to begin.';
     p.style['font-family'] = "monospace";
