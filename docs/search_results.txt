@@ -1,5 +1,0 @@
-* ~args.easing~ [[GTK::Runtime.docs_api_summary_easing]]
-** ~args.easing.ease start_tick, current_tick, duration, easing_functions~
-** ~args.easing.ease_spline start_tick, current_tick, duration, spline~
-* ~args.string~ [[GTK::Runtime.docs_api_summary_easing]]
-** ~args.string.wrapped_lines string, max_character_length~
