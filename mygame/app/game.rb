@@ -3,6 +3,7 @@ require 'app/common/sprite.rb'
 require 'app/common/direction.rb'
 require 'app/common/vector.rb'
 require 'app/common/fov.rb'
+require 'app/common/particle_system.rb'
 require 'app/player.rb'
 require 'app/enemies.rb'
 require 'app/enemies/scorpion.rb'
@@ -25,7 +26,7 @@ module Game
   RESTART_DURATION = 60 * 1.5
 
   def tick args
-    # args.gtk.slowmo! 60
+    # args.gtk.slowmo! 5
     args.state.debug ||= false
     args.outputs.background_color = [52, 43, 14]
     args.state.collected_nests ||= []
@@ -133,6 +134,31 @@ module Game
 
     TileBoard.render_obstacles(args)
     Enemies.tick(args)
+
+    args.state.particles ||= []
+
+    if args.state.player.started_running_at == args.tick_count
+      emitter = Emitters::Trail.new(
+        force: 2
+      )
+
+      args.state.particles << ParticleSystem.new(
+        x: args.state.player.x,
+        y: args.state.player.y,
+        rate: 15,
+        count: 10,
+        emitter: emitter
+      )
+    end
+
+    args.state.particles.each do |particles|
+      particles.x = args.state.player.x
+      particles.y = args.state.player.y
+
+      particles.update(args)
+      args.state.particles.delete(particles) if particles.dead?
+      particles.render
+    end
   end
 
   def restart_level!(args)
