@@ -4,9 +4,8 @@ module Player
   SPEED = 8
 
   def reset(args)
-    args.state.player = nil
-    args.state.player.angle = nil
-    args.state.player_collider = nil
+    args.state.player = { angle: nil, x: nil, y: nil }
+    args.state.player_collider = { x: nil, y: nil, w: nil, h: nil }
   end
 
   def place_at_start(args)
@@ -132,7 +131,7 @@ module Player
         { w: length * 0.5, h: length / 3.5, }
       elsif ud == :up || ud == :down
         { w: length / 3.5, h: length * 0.5 }
-      elsif !args.state.player_collider.x.nil?
+      elsif args.state.player_collider && !args.state.player_collider.x.nil?
         return args.state.player_collider
       else
         { w: length / 3.5, h: length }

@@ -21,7 +21,7 @@ module TileBoard
     args.state.cover ||= []
     args.state.boulders ||= []
     args.state.scorpions ||= []
-    args.state.finish_point = nil
+    args.state.finish_point = { x: nil, y: nil }
 
     build_tiles(args)
   end
@@ -39,7 +39,7 @@ module TileBoard
     args.state.enemies.hawks = []
     args.state.enemies.owls = []
     args.state.enemies.scorpions = []
-    args.state.finish_point = nil
+    args.state.finish_point = { x: nil, y: nil }
   end
 
   def reset_score!(args)
