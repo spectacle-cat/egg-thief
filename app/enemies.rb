@@ -35,7 +35,7 @@ module Enemies
       .new(track: track, sprite: sprite, attributes: level.except(:tiles))
   end
 
-  def tick(args)
+  def tick(args, paused: false)
     sprites = []
 
     [
@@ -44,7 +44,7 @@ module Enemies
       args.state.enemies.owls
     ].each do |enemy_group|
       enemy_group.each do |entity|
-        entity.tick(args)
+        entity.tick(args) unless paused
         sprites << entity.sprite unless entity.offscreen
 
         entity.current_track.show_debug(args)

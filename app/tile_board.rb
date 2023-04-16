@@ -159,7 +159,7 @@ module TileBoard
     labels = []
     labels << {
       x: 1280 - 57,
-      y: 76,
+      y: 103,
       text: "Level",
       r: 250,
       g: 250,
@@ -168,8 +168,23 @@ module TileBoard
 
     labels << {
       x: 1280 - 48,
-      y: 51,
+      y: 77,
       text: "#{args.state.level}/9",
+      r: 250,
+      g: 250,
+      b: 250
+    }.label!
+
+    time_taken =
+    if args.state.ended_level_at == 0
+      args.state.tick_count - args.state.started_level_at
+    else
+      args.state.ended_level_at - args.state.started_level_at
+    end
+    labels << {
+      x: 1280 - 58,
+      y: 38,
+      text: TimeUtils.ticks_to_time_string(time_taken),
       r: 250,
       g: 250,
       b: 250

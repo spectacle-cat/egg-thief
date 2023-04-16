@@ -19,7 +19,7 @@ class Collisions
 
   def check_finish
     if args.state.interactables.finish_rect.intersect_rect?(player_collider)
-      args.state.exit_level = true
+      args.state.end_level = true
     end
   end
 

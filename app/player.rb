@@ -22,7 +22,7 @@ module Player
     args.state.player.h = 100
   end
 
-  def tick args
+  def tick(args, paused: false)
     if args.state.player.w.nil? || args.state.player.h.nil?
       set_player_size(args)
     end
@@ -50,7 +50,6 @@ module Player
     if !input_for_moving_detected?(args)
       args.state.player.started_running_at = nil
     end
-
 
     render_player_sprite(args)
     # args.outputs.debug << args.state.player_collider.border

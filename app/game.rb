@@ -1,3 +1,4 @@
+require 'app/common/time_utils.rb'
 require 'app/level_loader.rb'
 require 'app/common/sprite.rb'
 require 'app/common/direction.rb'
@@ -19,6 +20,7 @@ require 'app/tile_board.rb'
 require 'app/collisions.rb'
 require 'app/scoring/background_sprite.rb'
 require 'app/scoring/egg_counter.rb'
+require 'app/end_of_level_popup.rb'
 
 module Game
   extend self
@@ -32,6 +34,10 @@ module Game
     args.state.collected_nests ||= []
     args.state.total_nests ||= 0
     args.state.level ||= 1
+    args.state.level_stats ||= {}
+    args.state.started_level_at ||= 0
+    args.state.ended_level_at ||= 0
+    args.state.end_level ||= false
     args.state.exit_level ||= false
     args.state.scene ||= :level
     args.state.fade_in_started_at ||= nil
@@ -79,8 +85,32 @@ module Game
       args.state.fade_in_started_at = args.state.tick_count
     end
 
-    render_level(args)
+    end_level(args) if args.state.end_level == true
+
+    render_level(args, paused: args.state.end_level)
     continue_fade_in(args) if args.state.fade_in_started_at
+  end
+
+  def end_level(args)
+    args.state.show_popup = true
+
+    if args.state.ended_level_at == 0
+      args.state.ended_level_at = args.state.tick_count
+      time_taken = TimeUtils.ticks_to_time_string(args.state.ended_level_at - args.state.started_level_at)
+
+      args.state.level_stats[args.state.level] = {
+        started_level_at: args.state.started_level_at,
+        ended_level_at: args.state.ended_level_at,
+        level_completed_in: time_taken,
+        eggs_collected: args.state.collected_nests.count
+      }
+    end
+
+    popup = EndOfLevelPopup.new(
+      args.state.collected_nests.count,
+      args.state.level_stats[args.state.level][:level_completed_in]
+    )
+    popup.render(args.outputs)
   end
 
   def continue_fade_in(args)
@@ -118,19 +148,22 @@ module Game
     end
   end
 
-  def render_level(args)
+  def render_level(args, paused: false)
     TileBoard.render_tiles(args)
     TileBoard.render_ui(args)
     TileBoard.render_nests(args)
 
-    Player.tick(args)
-    player_collider = Player.player_collision_box(args, buffer: 0)
-    Collisions.new(args, player_collider).run!
+    unless paused
+      Player.tick(args, paused: paused)
 
-    args.outputs.debug << player_collider.border if args.state.debug
+      player_collider = Player.player_collision_box(args, buffer: 0)
+      Collisions.new(args, player_collider).run!
+
+      args.outputs.debug << player_collider.border if args.state.debug
+    end
 
     TileBoard.render_obstacles(args)
-    Enemies.tick(args)
+    Enemies.tick(args, paused: paused)
   end
 
   def render_particles
@@ -206,6 +239,9 @@ module Game
     Enemies.setup(args)
 
     args.state.exit_level = false
+    args.state.end_level = false
+    args.state.started_level_at = args.tick_count
+    args.state.ended_level_at = nil
   end
 
   def reset_score(args)
