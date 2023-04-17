@@ -1,5 +1,5 @@
 class EndOfLevelPopup
-  attr_accessor :x, :y, :width, :height, :eggs_collected, :time_taken
+  attr_reader :x, :y, :width, :height, :eggs_collected, :time_taken
 
   BUTTON_WIDTH = 100
   BUTTON_HEIGHT = 50
@@ -24,12 +24,21 @@ class EndOfLevelPopup
   def render(args)
     # Draw the background and text for the popup
     args.outputs.solids << [x, y, width, height, 128, 128, 128]
-    args.outputs.labels << [x + 10, y + 10, "Eggs collected: #{@eggs_collected}"]
-    args.outputs.labels << [x + 10, y + 30, "Time taken: #{@time_taken}"]
+    args.outputs.labels << [x + 10, y + height - 40, "Eggs collected: #{@eggs_collected}"]
+    args.outputs.labels << [x + 10, y + height - 70, "Time taken: #{@time_taken}"]
+
 
     BUTTONS.each do |(name, button)|
       args.outputs.borders << [button[:x], button[:y], button[:width], button[:height]]
-      args.outputs.labels << [button[:x] + button[:width] / 2, button[:y] + button[:height] / 2, button[:text], 0, 1]
+
+      args.outputs.labels << {
+        x: button[:x] + button[:width] / 2,
+        y: button[:y] + button[:height] / 2,
+        text: button[:text],
+        r: 255, b: 255, g: 255,
+        alignment_enum: 1
+      }
+
 
       if button_clicked?(args, name)
         handle_button_click(args, name)
