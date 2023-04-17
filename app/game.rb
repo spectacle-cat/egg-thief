@@ -99,8 +99,27 @@ module Game
       stats.current_level.eggs_collected,
       stats.current_level.time_taken
     )
-    popup.render(args.outputs)
+    popup.render(args)
   end
+
+def render_button(args, x, y, width, height, text)
+  args.outputs.borders << [x, y, width, height]
+  args.outputs.labels << [x + width / 2, y + height / 2, text, 0, 1]
+
+  clicked = false
+  if args.inputs.mouse.click && clicked_within?(args, x, y, width, height)
+    clicked = true
+  end
+
+  clicked
+end
+
+def clicked_within?(args, x, y, width, height)
+  mouse_x = args.inputs.mouse.x
+  mouse_y = args.inputs.mouse.y
+
+  mouse_x.between?(x, x + width) && mouse_y.between?(y, y + height)
+end
 
   def continue_fade_in(args)
     tick_duration = 60
@@ -127,6 +146,7 @@ module Game
 
   def transition_to_next_level(args)
     args.state.fade_in_started_at = args.state.tick_count
+    args.state.end_level = false
 
     if last_level?(args)
       args.state.scene = :game_completed
@@ -194,17 +214,28 @@ module Game
     TileBoard.render_ui(args)
     TileBoard.render_nests(args)
 
-    Player.render_player_sprite(args, is_dead: true)
+    manual_restart = args.state.end_level
+    Player.render_player_sprite(args, is_dead: !manual_restart)
 
     TileBoard.render_obstacles(args)
 
-    if args.tick_count > (args.state.restarted_level_at + RESTART_DURATION)
-      args.state.scene = :level
-      args.state.restarted_level_at = nil
-      Player.reset(args)
-      Player.place_at_start(args)
-      TileBoard.reset_score!(args)
+    if manual_restart
+      unfreeze_gameplay(args)
+      return
     end
+
+    if args.tick_count > (args.state.restarted_level_at + RESTART_DURATION)
+      unfreeze_gameplay(args)
+    end
+  end
+
+  def unfreeze_gameplay(args)
+    args.state.scene = :level
+    args.state.restarted_level_at = nil
+    Player.reset(args)
+    Player.place_at_start(args)
+    TileBoard.reset_score!(args)
+    args.state.end_level = false
   end
 
   def last_level?(args)
