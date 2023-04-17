@@ -21,6 +21,7 @@ require 'app/collisions.rb'
 require 'app/scoring/background_sprite.rb'
 require 'app/scoring/egg_counter.rb'
 require 'app/end_of_level_popup.rb'
+require 'app/level_stats.rb'
 
 module Game
   extend self
@@ -34,7 +35,6 @@ module Game
     args.state.collected_nests ||= []
     args.state.total_nests ||= 0
     args.state.level ||= 1
-    args.state.level_stats ||= {}
     args.state.started_level_at ||= 0
     args.state.ended_level_at ||= 0
     args.state.end_level ||= false
@@ -47,6 +47,7 @@ module Game
     args.state.enemies.owls ||= []
     args.state.enemies.scorpions ||= []
     args.state.particles ||= []
+    @stats ||= LevelStats.new(args)
 
     case args.state.scene
     when :level
@@ -92,23 +93,11 @@ module Game
   end
 
   def end_level(args)
-    args.state.show_popup = true
-
-    if args.state.ended_level_at == 0
-      args.state.ended_level_at = args.state.tick_count
-      time_taken = TimeUtils.ticks_to_time_string(args.state.ended_level_at - args.state.started_level_at)
-
-      args.state.level_stats[args.state.level] = {
-        started_level_at: args.state.started_level_at,
-        ended_level_at: args.state.ended_level_at,
-        level_completed_in: time_taken,
-        eggs_collected: args.state.collected_nests.count
-      }
-    end
+    stats.save_for_current_level if args.state.ended_level_at == 0
 
     popup = EndOfLevelPopup.new(
-      args.state.collected_nests.count,
-      args.state.level_stats[args.state.level][:level_completed_in]
+      stats.current_level.eggs_collected,
+      stats.current_level.time_taken
     )
     popup.render(args.outputs)
   end
@@ -291,5 +280,9 @@ module Game
       g: 30,
       b: 30,
     ]
+  end
+
+  def stats
+    @stats
   end
 end
