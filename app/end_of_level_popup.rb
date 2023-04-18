@@ -86,7 +86,7 @@ class EndOfLevelPopup
     y = button[:y]
 
     click &&
-      mouse_x.between?(x, x + BUTTON_WIDTH) &&
-      mouse_y.between?(y, y + BUTTON_HEIGHT)
+      mouse_x.between?(x, x + button[:w]) &&
+      mouse_y.between?(y, y + button[:h])
   end
 end
