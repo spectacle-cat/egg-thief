@@ -27,7 +27,7 @@ class LevelStats
     args.state.level_stats[args.state.level] = LevelData.new(
       level: args.state.level,
       time_taken: time_taken,
-      eggs_collected: args.state.collected_nests.count
+      eggs_collected: args.state.empty_nests.count
     )
   end
 

@@ -202,6 +202,8 @@ end
 
   def restart_level!(args)
     args.state.restarted_level_at = args.tick_count
+    args.state.ended_level_at = 0
+    args.state.started_level_at = args.tick_count
     args.state.scene = :restart_level
 
     args.state.enemies[:hawks].each { |enemy| enemy.reset! }
