@@ -15,6 +15,8 @@ class EndOfLevelPopup
     labels = []
     centered_x = (args.grid.w / 2 - width / 2)
     centered_y = (args.grid.h / 2 - height / 2)
+    number_of_level_eggs = args.state.nests.count + args.state.empty_nests.count
+    can_continue = number_of_level_eggs == eggs_collected
 
     args.outputs.primitives << {
       x: centered_x,
@@ -58,23 +60,38 @@ class EndOfLevelPopup
       y: centered_y + height * 0.2,
       text: "Retry",
       alignment_enum: 0,
-      r: 52, g: 43, b: 14,    }
+      r: 52, g: 43, b: 14,
+    }
     labels << continue_label = {
       x: centered_x + width / 2 + width / 4,
       y: centered_y + height * 0.2,
       text: "Continue",
       alignment_enum: 2,
       r: 52, g: 43, b: 14,
+      a: can_continue ? 255 : 100,
     }
+    labels << {
+      x: centered_x + width / 2 + width / 2.8,
+      y: centered_y + height * 0.11,
+      text: "Find all the eggs!",
+      alignment_enum: 2,
+      r: 52, g: 43, b: 14,
+    } unless can_continue
 
     retry_btn = retry_label.merge(w: 100, h: 50, x: retry_label[:x] - 25, y: retry_label[:y] - 35)
-    continue_btn = continue_label.merge(w: 100, h: 50, x: continue_label[:x] - 90, y: continue_label[:y] - 35)
+    continue_btn = continue_label.merge(
+      w: 100,
+      h: 50,
+      x: continue_label[:x] - 90,
+      y: continue_label[:y] - 35,
+    )
 
     args.outputs.labels << labels
     args.outputs.borders << [retry_btn, continue_btn]
 
     Game.restart_level!(args) if button_clicked?(args, retry_btn)
-    args.state.exit_level = true if button_clicked?(args, continue_btn)
+
+    args.state.exit_level = true if can_continue && button_clicked?(args, continue_btn)
   end
 
   def button_clicked?(args, button)
