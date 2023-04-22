@@ -92,15 +92,19 @@ module Game
     continue_fade_in(args) if args.state.fade_in_started_at
   end
 
-  def end_level(args)
+def end_level(args)
+  if args.state.popup.nil?
     stats.save_for_current_level if args.state.ended_level_at == 0
 
-    popup = EndOfLevelPopup.new(
+    args.state.popup = EndOfLevelPopup.new(
       stats.current_level.eggs_collected,
       stats.current_level.time_taken
     )
-    popup.render(args)
   end
+
+  args.state.popup.render(args)
+end
+
 
 def render_button(args, x, y, width, height, text)
   args.outputs.borders << [x, y, width, height]
@@ -205,6 +209,7 @@ end
     args.state.ended_level_at = 0
     args.state.started_level_at = args.tick_count
     args.state.scene = :restart_level
+    args.state.popup = nil
 
     args.state.enemies[:hawks].each { |enemy| enemy.reset! }
     args.state.enemies[:owls].each { |enemy| enemy.reset! }
@@ -264,6 +269,7 @@ end
     args.state.end_level = false
     args.state.started_level_at = args.tick_count
     args.state.ended_level_at = nil
+    args.state.popup = nil
   end
 
   def reset_score(args)
