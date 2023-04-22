@@ -233,12 +233,15 @@ end
 
     if args.tick_count > (args.state.restarted_level_at + RESTART_DURATION)
       unfreeze_gameplay(args)
+    else
+      args.state.started_level_at = args.tick_count
     end
   end
 
   def unfreeze_gameplay(args)
     args.state.scene = :level
-    args.state.restarted_level_at = nil
+    args.state.restarted_level_at = args.tick_count
+    args.state.started_level_at = args.tick_count
     Player.reset(args)
     Player.place_at_start(args)
     TileBoard.reset_score!(args)
