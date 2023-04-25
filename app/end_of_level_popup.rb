@@ -26,12 +26,34 @@ class EndOfLevelPopup
       y: modified_y,
       w: width,
       h: height,
-      path: 'sprites/EndLevel_windowBOX.png'
+      path: 'sprites/EndLevel_windowBOX.png',
     }.sprite!
+
+    star_width = 100
+    start_point = centered_x + (width / 2) - (star_width * 1.5)
+
+    star_score = 2
+    args.outputs.primitives << 3.times.map do |n|
+      {
+        x: start_point + (star_width * n),
+        y: centered_y + height * 0.9,
+        w: 100,
+        h: 100,
+        source_x:  0,
+        source_y:  0,
+        source_w: 200,
+        source_h: 100,
+        tile_x: n < star_score ? 0 : 100,
+        tile_y:  0,
+        tile_w: 100,
+        tile_h: 100,
+        path: "sprites/stars.png",
+      }.sprite!
+    end
 
     labels << {
       x: centered_x + width / 2,
-      y: modified_y + height * 0.9,
+      y: modified_y + height * 0.8,
       text: "LEVEL #{args.state.level} COMPLETE",
       size_enum: 25,
       alignment_enum: 1, # 0 for left, 1 for center, 2 for right alignment
@@ -41,7 +63,7 @@ class EndOfLevelPopup
     }
     labels << {
       x: centered_x + width / 2,
-      y: modified_y + height * 0.72,
+      y: modified_y + height * 0.65,
       text: "#{@eggs_collected}/#{args.state.nests.count + args.state.empty_nests.count} EGGS",
       size_enum: 15,
       alignment_enum: 1, # 0 for left, 1 for center, 2 for right alignment

@@ -92,38 +92,38 @@ module Game
     continue_fade_in(args) if args.state.fade_in_started_at
   end
 
-def end_level(args)
-  if args.state.popup.nil?
-    stats.save_for_current_level if args.state.ended_level_at == 0
+  def end_level(args)
+    if args.state.popup.nil?
+      stats.save_for_current_level if args.state.ended_level_at == 0
 
-    args.state.popup = EndOfLevelPopup.new(
-      stats.current_level.eggs_collected,
-      stats.current_level.time_taken
-    )
+      args.state.popup = EndOfLevelPopup.new(
+        stats.current_level.eggs_collected,
+        stats.current_level.time_taken
+      )
+    end
+
+    args.state.popup.render(args)
   end
 
-  args.state.popup.render(args)
-end
 
+  def render_button(args, x, y, width, height, text)
+    args.outputs.borders << [x, y, width, height]
+    args.outputs.labels << [x + width / 2, y + height / 2, text, 0, 1]
 
-def render_button(args, x, y, width, height, text)
-  args.outputs.borders << [x, y, width, height]
-  args.outputs.labels << [x + width / 2, y + height / 2, text, 0, 1]
+    clicked = false
+    if args.inputs.mouse.click && clicked_within?(args, x, y, width, height)
+      clicked = true
+    end
 
-  clicked = false
-  if args.inputs.mouse.click && clicked_within?(args, x, y, width, height)
-    clicked = true
+    clicked
   end
 
-  clicked
-end
+  def clicked_within?(args, x, y, width, height)
+    mouse_x = args.inputs.mouse.x
+    mouse_y = args.inputs.mouse.y
 
-def clicked_within?(args, x, y, width, height)
-  mouse_x = args.inputs.mouse.x
-  mouse_y = args.inputs.mouse.y
-
-  mouse_x.between?(x, x + width) && mouse_y.between?(y, y + height)
-end
+    mouse_x.between?(x, x + width) && mouse_y.between?(y, y + height)
+  end
 
   def continue_fade_in(args)
     tick_duration = 60
