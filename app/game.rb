@@ -98,7 +98,8 @@ module Game
 
       args.state.popup = EndOfLevelPopup.new(
         stats.current_level.eggs_collected,
-        stats.current_level.time_taken
+        stats.current_level.time_taken,
+        stats.current_level.seconds_taken
       )
     end
 

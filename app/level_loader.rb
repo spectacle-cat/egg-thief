@@ -26,19 +26,14 @@ class LevelLoader
       level_data = {}
       level_data[:tiles] = level.reverse.map { |row| row.chars }
 
-      case type
-      when "Tiles"
-        acc[type] = level_data
-      else
-        attribute_lines.each do |line|
-          key, value = line.split(":")
+      attribute_lines.each do |line|
+        key, value = line.split(":")
 
-          level_data[key] = value
-        end
-
-        acc[type] ||= []
-        acc[type] << level_data
+        level_data[key] = value
       end
+
+      acc[type] ||= []
+      acc[type] << level_data
 
       acc
     end

@@ -1,14 +1,15 @@
 class EndOfLevelPopup
-  attr_reader :x, :y, :width, :height, :eggs_collected, :time_taken
+  attr_reader :x, :y, :width, :height, :eggs_collected, :time_taken, :seconds_taken
   attr_accessor :animation_started_at
 
-  def initialize(eggs_collected, time_taken)
+  def initialize(eggs_collected, time_taken, seconds_taken)
     @x = 100
     @y = 100
     @width = 1114 / 2
     @height = 930 / 2
     @eggs_collected = eggs_collected
     @time_taken = time_taken
+    @seconds_taken = seconds_taken
     @animation_started_at = nil
   end
 
@@ -31,30 +32,37 @@ class EndOfLevelPopup
 
     star_width = 100
     start_point = centered_x + (width / 2) - (star_width * 1.5)
+    scores = args.state.level_data["Tiles"][0]["stars"].split(',')
+    star_score = scores.zip([3,2,1]).find { |(time, stars)| seconds_taken.to_f < time.to_f }
 
-    star_score = 2
-    args.outputs.primitives << 3.times.map do |n|
-      {
-        x: start_point + (star_width * n),
-        y: centered_y + height * 0.9,
-        w: 100,
-        h: 100,
-        source_x:  0,
-        source_y:  0,
-        source_w: 200,
-        source_h: 100,
-        tile_x: n < star_score ? 0 : 100,
-        tile_y:  0,
-        tile_w: 100,
-        tile_h: 100,
-        path: "sprites/stars.png",
-      }.sprite!
+    star_score = if star_score
+      star_score[0]
+    else
+      0
     end
+
+    # args.outputs.primitives << 3.times.map do |n|
+    #   {
+    #     x: start_point + (star_width * n),
+    #     y: centered_y + height * 0.9,
+    #     w: 100,
+    #     h: 100,
+    #     source_x:  0,
+    #     source_y:  0,
+    #     source_w: 200,
+    #     source_h: 100,
+    #     tile_x: n.to_i < star_score.to_i ? 0 : 100,
+    #     tile_y:  0,
+    #     tile_w: 100,
+    #     tile_h: 100,
+    #     path: "sprites/stars.png",
+    #   }.sprite!
+    # end
 
     labels << {
       x: centered_x + width / 2,
-      y: modified_y + height * 0.8,
-      text: "LEVEL #{args.state.level} COMPLETE",
+      y: modified_y + height * 0.55,
+      text: "LEVEL #{args.state.level}",
       size_enum: 25,
       alignment_enum: 1, # 0 for left, 1 for center, 2 for right alignment
       valign_enum: 0, # 0 for top, 1 for middle, 2 for bottom alignment
@@ -63,7 +71,7 @@ class EndOfLevelPopup
     }
     labels << {
       x: centered_x + width / 2,
-      y: modified_y + height * 0.65,
+      y: modified_y + height * 0.4,
       text: "#{@eggs_collected}/#{args.state.nests.count + args.state.empty_nests.count} EGGS",
       size_enum: 15,
       alignment_enum: 1, # 0 for left, 1 for center, 2 for right alignment
@@ -72,7 +80,7 @@ class EndOfLevelPopup
     }
     labels << {
       x: centered_x + width / 2,
-      y: modified_y + height * 0.52,
+      y: modified_y + height * 0.83,
       text: "#{@time_taken}",
       size_enum: 40,
       alignment_enum: 1, # 0 for left, 1 for center, 2 for right alignment

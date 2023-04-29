@@ -60,7 +60,7 @@ module TileBoard
         y = (row * 100) + ROW_GUTTER
         x = (col * 100) + COLUMN_GUTTER
 
-        tile_data = args.state.level_data["Tiles"][:tiles][row][col]
+        tile_data = args.state.level_data["Tiles"][0][:tiles][row][col]
 
         tile = {
           type: :floor,
