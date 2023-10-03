@@ -1,7 +1,8 @@
 # egg-thief
 A top down 2d frogger like game, collecting eggs and avoiding enemies.
 
-![3](https://github.com/spectacle-cat/egg-thief/assets/82361338/5bbc5f78-335f-49b8-8ef6-c102cd153252)
+![3](https://github.com/spectacle-cat/egg-thief/assets/82361338/36b8ee90-ecf8-421c-b6c1-597ba1845858)
+
 
 __YOU ARE A LIZARD__
 _COLLECT EGGS. HIDE UNDER BUSHES. DO NOT GET EATEN._
