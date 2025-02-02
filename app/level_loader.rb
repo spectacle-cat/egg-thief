@@ -19,8 +19,9 @@ class LevelLoader
     types.shift
 
     types.reduce({}) do |acc, data|
-      data_split = data.split
+      data_split = data.trim.split("\r\n")
       type = data_split.shift
+
       attribute_lines, level = data_split.partition { |line| line.include?(':') }
 
       level_data = {}

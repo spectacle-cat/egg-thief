@@ -3,7 +3,9 @@ class Sprite
                 :source_x, :source_y, :source_w, :source_h,
                 :tile_x, :tile_y, :tile_w, :tile_h,
                 :flip_horizontally, :flip_vertically,
-                :angle_anchor_x, :angle_anchor_y, :blendmode_enum
+                :anchor_x, :anchor_y,
+                :angle_anchor_x, :angle_anchor_y, :blendmode_enum,
+                :scale_quality_enum
 
   def primitive_marker
     :sprite

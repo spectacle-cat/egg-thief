@@ -263,9 +263,10 @@ module Game
   end
 
   def setup_level(args)
+    load_level(args)
     Player.reset(args)
     TileBoard.reset(args)
-    load_level(args)
+
     TileBoard.setup(args)
     Enemies.setup(args)
 
