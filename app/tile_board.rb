@@ -21,6 +21,7 @@ module TileBoard
     args.state.cover ||= []
     args.state.boulders ||= []
     args.state.scorpions ||= []
+    args.state.hiding_shake_started_at ||= args.tick_count
     args.state.finish_point = { x: nil, y: nil }
 
     build_tiles(args)
@@ -81,7 +82,7 @@ module TileBoard
         end
 
         if tile_data == 'B' || tile_data == 'b'
-          args.state.boulders << { x: x, y: y, w: 100, h: 100 }
+          args.state.boulders << { x: x, y: y, w: 100, h: 100, hiding_something: tile_data == 'b' }
         end
 
         if tile_data == 'b'
@@ -228,8 +229,55 @@ module TileBoard
       )
     end
 
-    sprites << args.state.boulders.map do |sprite|
-      boulder_sprite(x: sprite[:x], y: sprite[:y])
+    sprites << args.state.boulders.map.with_index do |sprite, i|
+      if sprite.hiding_something
+        shake_started = sprite.hiding_shake_started_at ||= args.tick_count
+        duration = 120
+        wait_before_shake = 10 + (180 / i)
+        wait_between_shakes = 150
+        max_offset = 4
+
+        # puts "wait before shake: #{wait_before_shake}"
+
+        should_shake = wait_before_shake + shake_started + duration > args.tick_count
+        should_wait_to_start = shake_started + wait_before_shake > args.tick_count
+        should_wait_before_reset = wait_before_shake + shake_started + duration <= args.tick_count
+        should_reset = wait_before_shake + shake_started + duration + wait_between_shakes < args.tick_count
+
+        # puts "should_shake: #{should_shake}, should_wait: #{should_wait_to_start}, should_reset: #{should_reset}"
+      #  puts "shake_started: #{args.state.hiding_shake_started_at}"
+      #  puts "shake_with_duration: #{shake_started + duration} (#{args.tick_count})"
+
+        offset_x, offset_y = if should_reset
+            sprite.hiding_shake_started_at = args.tick_count
+            [0, 0]
+          elsif should_wait_to_start
+            [0, 0]
+          elsif should_wait_before_reset
+            [0, 0]
+          else
+            x = args.easing.ease(
+              shake_started,
+              args.state.tick_count,
+              duration,
+              :flip, :quint, :identity, :flip, :quad, :flip
+            )
+            y = args.easing.ease(
+              shake_started,
+              args.state.tick_count,
+              duration,
+              :quint, :identity, :flip, :quint, :flip, :quad
+            )
+            [max_offset * x, max_offset * y]
+          end
+
+        boulder_sprite(
+          x: sprite[:x] + offset_x,
+          y: sprite[:y] + offset_y,
+        )
+      else
+        boulder_sprite(x: sprite[:x], y: sprite[:y])
+      end
     end
 
     sprites << args.state.cover.map do |cover|
