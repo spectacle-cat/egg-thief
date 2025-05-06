@@ -49,6 +49,23 @@ module Game
     args.state.particles ||= []
     @stats ||= LevelStats.new(args)
 
+    # Debug level switching
+    if args.state.debug
+      level_keys = {
+        one: 1, two: 2, three: 3, four: 4, five: 5,
+        six: 6, seven: 7, eight: 8, nine: 9
+      }
+
+      level_keys.each do |key, level|
+        if args.inputs.keyboard.key_down.send(key)
+          args.state.level = level - 1
+          args.state.fade_in_started_at = args.state.tick_count
+          args.state.exit_level = true
+          break
+        end
+      end
+    end
+
     case args.state.scene
     when :level
       level_scene(args)

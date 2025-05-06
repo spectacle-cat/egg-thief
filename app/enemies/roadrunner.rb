@@ -11,11 +11,10 @@ module Enemies
       @h = TileBoard::TILE_SIZE * 2
       @w = TileBoard::TILE_SIZE
       @animation_start = 0
-      update_sprite_path(0, 1)
+      tick(0, 1)
     end
 
-    def update_sprite_path(tick_count, speed)
-      puts "speed: #{speed}"
+    def tick(tick_count, speed)
       sprite_index = animation_start.frame_index(
         count: @number_of_sprites,
         hold_for: [22 - speed].max,
