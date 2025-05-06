@@ -1,22 +1,27 @@
 module Enemies
   class Roadrunner < Sprite
-    attr_accessor :origin_point, :x, :y
+    attr_accessor :origin_point, :x, :y, :animation_start
 
     def initialize(origin_point:, angle: 0)
       self.origin_point = origin_point
-      start_looping_at = 0
-      number_of_sprites = 4
-      number_of_frames_to_show_each_sprite = 9
-      does_sprite_loop = true
-
-      sprite_index =
-        start_looping_at.frame_index number_of_sprites,
-                                    number_of_frames_to_show_each_sprite,
-                                    does_sprite_loop
+      @number_of_sprites = 4
+      @number_of_frames_to_show_each_sprite = 9
+      @does_sprite_loop = true
+      @angle = angle
       @h = TileBoard::TILE_SIZE * 2
       @w = TileBoard::TILE_SIZE
+      @animation_start = 0
+      update_sprite_path(0, 1)
+    end
+
+    def update_sprite_path(tick_count, speed)
+      puts "speed: #{speed}"
+      sprite_index = animation_start.frame_index(
+        count: @number_of_sprites,
+        hold_for: [22 - speed].max,
+        repeat: @does_sprite_loop,
+      )
       @path = "sprites/roadrunner_#{sprite_index}.png"
-      @angle = angle
     end
 
     def origin_point=(point)

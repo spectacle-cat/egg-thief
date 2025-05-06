@@ -45,6 +45,7 @@ module Enemies
     ].each do |enemy_group|
       enemy_group.each do |entity|
         entity.tick(args) unless paused
+        entity.sprite.update_sprite_path(args.tick_count, entity.speed) if entity.sprite.is_a?(Enemies::Roadrunner)
         sprites << entity.sprite unless entity.offscreen
 
         entity.current_track.show_debug(args)
