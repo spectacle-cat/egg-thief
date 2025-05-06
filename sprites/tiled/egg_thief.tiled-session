@@ -1,0 +1,41 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "level1.tmx",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "grassland.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.03125,
+            "scaleInEditor": 0.0625
+        },
+        "level1.tmx": {
+            "scale": 0.125,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": -524,
+                "y": 2752
+            }
+        }
+    },
+    "last.imagePath": "D:/GameDev/dragonruby-windows-amd64-egg-thief-v2/mygame/sprites",
+    "map.fixedSize": false,
+    "map.lastUsedFormat": "tmx",
+    "map.renderOrder": "3",
+    "map.tileHeight": 200,
+    "map.tileWidth": 200,
+    "openFiles": [
+        "grassland.tsx",
+        "level1.tmx"
+    ],
+    "project": "egg_thief.tiled-project",
+    "recentFiles": [
+        "grassland.tsx",
+        "level1.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.type": 1
+}
