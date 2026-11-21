@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Sun-bleached cattle skull, seen from above, muzzle toward the bottom, horns sweeping out and up. -->
+
+  <!-- horns -->
+  <path d="M74 60 C58 48 42 52 30 42 C21 35 16 25 14 12 C4 28 5 48 18 60 C32 72 52 78 72 82 Z" fill="#d6c58c"/>
+  <path d="M126 60 C142 48 158 52 170 42 C179 35 184 25 187 13 C196 28 195 48 182 60 C168 72 148 78 128 82 Z" fill="#d6c58c"/>
+  <!-- horn shade and dark tips -->
+  <path d="M18 60 C32 72 52 78 72 82 L73 72 C54 70 36 64 24 52 C22 55 20 58 18 60 Z" fill="#b5a268"/>
+  <path d="M182 60 C168 72 148 78 128 82 L127 72 C146 70 164 64 176 52 C178 55 180 58 182 60 Z" fill="#b5a268"/>
+  <path d="M14 12 C8 22 6 32 8 42 L20 34 C17 27 15 20 14 12 Z" fill="#7a6638"/>
+  <path d="M187 13 C192 22 194 32 192 42 L180 34 C183 27 186 20 187 13 Z" fill="#7a6638"/>
+
+  <!-- the skull -->
+  <path d="M70 56 C80 45 121 46 131 56 C141 63 147 75 144 89 C142 101 132 106 128 117 C124 131 125 151 119 169 C115 183 108 191 100 191 C92 191 86 183 82 169 C76 151 77 131 72 117 C68 106 58 101 56 89 C53 75 60 63 70 56 Z" fill="#f2e8c4"/>
+  <!-- shaded side, lower right -->
+  <path d="M131 56 C141 63 147 75 144 89 C142 101 132 106 128 117 C124 131 125 151 119 169 C115 183 108 191 100 191 C104 185 108 173 110 157 C112 137 112 121 118 109 C124 97 133 91 133 79 C133 69 131 62 131 56 Z" fill="#d6c894"/>
+  <!-- brow ridge and the long nose bones -->
+  <path d="M84 52 L116 52 L110 62 L90 62 Z" fill="#fbf5dc"/>
+  <path d="M93 100 L107 100 L104 134 L96 134 Z" fill="#fbf5dc"/>
+  <!-- eye sockets -->
+  <path d="M64 78 C72 72 84 77 87 88 C88 97 79 102 70 99 C61 96 58 85 64 78 Z" fill="#3b2a0a"/>
+  <path d="M136 78 C128 72 116 77 113 88 C112 97 121 102 130 99 C139 96 142 85 136 78 Z" fill="#3b2a0a"/>
+  <!-- nose opening -->
+  <path d="M89 142 C94 137 106 137 111 142 C111 156 107 170 100 180 C93 170 89 156 89 142 Z" fill="#3b2a0a"/>
+  <path d="M98.5 140 L101.5 140 L100.6 168 L99.4 168 Z" fill="#d6c894"/>
+  <!-- hairline cracks -->
+  <path d="M100 48 L104 64 L98 76 L101 78 L107 64 Z M70 110 L78 114 L76 124 L80 114 Z" fill="#b5a268"/>
+</svg>

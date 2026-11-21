@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 160" width="128" height="160">
+  <!-- Chili egg: hot red shell with flames licking up from the bottom. Fire sprint, burns thorns. -->
+  <defs>
+    <clipPath id="egg"><path d="M65 3 C89 4 117 60 117 100 C117 134 94 157 64 157 C34 157 11 133 11 99 C11 58 42 2 65 3 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#egg)">
+    <rect width="128" height="160" fill="#d32c1a"/>
+    <!-- lit facet -->
+    <path d="M22 78 C26 50 42 22 58 8 C50 30 44 50 43 66 C42 80 36 90 28 94 C23 90 21 84 22 78 Z" fill="#e23d24"/>
+    <!-- shadow facet -->
+    <path d="M92 12 C110 40 124 72 122 104 C120 140 94 162 62 162 C54 162 48 161 42 158 C72 158 100 136 106 102 C109 72 104 42 92 12 Z" fill="#a51d13"/>
+    <!-- sparks -->
+    <path d="M70 26 l5 8 l-5 8 l-5 -8 Z M40 46 l4 6 l-4 6 l-4 -6 Z M92 54 l4 6 l-4 6 l-4 -6 Z" fill="#f98b1c"/>
+    <!-- outer flames -->
+    <path d="M0 160 L6 120 Q14 106 17 84 Q28 98 31 114 Q33 82 50 54 Q54 80 64 98 Q68 84 79 68 Q83 90 89 106 Q99 100 107 80 Q114 104 122 124 L128 160 Z" fill="#f98b1c"/>
+    <!-- inner flames -->
+    <path d="M10 160 L22 132 Q29 122 30 106 Q40 118 43 128 Q47 106 57 86 Q61 106 70 122 Q76 114 84 98 Q90 116 100 132 L114 160 Z" fill="#fdd43c"/>
+    <!-- hottest core -->
+    <path d="M30 160 L40 142 Q46 134 48 124 Q54 132 57 140 Q60 128 66 116 Q70 130 77 142 Q82 138 86 130 Q90 142 96 160 Z" fill="#fff3a6"/>
+  </g>
+</svg>

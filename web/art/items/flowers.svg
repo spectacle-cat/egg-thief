@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Desert flower clumps seen from above: 2x2 atlas of 128x128 cells.
+       top-left pink, top-right lilac, bottom-left pale yellow, bottom-right white. Dusty Easter pastels, tiny olive leaves. -->
+  <defs>
+    <!-- five uneven hand-cut petals around 0,0 -->
+    <g id="petals">
+      <path d="M0 -3 C-7 -7 -8 -16 -1 -19 C6 -17 7 -8 0 -3 Z"/>
+      <path d="M0 -3 C-6 -8 -6 -17 1 -18 C8 -15 6 -7 0 -3 Z" transform="rotate(70)"/>
+      <path d="M0 -3 C-8 -6 -7 -15 0 -17 C7 -16 8 -7 0 -3 Z" transform="rotate(145)"/>
+      <path d="M0 -3 C-7 -7 -8 -17 -1 -20 C6 -17 7 -8 0 -3 Z" transform="rotate(215)"/>
+      <path d="M0 -3 C-6 -8 -7 -16 0 -18 C7 -16 7 -7 0 -3 Z" transform="rotate(290)"/>
+      <path d="M-4 -3 L3 -4 L5 2 L0 5 L-5 3 Z"/>
+    </g>
+    <path id="eye" d="M-4 -2 L0 -4.5 L4 -2 L3.5 3 L-1 4.5 L-4.5 2 Z"/>
+    <path id="leaf" d="M0 0 C4 -6 14 -6 19 0 C14 5 4 5 0 0 Z"/>
+
+    <g id="pink"><use href="#petals" transform="rotate(36) scale(1.04)" fill="#cf7b98"/><use href="#petals" fill="#eaa5ba"/><use href="#petals" transform="rotate(36) scale(0.5)" fill="#cf7b98"/><use href="#eye" fill="#e8891d"/></g>
+    <g id="lilac"><use href="#petals" transform="rotate(36) scale(1.04)" fill="#9a7dc2"/><use href="#petals" fill="#bfa6dc"/><use href="#petals" transform="rotate(36) scale(0.5)" fill="#9a7dc2"/><use href="#eye" fill="#f3d768"/></g>
+    <g id="yellow"><use href="#petals" transform="rotate(36) scale(1.04)" fill="#d9b84a"/><use href="#petals" fill="#f3e38b"/><use href="#petals" transform="rotate(36) scale(0.5)" fill="#dfc254"/><use href="#eye" fill="#c96a12"/></g>
+    <g id="white"><use href="#petals" transform="rotate(36) scale(1.04)" fill="#cfc39c"/><use href="#petals" fill="#f7f1de"/><use href="#petals" transform="rotate(36) scale(0.5)" fill="#d9cfae"/><use href="#eye" fill="#e8891d"/></g>
+
+    <!-- a ring of leaves that peeks out from under a clump centred on 64,64 -->
+    <g id="leavesA">
+      <use href="#leaf" transform="translate(88 73) rotate(20) scale(1.15)" fill="#55601f"/>
+      <use href="#leaf" transform="translate(70 90) rotate(78)" fill="#3f4a1c"/>
+      <use href="#leaf" transform="translate(46 86) rotate(132) scale(1.2)" fill="#55601f"/>
+      <use href="#leaf" transform="translate(36 60) rotate(192)" fill="#3f4a1c"/>
+      <use href="#leaf" transform="translate(54 38) rotate(248) scale(1.1)" fill="#55601f"/>
+      <use href="#leaf" transform="translate(82 42) rotate(312)" fill="#3f4a1c"/>
+      <use href="#leaf" transform="translate(96 56) rotate(-12) scale(0.8)" fill="#3f4a1c"/>
+    </g>
+    <g id="leavesB">
+      <use href="#leaf" transform="translate(90 66) rotate(4)" fill="#3f4a1c"/>
+      <use href="#leaf" transform="translate(80 88) rotate(52) scale(1.2)" fill="#55601f"/>
+      <use href="#leaf" transform="translate(54 94) rotate(104)" fill="#3f4a1c"/>
+      <use href="#leaf" transform="translate(36 76) rotate(160) scale(1.15)" fill="#55601f"/>
+      <use href="#leaf" transform="translate(40 48) rotate(218)" fill="#3f4a1c"/>
+      <use href="#leaf" transform="translate(66 34) rotate(276) scale(1.2)" fill="#55601f"/>
+      <use href="#leaf" transform="translate(90 44) rotate(330) scale(0.9)" fill="#55601f"/>
+    </g>
+  </defs>
+
+  <!-- pink -->
+  <g>
+    <use href="#leavesA"/>
+    <use href="#pink" transform="translate(46 50) rotate(12) scale(1.15)"/>
+    <use href="#pink" transform="translate(80 46) rotate(100) scale(0.9)"/>
+    <use href="#pink" transform="translate(68 80) rotate(200) scale(1.05)"/>
+    <use href="#pink" transform="translate(36 84) rotate(60) scale(0.72)"/>
+    <use href="#pink" transform="translate(98 76) rotate(150) scale(0.68)"/>
+  </g>
+
+  <!-- lilac -->
+  <g transform="translate(128 0)">
+    <use href="#leavesB"/>
+    <use href="#lilac" transform="translate(50 56) rotate(40) scale(1.2)"/>
+    <use href="#lilac" transform="translate(84 48) rotate(170) scale(0.85)"/>
+    <use href="#lilac" transform="translate(78 82) rotate(260) scale(1.0)"/>
+    <use href="#lilac" transform="translate(44 90) rotate(120) scale(0.7)"/>
+  </g>
+
+  <!-- pale yellow -->
+  <g transform="translate(0 128)">
+    <use href="#leavesB"/>
+    <use href="#yellow" transform="translate(40 58) rotate(80) scale(0.9)"/>
+    <use href="#yellow" transform="translate(68 46) rotate(10) scale(1.1)"/>
+    <use href="#yellow" transform="translate(88 72) rotate(230) scale(0.95)"/>
+    <use href="#yellow" transform="translate(58 84) rotate(140) scale(1.05)"/>
+    <use href="#yellow" transform="translate(28 88) rotate(300) scale(0.68)"/>
+  </g>
+
+  <!-- white -->
+  <g transform="translate(128 128)">
+    <use href="#leavesA"/>
+    <use href="#white" transform="translate(48 50) rotate(190) scale(1.0)"/>
+    <use href="#white" transform="translate(80 62) rotate(30) scale(1.2)"/>
+    <use href="#white" transform="translate(50 82) rotate(110) scale(0.9)"/>
+    <use href="#white" transform="translate(90 94) rotate(280) scale(0.68)"/>
+  </g>
+</svg>

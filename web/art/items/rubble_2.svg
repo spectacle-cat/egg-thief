@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <!-- Flying debris 2: a long splinter of boulder. -->
+  <path d="M8 60 L26 26 L62 8 L90 20 L84 44 L52 74 L22 86 Z" fill="#4d3f13"/>
+  <!-- lit facet -->
+  <path d="M15 58 L29 31 L61 14 L80 22 L50 40 L32 62 Z" fill="#6c5b1c"/>
+  <path d="M29 31 L61 14 L66 17 L36 34 Z" fill="#8a7a3a"/>
+  <!-- shadowed underside -->
+  <path d="M90 20 L84 44 L52 74 L22 86 L34 68 L56 52 L78 30 Z" fill="#342b0e"/>
+  <path d="M50 40 L56 52 L52 53 L46 43 Z" fill="#2a230a"/>
+</svg>

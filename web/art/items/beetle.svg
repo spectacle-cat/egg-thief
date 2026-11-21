@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128" width="256" height="128">
+  <!-- Desert beetle: two 128x128 walk frames side by side, seen from above, HEAD TOWARD THE TOP.
+       Glossy teal wing cases, dark head and legs. Frame 2 is frame 1 with the legs mirrored (the other tripod of legs forward). -->
+  <defs>
+    <!-- legs, frame 1: left front forward, left middle back, left rear forward; right side the opposite -->
+    <g id="legs" fill="#2a1c10">
+      <path d="M51.8 40.4 L32.2 32.1 L24.7 12.4 L21.3 13.6 L27.8 35.9 L48.2 47.6 Z"/>
+      <path d="M42.6 60.2 L20.4 69.7 L7.6 86.9 L10.4 89.1 L23.6 74.3 L45.4 67.8 Z"/>
+      <path d="M44.6 84.2 L25.4 92.7 L14.7 106.9 L17.3 109.1 L28.6 97.3 L47.4 91.8 Z"/>
+      <path d="M78 48 L100.9 46.6 L116 34.4 L114 31.6 L99.1 41.4 L78 40 Z"/>
+      <path d="M84.9 67.9 L107.3 61.4 L120.2 48.3 L117.8 45.7 L104.7 56.6 L83.1 60.1 Z"/>
+      <path d="M79 90.6 L93.4 105.1 L96.3 124.2 L99.7 123.8 L98.6 102.9 L85 85.4 Z"/>
+    </g>
+    <g id="body">
+      <!-- feelers -->
+      <path d="M59 24 L48 9 L45 11 L55 27 Z M69 24 L81 10 L84 12 L73 27 Z" fill="#2a1c10"/>
+      <!-- head -->
+      <path d="M53 30 L56 20 L64 16 L72 20 L75 30 L71 36 L57 36 Z" fill="#2a1c10"/>
+      <!-- neck shield -->
+      <path d="M43 48 L46 35 L55 30 L73 30 L82 35 L85 48 L80 54 L48 54 Z" fill="#3b2814"/>
+      <path d="M47 46 L49 37 L57 33 L66 33 L62 42 L54 48 Z" fill="#5c4222"/>
+      <!-- wing cases -->
+      <path d="M37 80 C37 62 43 52 52 50 L76 50 C85 52 91 62 91 80 C91 100 81 116 64 118 C47 116 37 100 37 80 Z" fill="#14837c"/>
+      <!-- lit facet -->
+      <path d="M42 78 C42 66 46 58 53 55 L60 55 C54 62 50 72 50 84 C50 94 52 102 56 108 C48 102 42 92 42 78 Z" fill="#2fb3a4"/>
+      <path d="M46 70 L50 59 L56 58 L52 71 Z" fill="#b4f0de"/>
+      <!-- shadow facet -->
+      <path d="M85 58 C90 64 91 72 91 80 C91 100 81 116 64 118 C60 117.5 57 116 54 114 C68 114 80 100 82 82 C83 72 85 64 85 58 Z" fill="#0c5a57"/>
+      <!-- seam and shield point -->
+      <path d="M62.8 54 L65.2 54 L65.6 118 L62.4 118 Z" fill="#0a3f3e"/>
+      <path d="M57 50 L71 50 L64 61 Z" fill="#2a1c10"/>
+    </g>
+  </defs>
+
+  <!-- frame 1 -->
+  <use href="#legs"/>
+  <use href="#body"/>
+  <!-- frame 2 -->
+  <use href="#legs" transform="translate(256 0) scale(-1 1)"/>
+  <use href="#body" transform="translate(128 0)"/>
+</svg>

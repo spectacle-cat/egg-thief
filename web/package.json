@@ -1,0 +1,23 @@
+{
+  "name": "egg-thief",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5183 --strictPort",
+    "phone": "vite --port 8765 --strictPort --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --port 4183",
+    "typecheck": "tsc --noEmit -p .",
+    "assets": "bash tools/art-items.sh && bash tools/art-props.sh && bash tools/assets.sh",
+    "level": "node tools/make-level.mjs"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.187.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}

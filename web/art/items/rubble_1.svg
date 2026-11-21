@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <!-- Flying debris 1: a blocky chunk of boulder. -->
+  <path d="M12 34 L36 9 L70 13 L88 42 L80 74 L47 89 L16 70 Z" fill="#564614"/>
+  <!-- lit top facet -->
+  <path d="M18 35 L37 15 L66 18 L58 42 L30 50 Z" fill="#74631f"/>
+  <path d="M37 15 L66 18 L60 26 L40 24 Z" fill="#8a7a3a"/>
+  <!-- shadowed faces, lower right -->
+  <path d="M88 42 L80 74 L47 89 L52 66 L72 52 Z" fill="#3a300e"/>
+  <path d="M47 89 L16 70 L24 64 L52 66 Z" fill="#2a230a"/>
+  <!-- a hairline crack -->
+  <path d="M58 42 L72 52 L66 53 L56 46 Z M30 50 L24 64 L27 51 Z" fill="#2a230a"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Stun star: one chunky hand-cut star in the yellow of stars.png, for stunned hunters. -->
+  <path d="M33 3 L41 21 L61 23 L46 37 L51 59 L32 48 L13 58 L18 38 L3 25 L24 22 Z" fill="#fcc814"/>
+  <!-- one shaded fold, lower right -->
+  <path d="M61 23 L46 37 L51 59 L32 48 L36 33 Z" fill="#e9ae0c"/>
+</svg>

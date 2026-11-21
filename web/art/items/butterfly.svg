@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128" width="256" height="128">
+  <!-- Butterfly: two 128x128 frames side by side, seen from above, HEAD TOWARD THE TOP.
+       Frame 1 wings fully open, frame 2 half closed (the same wings squeezed toward the body). -->
+  <defs>
+    <!-- the left pair of wings, drawn for a body on the line x=64 -->
+    <g id="wings">
+      <!-- hind wing -->
+      <path d="M62 60 C46 62 24 68 18 82 C13 96 26 111 38 108 C50 105 58 88 63 72 Z" fill="#eea3bd"/>
+      <path d="M18 82 C13 96 26 111 38 108 C44 106 49 101 53 94 C44 101 32 100 26 92 C22 88 20 85 18 82 Z" fill="#d27d9d"/>
+      <path d="M31 80 l7 -3 l5 5 l-4 7 l-7 -1 Z" fill="#fbeecb"/>
+      <!-- fore wing -->
+      <path d="M62 50 C50 30 30 11 16 15 C4 19 1 40 10 53 C20 66 44 67 62 62 Z" fill="#c3a3e0"/>
+      <path d="M16 15 C4 19 1 40 10 53 C14 58 20 61 27 63 C16 53 12 38 18 26 C20 22 22 19 16 15 Z" fill="#9a79c6"/>
+      <path d="M24 29 l8 -3 l5 6 l-4 7 l-8 -1 Z M38 46 l6 -2 l4 5 l-5 4 l-5 -2 Z" fill="#fbeecb"/>
+      <path d="M62 51 C54 44 46 40 40 39 C48 46 54 54 62 61 Z" fill="#9a79c6"/>
+    </g>
+    <g id="body" fill="#3b2a0a">
+      <!-- feelers -->
+      <path d="M62 28 L52 13 L50 14 L59 30 Z M66 28 L77 14 L79 15 L69 30 Z"/>
+      <path d="M49 10 l5 1 l1 5 l-5 0 Z M75 11 l5 -1 l1 5 l-5 1 Z"/>
+      <!-- head and body -->
+      <path d="M59 31 L61 25 L67 25 L69 31 L67 36 L61 36 Z"/>
+      <path d="M64 33 C69 34 70 40 69.5 48 L67.5 86 C67 93 65.5 98 64 98 C62.5 98 61 93 60.5 86 L58.5 48 C58 40 59 34 64 33 Z"/>
+    </g>
+  </defs>
+
+  <!-- frame 1: open -->
+  <use href="#wings"/>
+  <use href="#wings" transform="translate(128 0) scale(-1 1)"/>
+  <use href="#body"/>
+  <path d="M63 40 L66 40 L66 80 L64 88 Z" fill="#6b5220"/>
+
+  <!-- frame 2: half closed -->
+  <use href="#wings" transform="translate(192 0) scale(0.5 1) translate(-64 0)"/>
+  <use href="#wings" transform="translate(192 0) scale(-0.5 1) translate(-64 0)"/>
+  <use href="#body" transform="translate(128 0)"/>
+  <path d="M191 40 L194 40 L194 80 L192 88 Z" fill="#6b5220"/>
+</svg>

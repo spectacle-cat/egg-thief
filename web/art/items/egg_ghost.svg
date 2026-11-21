@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 160" width="128" height="160">
+  <!-- Ghost egg: a pale blue-white "sheet" with a wavy hem, two small dark eyes, a soft swirl. Turns the lizard invisible. -->
+  <defs>
+    <clipPath id="egg"><path d="M64 3 C89 3 117 58 117 99 C117 133 94 157 64 157 C34 157 11 134 11 100 C11 60 41 3 64 3 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#egg)">
+    <rect width="128" height="160" fill="#8fbbd0"/>
+    <!-- the sheet: white body with a hand-cut wavy hem -->
+    <path d="M0 0 L128 0 L128 120 Q118 107 107 121 Q98 135 86 122 Q75 108 65 123 Q53 137 43 122 Q32 109 22 121 Q12 132 0 118 Z" fill="#e6f2f6"/>
+    <!-- shadow facet, lower right -->
+    <path d="M92 12 C110 40 124 72 122 104 C120 140 94 162 62 162 C54 162 48 161 42 158 C72 158 100 136 106 102 C109 72 104 42 92 12 Z" fill="#5f93ad" fill-opacity="0.35"/>
+    <!-- soft swirl -->
+    <path d="M38 97 C50 111 75 113 85 100 C93 90 88 75 76 73 C66 72 58 80 59 88 C60 96 69 98 74 92 C69 93 66 91 66 87 C66 82 71 79 76 81 C82 83 84 91 79 96 C70 103 54 104 38 97 Z" fill="#a8cad9"/>
+    <!-- eyes -->
+    <path d="M45 40 C51 39 55 45 54 54 C53 63 49 67 44 66 C39 65 37 58 38 51 C39 45 41 41 45 40 Z" fill="#232c3a"/>
+    <path d="M77 38 C83 38 87 44 87 52 C87 61 83 66 78 65 C73 65 70 58 70 51 C70 44 73 39 77 38 Z" fill="#232c3a"/>
+  </g>
+</svg>

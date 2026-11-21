@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 160" width="128" height="160">
+  <!-- Thunder egg: storm-slate shell split by a yellow lightning crack. Smashes cracked boulders. -->
+  <defs>
+    <clipPath id="egg"><path d="M63 3 C88 4 118 60 117 100 C116 134 93 157 63 157 C33 157 11 133 11 99 C11 59 40 2 63 3 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#egg)">
+    <rect width="128" height="160" fill="#5d6874"/>
+    <!-- lit facet, upper left -->
+    <path d="M20 84 C22 54 40 22 58 6 C50 30 43 54 42 78 C41 100 36 116 27 120 C22 110 19 96 20 84 Z" fill="#6c7884"/>
+    <!-- shadow facet, lower right -->
+    <path d="M92 12 C110 40 124 72 122 104 C120 140 94 162 62 162 C54 162 48 161 42 158 C72 158 100 136 106 102 C109 72 104 42 92 12 Z" fill="#444d58"/>
+    <!-- stone flecks -->
+    <path d="M30 128 l7 -2 l3 5 l-6 4 Z M88 132 l6 1 l1 6 l-7 0 Z M28 62 l5 -3 l3 4 l-4 4 Z" fill="#444d58"/>
+    <path d="M96 76 l6 -2 l2 6 l-6 2 Z M70 142 l5 -1 l1 5 l-5 1 Z" fill="#6c7884"/>
+    <!-- the crack: dark depth, then the bolt -->
+    <path d="M79 9 L97 17 L73 57 L93 63 L63 118 L81 121 L47 155 L57 134 L39 131 L69 75 L49 69 Z" fill="#262b31"/>
+    <path d="M86 58 L108 50 L90 66 Z M41 128 L20 136 L43 135 Z M71 60 L60 44 L66 64 Z" fill="#262b31"/>
+    <path d="M74 6 L92 14 L68 54 L88 60 L58 115 L76 118 L42 152 L52 131 L34 128 L64 72 L44 66 Z" fill="#fcc814"/>
+    <!-- pale core of the bolt -->
+    <path d="M77 14 L86 18 L60 58 L78 64 L50 112 L60 116 L50 134 L56 122 L44 122 L72 70 L54 62 Z" fill="#ffe98a"/>
+  </g>
+</svg>

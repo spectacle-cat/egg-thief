@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Cracked boulder: OVERLAY ONLY. tools/art-items.sh paints this on top of public/sprites/boulder.png
+       (compose "atop"), so the finished rock_cracked.png keeps the boulder's exact silhouette.
+       Five bold cracks radiate from a hub left of centre; pale chips show fresh rock. -->
+
+  <!-- the pieces have shifted: the lower-right block sits a shade darker, the top block a shade lighter -->
+  <path d="M96 102 L118 110 L136 104 L152 116 L172 112 L200 124 L200 200 L104 200 L94 178 L100 160 L92 142 L102 124 Z" fill="#2a230a" fill-opacity="0.34"/>
+  <path d="M96 102 L80 88 L74 70 L56 58 L48 38 L30 30 L20 10 L20 0 L170 0 L168 8 L158 30 L140 40 L134 60 L116 70 L112 90 Z" fill="#8a7a3a" fill-opacity="0.22"/>
+
+  <!-- pale chipped facets -->
+  <g fill="#9c8c4a">
+    <path d="M82 86 L97 100 L78 110 L62 104 L66 90 Z"/>
+    <path d="M118 71 L135 61 L140 43 L125 45 L116 57 Z"/>
+    <path d="M153 117 L171 113 L179 127 L162 134 Z"/>
+    <path d="M97 160 L93 177 L78 172 L82 157 Z"/>
+    <path d="M47 39 L31 31 L34 47 Z"/>
+  </g>
+  <g fill="#b9a964">
+    <path d="M82 86 L90 94 L72 98 L66 90 Z"/>
+    <path d="M125 45 L140 43 L137 52 L122 53 Z"/>
+    <path d="M153 117 L171 113 L166 121 Z"/>
+    <path d="M82 157 L97 160 L88 165 Z"/>
+  </g>
+
+  <!-- the cracks -->
+  <g fill="#1a1605">
+    <path d="M99.3 98.2 L83.7 85.6 L77.1 67.6 L58.5 55.9 L49.9 36.1 L31.5 28.5 L21.3 9.3 L18.7 10.7 L28.5 31.5 L46.1 39.9 L53.5 60.1 L70.9 72.4 L76.3 90.4 L92.7 105.8 Z"/>
+    <path d="M98.7 105.6 L115.4 92.1 L118.9 72.1 L136.4 61.9 L142 41.6 L159.5 31.4 L169.4 8.6 L166.6 7.4 L156.5 28.6 L138 38.4 L131.6 58.1 L113.1 67.9 L108.6 87.9 L93.3 98.4 Z"/>
+    <path d="M94.5 106.2 L117.9 113.9 L135.5 107.3 L151.4 118.8 L171.7 114.3 L197.4 125.4 L198.6 122.6 L172.3 109.7 L152.6 113.2 L136.5 100.7 L118.1 106.1 L97.5 97.8 Z"/>
+    <path d="M91.7 103.2 L98.2 123.5 L88.7 141.9 L97.3 160.1 L91.8 178.1 L102.6 199.6 L105.4 198.4 L96.2 177.9 L102.7 159.9 L95.3 142.1 L105.8 124.5 L100.3 100.8 Z"/>
+    <path d="M94 98 L75.6 108.2 L59.1 104.7 L43.1 121.4 L25.5 119.8 L3.2 134.7 L4.8 137.3 L26.5 124.2 L44.9 126.6 L60.9 111.3 L76.4 115.8 L98 106 Z"/>
+    <!-- the hub, knocked out -->
+    <path d="M86 94 L98 90 L108 98 L106 110 L94 114 L86 106 Z"/>
+    <!-- side cracks -->
+    <path d="M73 67 L60 74 L46 72 L60 78 L75 72.5 Z"/>
+    <path d="M133 62.5 L150 68 L164 57 L150 64 L135 57.5 Z"/>
+    <path d="M117.5 68.5 L105 59.5 L101 46 L102.5 60.5 L114.5 71.5 Z"/>
+    <path d="M149.5 117 L156.5 135 L172 143 L159.5 133 L154.5 115 Z"/>
+    <path d="M91 139.5 L75 149 L67 166 L77 151.5 L93 144.5 Z"/>
+    <path d="M41.5 123.5 L39 144 L46.5 124.5 Z"/>
+    <path d="M49 40 L62 28 L47 36 Z"/>
+  </g>
+</svg>

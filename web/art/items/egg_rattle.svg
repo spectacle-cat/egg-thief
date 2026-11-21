@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 160" width="128" height="160">
+  <!-- Rattle egg: turquoise shell painted like a maraca with cream zigzags and dots. A noisy decoy. -->
+  <defs>
+    <clipPath id="egg"><path d="M63 3 C88 3 117 59 117 100 C117 134 93 157 63 157 C33 157 11 134 11 100 C11 59 39 3 63 3 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#egg)">
+    <rect width="128" height="160" fill="#1c9a90"/>
+    <!-- lit facet -->
+    <path d="M22 80 C26 52 42 24 58 8 C50 30 44 52 43 72 C42 92 36 104 28 108 C23 100 21 90 22 80 Z" fill="#27a89b"/>
+    <!-- painted cap bands -->
+    <path d="M30 34 C52 40 76 40 98 32 L102 41 C78 50 50 50 26 43 Z" fill="#f6a24a"/>
+    <path d="M14 128 C44 140 84 140 114 126 L110 137 C82 150 46 150 18 138 Z" fill="#f6a24a"/>
+    <!-- upper zigzag -->
+    <path d="M4 68 L20 52 L35 69 L49 53 L64 71 L78 53 L93 69 L108 51 L124 67 L124 79 L108 63 L93 81 L78 65 L64 83 L49 65 L35 81 L20 64 L4 80 Z" fill="#f6ebbb"/>
+    <!-- dots -->
+    <path d="M27 91 l6 -2 l4 5 l-3 6 l-7 0 l-3 -5 Z M51 96 l7 -1 l3 6 l-4 5 l-7 -1 l-2 -6 Z M77 96 l6 1 l3 5 l-4 5 l-7 -1 l-2 -6 Z M101 90 l6 2 l2 6 l-5 4 l-6 -2 l-1 -6 Z" fill="#f6ebbb"/>
+    <!-- lower zigzag -->
+    <path d="M4 108 L20 118 L35 106 L49 121 L64 108 L78 121 L93 106 L108 118 L124 106 L124 117 L108 129 L93 117 L78 132 L64 119 L49 132 L35 117 L20 129 L4 119 Z" fill="#f6ebbb"/>
+    <!-- shadow facet over the paint, lower right -->
+    <path d="M92 12 C110 40 124 72 122 104 C120 140 94 162 62 162 C54 162 48 161 42 158 C72 158 100 136 106 102 C109 72 104 42 92 12 Z" fill="#0d4f4c" fill-opacity="0.38"/>
+  </g>
+</svg>
