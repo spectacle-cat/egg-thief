@@ -74,6 +74,12 @@ async function open() {
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const WS = window.WebSocket; window.WebSocket = function (url, protocols) {
     if (protocols === 'vite-hmr' || (Array.isArray(protocols) && protocols.includes('vite-hmr'))) return { addEventListener() {}, removeEventListener() {}, send() {}, close() {}, readyState: 0 };
     return new WS(url, protocols); }; })();` });
+  // No real gamepad either: a controller plugged into this machine is seen by the headless browser too, and a
+  // thumb resting on its stick walks the lizard off in the middle of a test. A scenario that wants a pad makes
+  // one up by setting navigator.getGamepads itself, which hides this. The real pad's "here I am" is swallowed too
+  // (it would take a pretend phone out of touch mode); one a scenario sends itself is not trusted, and gets through.
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: `Navigator.prototype.getGamepads = () => [];
+    for (const ev of ['gamepadconnected', 'gamepaddisconnected']) window.addEventListener(ev, (e) => { if (e.isTrusted) e.stopImmediatePropagation(); }, true);` });
 }
 async function run(expression) {
   const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });

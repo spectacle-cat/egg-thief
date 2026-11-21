@@ -101,9 +101,9 @@ walls are, and the way out must need no power egg at all.
 The originals come straight from `../sprites`. The newer pieces (power eggs, cracked rock, thorns, cacti, long grass,
 mesas, beetle, medals and so on) are SVG drawings in `art/`, in the same flat cut-paper style.
 
-The birds move without any new drawings: each is its one picture from above, cut into strips and hinged like a paper
-puppet (`src/puppet.ts`). The roadrunner turns its head to look, runs with its head down and cocks its tail; the owl
-and the hawk beat their wings and lean into turns. Where the scissors go is at the top of `src/hunters.ts`.
+The flying birds move without any new drawings: the owl and the hawk are each one picture from above, cut into strips
+and hinged like a paper puppet (`src/puppet.ts`), so they beat their wings and lean into turns. Where the scissors go
+is at the top of `src/hunters.ts`. The roadrunner is not a puppet: it runs through its four drawn frames.
 
 ```bash
 npm run assets

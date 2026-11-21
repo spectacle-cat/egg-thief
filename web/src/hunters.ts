@@ -12,7 +12,7 @@ import type { Lizard, TailDecoy } from './lizard';
 import type { Particles } from './particles';
 import type { Sound } from './audio';
 import type { Textures, World } from './world';
-import { type Cut, type Paint, spine, wings } from './puppet';
+import { type Cut, type Paint, wings } from './puppet';
 import { DEG, Path, TAU, angleDiff, angleToward, clamp, clamp01, damp, dirX, dirZ, dist, easeInCubic, easeOutCubic, hash2, headingOf, lerp, type V2 } from './util';
 
 export interface Ctx {
@@ -32,11 +32,8 @@ export interface Ctx {
 const tmp: V2 = { x: 0, z: 0 };
 const SUN_X = 0.2, SUN_Z = 0.16; // how far a shadow falls from under a thing, per tile of height
 
-// Where the scissors go (see puppet.ts). Each bird is one drawing from above, cut into hinged strips.
-/** Down the roadrunner: head and neck / body, with all four places a foot can be / tail / tail tip. */
-const RUNNER_CUTS: Cut[] = [{ a: 0, b: 0.19 }, { a: 0.19, b: 0.655 }, { a: 0.655, b: 0.825 }, { a: 0.825, b: 1 }];
-/** The body strip's middle sits this far ahead of the middle of the whole drawing (tiles). */
-const RUNNER_BODY_AHEAD = (0.5 - (0.19 + 0.655) / 2) * 2;
+// Where the scissors go (see puppet.ts). Each flying bird is one drawing from above, cut into hinged strips so its
+// wings can beat. (The roadrunner is not cut up: it runs in its own four drawings. Hinged, it looked like a fish.)
 /** Across the owl and the hawk: left wing tip, left wing, body, right wing, right wing tip. */
 const OWL_CUTS: Cut[] = [{ a: 0, b: 0.2 }, { a: 0.2, b: 0.385 }, { a: 0.385, b: 0.615 }, { a: 0.615, b: 0.8 }, { a: 0.8, b: 1 }];
 const HAWK_CUTS: Cut[] = [{ a: 0, b: 0.22 }, { a: 0.22, b: 0.41 }, { a: 0.41, b: 0.59 }, { a: 0.59, b: 0.78 }, { a: 0.78, b: 1 }];
@@ -85,14 +82,6 @@ class Roadrunner {
   /** What it is pecking at: the dropped tail, or a Rattle Egg. */
   private bait: 'tail' | 'lure' = 'tail';
   private stunFor = 0;
-  // The puppet: where the head and tail are just now, eased toward what the bird is up to.
-  private neckYaw = 0;
-  private neckPitch = 0.45;
-  private tailLift = 0.3;
-  private stride = 0;
-  private turnRate = 0;
-  private yaws = [0, 0, 0, 0];
-  private pitches = [0, 0, 0, 0];
 
   /** post: a sentry stands there and sweeps its gaze instead of walking a beat. */
   constructor(scene: THREE.Object3D, private route: Route, index: number, private post: Sentry | null = null) {
@@ -172,7 +161,6 @@ class Roadrunner {
 
   update(dt: number, ctx: Ctx) {
     const liz = ctx.lizard;
-    const headingWas = this.heading;
     this.stateT += dt;
     this.speedNow = 0;
     const seeing = this.sees(ctx);
@@ -285,59 +273,6 @@ class Roadrunner {
       }
     }
     if (dLiz < 7) ctx.hint('runner');
-    this.pose(dt, ctx, headingWas);
-  }
-
-  /** The puppet's pose follows what the bird is doing: head up to look and down to run, tail cocked when it is wary. */
-  private pose(dt: number, ctx: Ctx, headingWas: number) {
-    const t = ctx.time + this.seed;
-    const moving = clamp01(this.speedNow / 2);
-    const flatOut = clamp01((this.speedNow - 2.6) / 2.6);
-    this.turnRate = damp(this.turnRate, angleDiff(headingWas, this.heading) / dt, 8, dt);
-    let yaw = 0, pitch = 0.45, tail = 0.3;
-    switch (this.state) {
-      case 'patrol': case 'return':
-        // The head goes where the eyes go and leads the body into a turn. On guard it also darts about, the way birds do.
-        yaw = (this.lookHeading(ctx.time) - this.heading) * 1.5 + clamp(this.turnRate * 0.35, -0.5, 0.5);
-        if (this.post) yaw += (hash2(Math.floor(t * 0.9), this.seed) - 0.5) * 0.3;
-        pitch = lerp(0.62, 0.4, moving);
-        tail = 0.3 + Math.pow(Math.max(0, Math.sin(t * 1.1)), 16) * 0.55; // a flick of the tail now and then
-        break;
-      case 'suspect':
-        // Craning to see, tail up.
-        yaw = clamp(angleDiff(this.heading, headingOf(this.lastSeen.x - this.pos.x, this.lastSeen.z - this.pos.z)), -0.9, 0.9);
-        pitch = 0.95; tail = 0.75;
-        break;
-      case 'chase': case 'flee':
-        // Head down, tail out flat behind.
-        pitch = 0.06; tail = 0.02;
-        break;
-      case 'search':
-        yaw = Math.sin(t * 5) * 0.35; pitch = 0.3; tail = 0.3;
-        break;
-      case 'look':
-        yaw = Math.sin(this.stateT * 2.6 + 1.2) * 0.55; pitch = 0.85; tail = 0.55 + Math.sin(t * 9) * 0.1;
-        break;
-      case 'peck': {
-        const b = this.bait === 'lure' ? ctx.lure : ctx.decoy;
-        const there = dist(this.pos.x, this.pos.z, b.x, b.z) <= 0.8;
-        pitch = there ? -0.2 - Math.abs(Math.sin(this.stateT * 15)) * 0.42 : 0.2;
-        tail = there ? 0.85 : 0.2;
-        break;
-      }
-      case 'gloat':
-        yaw = Math.sin(this.stateT * 11) * 0.3; pitch = 1.0; tail = 0.9 + Math.sin(this.stateT * 14) * 0.15;
-        break;
-      case 'stun':
-        // The head lolls about.
-        yaw = Math.sin(this.stateT * 4.3) * 0.8; pitch = 0.25 + Math.sin(this.stateT * 6.1) * 0.25; tail = -0.05;
-        break;
-    }
-    const quick = this.state === 'peck' ? 30 : 9;
-    this.neckYaw = damp(this.neckYaw, yaw, quick, dt);
-    this.neckPitch = damp(this.neckPitch, pitch, quick, dt);
-    this.tailLift = damp(this.tailLift, tail, 7, dt);
-    this.stride = damp(this.stride, moving * (0.6 + 0.4 * flatOut), 8, dt);
   }
 
   private nearestWaypoint() {
@@ -348,28 +283,15 @@ class Roadrunner {
 
   draw(ctx: Ctx, body: SpriteBatch, shadow: SpriteBatch) {
     const frame = Math.floor(this.anim) & 3;
-    const step = this.anim * (Math.PI / 2); // one stride is four pictures of the feet
-    const s = this.stride, idle = 1 - clamp01(s * 2), now = ctx.time + this.seed;
     const peck = this.state === 'peck' ? Math.abs(Math.sin(this.stateT * 15)) * 0.16 : 0;
-    const ahead = RUNNER_BODY_AHEAD + peck;
-    const x = this.pos.x + dirX(this.heading) * ahead, z = this.pos.z + dirZ(this.heading) * ahead;
+    const x = this.pos.x + dirX(this.heading) * peck, z = this.pos.z + dirZ(this.heading) * peck;
     const wob = this.state === 'stun' ? Math.sin(this.stateT * 13) * 0.12 : 0;
-    const hop = this.state === 'gloat' ? Math.abs(Math.sin(this.stateT * 9)) * 0.14 : 0;
-    // The body rolls from foot to foot; the head holds steady over it and nods; the tail swings behind, the tip last.
-    const yaw = this.yaws, pitch = this.pitches;
-    yaw[1] = Math.sin(step) * 0.085 * s + wob;
-    yaw[0] = yaw[1] * 0.2 + this.neckYaw;
-    yaw[2] = yaw[1] - Math.sin(step - 0.9) * 0.16 * s + Math.sin(now * 1.7) * 0.05 * idle;
-    yaw[3] = yaw[2] - Math.sin(step - 1.8) * 0.26 * s + Math.sin(now * 1.7 - 0.8) * 0.09 * idle;
-    pitch[1] = -0.05 * s;
-    pitch[0] = this.neckPitch + Math.sin(step * 2) * 0.07 * s;
-    pitch[2] = -this.tailLift * 0.55;
-    pitch[3] = -this.tailLift * 1.1 + Math.sin(step * 2 - 1) * 0.06 * s;
-    const up = 0.26 + Math.abs(Math.sin(step)) * 0.04 * s + hop + Math.sin(now * 2.3) * 0.008 * idle;
-    const u0 = frame * 0.25;
-    spine(shadow, RUNNER_CUTS, 1, x + 0.12 + hop * SUN_X, 0.03, z + 0.1 + hop * SUN_Z, 1.05, 2.05, this.heading, yaw, pitch, setPaint(0, 0.3, u0, 0.25), true);
+    shadow.push(x + 0.12, 0.03, z + 0.1, 1.05, 2.05, this.heading, 0, 0, 0, 0.3, frame * 0.25, 0, 0.25, 1);
     // Three sheets of card, the lower ones darker: a bird with some body to it.
-    for (let k = 0; k < 3; k++) spine(body, RUNNER_CUTS, 1, x, up + k * 0.045, z, 1.0, 2.0, this.heading, yaw, pitch, setPaint(k === 2 ? 1 : 0.42 + k * 0.2, 1, u0, 0.25));
+    for (let k = 0; k < 3; k++) {
+      const t = k === 2 ? 1 : 0.42 + k * 0.2;
+      body.push(x, 0.26 + k * 0.045, z, 1.0, 2.0, this.heading + wob, t, t, t, 1, frame * 0.25, 0, 0.25, 1);
+    }
 
     // The cone of sight, cut off by rocks.
     const range = this.range(), half = this.halfAngle();
@@ -781,10 +703,10 @@ export class Hunters {
       this.runners.push(new Roadrunner(scene, { type: 'roadrunner', name: post.name, pts: [{ x: post.x, z: post.z }], closed: true, phase: 0 }, i++, post));
     }
     for (const b of level.boulders) if (b.scorpion) this.scorpions.push(new Scorpion(b.c, b.r, level));
-    // The birds are puppets of four or five strips each (see puppet.ts), in two or three sheets of card.
-    this.runnerShadow = new SpriteBatch(scene, tex.roadrunner, this.runners.length * 4 + 1, { order: ORDER.shadow, bias: 2 });
-    this.runnerBody = new SpriteBatch(scene, tex.roadrunner, this.runners.length * 12 + 1, { order: ORDER.runner, kind: 'cut', tilt: true });
+    this.runnerShadow = new SpriteBatch(scene, tex.roadrunner, this.runners.length + 1, { order: ORDER.shadow, bias: 2 });
+    this.runnerBody = new SpriteBatch(scene, tex.roadrunner, this.runners.length * 3 + 1, { order: ORDER.runner, kind: 'cut' });
     this.scorpBody = new SpriteBatch(scene, tex.scorpion, this.scorpions.length * 2 + 1, { order: ORDER.scorpion, kind: 'cut' });
+    // The owl and the hawks are puppets of five strips each (see puppet.ts), in two sheets of card.
     this.owlShadow = new SpriteBatch(scene, tex.owl, this.owls.length * 5 + 1, { order: ORDER.birdShadowHigh, bias: 2.2 });
     this.owlBody = new SpriteBatch(scene, tex.owl, this.owls.length * 10 + 1, { order: ORDER.owl, kind: 'cut', tilt: true });
     const hawkTex = [tex.hawkC, tex.hawkL, tex.hawkR];

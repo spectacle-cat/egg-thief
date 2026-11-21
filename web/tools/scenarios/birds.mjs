@@ -1,4 +1,5 @@
-// The birds as puppets, for looking at: strips of pictures a moment apart, the camera close beside each bird.
+// The birds moving, for looking at: strips of pictures a moment apart, the camera close beside each bird. (The owl
+// and the hawk are puppets; the roadrunner runs through its four drawn frames.)
 //   node tools/drive.mjs tools/scenarios/birds.mjs      then see .shots/bd-*.png
 // The lizard stands next to the bird it is watching (nothing can catch it, and to begin with nothing can see it).
 const blind = 'et.hunters.runners.forEach((r) => { r.sees = () => false; }); 1';
