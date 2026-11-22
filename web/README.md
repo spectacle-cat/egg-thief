@@ -122,9 +122,10 @@ of that:
   and again it creeps out, feels about within a couple of tiles of its door and backs in again. While it is out its
   log is free; going in while it is home is a bite. A Ghost Egg goes straight past it.
 
-### The canopy (a proposal, built to try it)
+### The canopy
 
-Built from the designer's style guide before Joe and Claire had seen it, to get a feel for it. On the west bank of
+Built from the designer's style guide to get a feel for it, and agreed as proposed on 2026-11-22. Its art is still
+stand-ins. On the west bank of
 Blackwater Creek, where the brook joins it, stands the **Hollow Giant**: the one tree with a glowing split at its foot
 and ants walking to it. Step into the door and the lizard comes out of a **knothole** up in the canopy.
 

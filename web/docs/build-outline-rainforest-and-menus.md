@@ -120,7 +120,9 @@ section. It is not on the sheets. Treat it as a second step once the forest floo
 built: branch walkways over a drop, and falling off puts Lizzie back on the floor beneath, unharmed. It is also the
 one place with open sky, which would make it the natural home for the bird once one is chosen. How it should look
 is written up in `.shots/concepts/rainforest-v2/canopy-style-guide.md`, with pictures and stand-in pieces beside
-it. That guide is a proposal: Joe and Claire had not seen it when it was written (2026-11-21).
+it. **[agreed]** On 2026-11-22 Joe answered "Yes, as proposed" to "Are you and Claire happy for the canopy to be
+built as proposed?". The guide's last section lists what that settles (the golden egg lives up there; the coati
+stops at the door; the canopy does not wait for the bird). The art in it is still stand-ins.
 
 **Not in this build [open]:** the Hop Egg (a leap over a root wall or a stream). It is only an idea on the sheet.
 
@@ -213,7 +215,7 @@ beside the overview. It is a sketch of the layout, not a finished design.
 
 ## 11. Questions for Joe and Claire
 
-1. The bird: which one, and should it wait for the canopy?
+1. The bird: which one? (The canopy does not wait for it: see the canopy paragraph in section 6.)
 2. Should the rainforest be locked until Africa has been finished once, or open from the start?
 3. Show Back Gardens and British Coast as "on the way" cards, or hide them until they exist?
 4. "Africa" or "The Long Way Home" on the level card?
