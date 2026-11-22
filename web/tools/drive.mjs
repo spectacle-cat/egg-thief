@@ -2,7 +2,7 @@
 // so it never touches the real GPU. The dev server must be running (npm run dev).
 //   node tools/drive.mjs tools/scenarios/<name>.mjs
 // A scenario's default export is { size?: [w, h], steps: [...] }. A step is one of:
-//   { goto: 'skip=1&view=tilt' }      load the game with that query and wait until it runs
+//   { goto: 'skip=1&view=top' }      load the game with that query and wait until it runs
 //   { wait: ms }                      let it run
 //   { eval: 'js', as?: 'label' }      run in the page (window.et is the Game) and print the value
 //   { expect: 'js', as?: 'label' }    the same, and the run fails unless it's truthy
@@ -127,6 +127,8 @@ async function device(d) {
 }
 try {
   for (const step of scenario.steps) {
+    // { if: 'expression', ... }: the step is only taken when the page says so (a key not to be pressed on a card that is already up).
+    if (step.if !== undefined && !(await run(step.if))) continue;
     if (step.device !== undefined) await device(step.device);
     if (step.device !== undefined || step.goto !== undefined || step.shot) unsettled = true;
     if (step.goto !== undefined) {

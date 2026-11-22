@@ -13,7 +13,7 @@ const SETUP = `(window.H || (() => {
   const f = et.frame.bind(et); let last = 0, prev = performance.now();
   et.frame = (now) => { const dt = Math.min(0.1, (now - prev) / 1000); prev = now; if (now - last > 900) { last = now; f(now); } else et.hud.update(dt); };
   const h = et.hud; window.H = {};
-  for (const k of ['setPower', 'setBeetles', 'setGold', 'combo', 'setEggs', 'setPips', 'setTimer', 'setHidden', 'usePad', 'stamp', 'toast', 'zone', 'hint', 'prompt', 'setBest', 'showResults']) { H[k] = h[k].bind(h); h[k] = () => {}; }
+  for (const k of ['setPower', 'setBeetles', 'setGold', 'combo', 'setEggs', 'setPips', 'setTimer', 'setHidden', 'usePad', 'stamp', 'toast', 'zone', 'hint', 'prompt', 'showResults']) { H[k] = h[k].bind(h); h[k] = () => {}; }
   // True when two widgets overlap on the screen.
   window.hit = (a, b) => { const r = document.querySelector(a).getBoundingClientRect(), s = document.querySelector(b).getBoundingClientRect(); return !(r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top); };
 })())`;
@@ -30,6 +30,14 @@ const MEDALS = [
   { id: 'bugs', name: 'Bug Hunter', desc: 'Eat every beetle' },
   { id: 'untouchable', name: 'Untouchable', desc: 'Never get eaten' },
 ];
+/** Postcards for the level select: a full record with the golden egg, a part one, a locked one. */
+const CARDS = JSON.stringify([
+  { name: 'Africa', line: 'The Long Way Home', picture: '/levels/desert.jpg', colours: ['#342b0e', '#7a7430', '#e9cf86', '#fde27f', '#f79a2e', '#e0600c'], best: { time: 134, stars: 3, eggs: 37, total: 37, medals: 6, gold: true }, locked: null },
+  { name: 'Rainforest', line: 'When It Rains', picture: '/levels/rainforest.jpg', colours: ['#3b2350', '#5a3a6e', '#0c4a50', '#1e8c7b', '#86ddb9', '#f23d7f'], best: { time: 431, stars: 1, eggs: 9, total: 38, medals: 2 }, locked: null },
+  { name: 'Back Gardens', line: 'Mind the Cat', picture: '/levels/desert.jpg', colours: ['#2b3a1c', '#4f7a3a', '#a9cf7a', '#f3e9c8', '#d96a5a', '#7a4a8c'], best: null, locked: 'Get home from Rainforest once to open this map.' },
+]).replace(/'/g, "\\'");
+/** Is the element wholly inside the window? */
+const inside = (sel) => `(() => { const r = document.querySelector('${sel}').getBoundingClientRect(); return r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth; })()`;
 const medals = (got) => JSON.stringify(MEDALS.map((m) => ({ ...m, got: got.includes(m.id) })));
 
 const power = (kind) => [
@@ -53,16 +61,53 @@ export default {
   size: [W, H + 143],
   steps: process.env.HUD_LIVE ? live : [
     // ---- title ----
-    { goto: 'view=chase' },
+    { goto: 'view=chase&splash=0' },
     check(`innerWidth === ${W} && innerHeight === ${H} || [innerWidth, innerHeight]`, `page is ${W}x${H}`),
     { wait: 1400 },
     shot('title'),
-    run(`H.setBest({ time: 134, stars: 3, eggs: 21, total: 21, medals: 5 }), H.usePad(true), 1`, 'best + pad'),
+    run(`H.usePad(true), 1`, 'pad'),
     { wait: 700 },
     shot('title-pad'),
-    check(`document.querySelector('.best').classList.contains('on') && document.querySelector('.b-time').textContent === '2:14'`, 'best run is shown'),
-    check(`document.querySelector('.logo').getBoundingClientRect().top > 0 && document.querySelector('.go').getBoundingClientRect().bottom < document.querySelector('.t-foot').getBoundingClientRect().top`, 'title fits the window'),
-    check(`!hit('.best', '.logo') && !hit('.best', '.howto') && !hit('.best', '.go') && !hit('.best', '.t-foot') && !hit('.t-liz', '.creed')`, 'best run ticket is clear of the rest'),
+    check(`document.querySelector('.logo').getBoundingClientRect().top > 0 && document.querySelector('.t-menu').getBoundingClientRect().bottom < document.querySelector('.t-foot').getBoundingClientRect().top`, 'title fits the window'),
+    check(`!hit('.t-liz', '.creed') && !hit('.creed', '.t-menu') && !hit('.title .btn.big', '.t-more')`, 'the logo, the creed and the buttons keep apart'),
+    run(`H.usePad(false), 1`),
+
+    // ---- the menus, each put up by hand: splash, how to play, level select, the card before a level ----
+    run(`et.hud.showTitle(false), et.hud.showSplash(true), 1`, 'splash'),
+    { wait: 700 },
+    shot('splash'),
+    run(`et.hud.showSplash(true, true), 1`, 'splash, still loading'),
+    { wait: 700 },
+    shot('splash-late'),
+    check(`getComputedStyle(document.querySelector('.sp-wait')).opacity > 0.5`, 'a slow start says what the wait is for'),
+    run(`et.hud.showSplash(false), et.hud.showHow(true), 1`, 'how to play'),
+    { wait: 700 },
+    shot('how'),
+    check(`${inside('.howcard .sheet')}`, 'how to play fits the window'),
+    run(`H.usePad(true), 1`), { wait: 300 },
+    shot('how-pad'),
+    run(`H.usePad(false), et.hud.showHow(false), et.hud.showSelect(${CARDS}, 0, 2), 1`, 'level select'),
+    { wait: 1000 },
+    shot('select'),
+    check(`${inside('.sel-head')} && ${inside('.sel-foot')} && [...document.querySelectorAll('.pcard')].every((c) => { const r = c.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })`, 'the level select fits the window'),
+    check(`!hit('.sel-head', '.pcard.on') && !hit('.pcard.on', '.sel-foot .btn.main')`, 'the heading, the chosen card and Play keep apart'),
+    check(`[...document.querySelectorAll('.pcard[data-i]')].every((c) => [...c.children].every((k) => { const r = k.getBoundingClientRect(), o = c.getBoundingClientRect(); return k.classList.contains('pc-lock') || r.width === 0 || (r.left >= o.left - 3 && r.right <= o.right + 3 && r.top >= o.top - 3 && r.bottom <= o.bottom + 3); }))`, 'nothing hangs out of a postcard'),
+    run(`et.hud.choose(1), 1`, 'the second card'), { wait: 700 },
+    shot('select-2'),
+    run(`et.hud.choose(2), et.hud.refuse(), H.usePad(true), 1`, 'the locked card, refused, pad'), { wait: 180 },
+    shot('select-locked'),
+    check(`document.querySelector('.btn[data-a="sel-go"]').classList.contains('off') && /Locked/.test(document.querySelector('.btn[data-a="sel-go"]').textContent)`, 'a locked card turns Play off'),
+    run(`H.usePad(false), et.hud.selectNote('That map would not load. Try again?'), 1`), { wait: 300 },
+    shot('select-note'),
+    run(`et.hud.showSelect(null), et.hud.showLevelCard({ name: 'Rainforest', line: 'When It Rains', idea: 'When it rains, the crossings move.', par: 720, best: { time: 431, stars: 2, eggs: 26, total: 38, medals: 3 } }), 1`, 'the card before a level'),
+    { wait: 800 },
+    shot('card'),
+    check(`${inside('.lcard .sheet')}`, 'the card before a level fits the window'),
+    run(`et.hud.showLevelCard({ name: 'Africa', line: 'The Long Way Home', idea: 'Collect eggs. Hide under bushes. Do not get eaten.', par: 600, best: null }), H.usePad(true), 1`, 'with no run yet, pad'),
+    { wait: 500 },
+    shot('card-new-pad'),
+    check(`${inside('.lcard .sheet')}`, 'and with the longest idea'),
+    run(`H.usePad(false), et.hud.showLevelCard(null), 1`),
 
     // ---- play ----
     { goto: 'skip=1&view=chase' },
@@ -132,22 +177,30 @@ export default {
     { wait: 1300 },
 
     // ---- results ----
-    run(`window.pops = [], et.hud.onMedal = (i, n) => pops.push(i), et.hud.showPlay(false), H.showResults({ title: 'The Long Way Home', eggs: 21, total: 21, seconds: 102, par: 120, caught: 0, tails: 1, stars: 3, gold: true, beetles: 12, beetlesTotal: 12, newBest: true, medals: ${medals(['eggs', 'gold', 'speedy', 'bugs', 'untouchable'])} }), 1`, 'results: 3 stars'),
+    run(`window.pops = [], et.hud.onMedal = (i, n) => pops.push(i), et.hud.showPlay(false), H.showResults({ title: 'Africa · The Long Way Home', eggs: 21, total: 21, seconds: 102, par: 120, caught: 0, tails: 1, stars: 3, gold: true, beetles: 12, beetlesTotal: 12, newBest: true, medals: ${medals(['eggs', 'gold', 'speedy', 'bugs', 'untouchable'])}, next: true, opened: 'Rainforest' }), 1`, 'results: 3 stars, a new map open'),
     { wait: 1500 },
     shot('results-3-early'),
     { wait: 4200 },
     shot('results-3'),
     check(`pops.join() === '0,1,4,5,6'`, 'onMedal fired for each earned medal, in order'),
     check(`document.querySelector('.results .paper').getBoundingClientRect().top > 0 && document.querySelector('.results .paper').getBoundingClientRect().bottom < innerHeight`, 'results card fits the window'),
+    check(`[...document.querySelectorAll('.results .row .btn')].filter((b) => b.offsetParent).map((b) => b.dataset.a).join() === 'again,next,select' && document.querySelector('.r-open').textContent === 'New map open: Rainforest'`, 'with Go again, Next level, Level select and the news of a new map'),
     run(`document.querySelectorAll('.medal')[3].focus(), 1`, 'focus an unearned medal'),
     { wait: 400 },
     shot('results-3-tip'),
     run(`H.showResults(null), 1`),
     { wait: 600 },
-    run(`H.showResults({ title: 'The Long Way Home', eggs: 8, total: 21, seconds: 251, par: 120, caught: 3, tails: 2, stars: 1, gold: false, beetles: 3, beetlesTotal: 12, newBest: false, medals: ${medals([])} }), 1`, 'results: 1 star'),
+    run(`H.showResults({ title: 'Rainforest · When It Rains', eggs: 8, total: 21, seconds: 251, par: 120, caught: 3, tails: 2, stars: 1, gold: false, beetles: 3, beetlesTotal: 12, newBest: false, medals: ${medals([])} }), 1`, 'results: 1 star, the last level'),
     { wait: 3200 },
     shot('results-1'),
     check(`document.querySelector('.results .paper').getBoundingClientRect().bottom < innerHeight`, 'results card fits the window (1 star)'),
+    check(`[...document.querySelectorAll('.results .row .btn')].filter((b) => b.offsetParent).map((b) => b.dataset.a).join() === 'again,select'`, 'with no Next level after the last one'),
+    run(`H.showResults(null), 1`),
+    { wait: 500 },
+    run(`H.showResults({ title: 'Africa · The Long Way Home', eggs: 3, total: 37, seconds: 725, par: 600, caught: 4, tails: 3, stars: 1, gold: false, beetles: 2, beetlesTotal: 12, newBest: false, medals: ${medals([])}, next: true, opened: 'Rainforest' }), 1`, 'results: at their tallest'),
+    { wait: 3200 },
+    shot('results-tallest'),
+    check(`document.querySelector('.results .paper').getBoundingClientRect().top > 0 && document.querySelector('.results .paper').getBoundingClientRect().bottom < innerHeight`, 'results card fits the window at its tallest (no medals, a new map open)'),
     run(`H.showResults(null), 1`),
     { wait: 500 },
     // The card as the game calls it today, with none of the new fields.

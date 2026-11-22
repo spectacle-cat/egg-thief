@@ -1,8 +1,11 @@
 // Everything drawn over the game in HTML: the egg count, the power egg slot, the little map, banners, stamps, hints,
-// and the three screens (title, pause, the end-of-level card on the family's hand-torn paper).
+// and the screens: the splash, the title, how to play, the level select (a row of postcards), the card before a
+// level, the pause card and the end-of-level card on the family's hand-torn paper.
 // The setters are called every frame: each remembers what it last showed and only touches the page when that changes.
-import { VIEWS } from './camera';
+// One Hud lasts the whole visit; `newLevel` clears what belonged to the level before.
 import type { Level } from './level';
+import type { BestRun } from './levels';
+export type { BestRun } from './levels';
 
 const el = <T extends HTMLElement = HTMLElement>(parent: ParentNode, sel: string) => parent.querySelector(sel) as T;
 const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -13,11 +16,18 @@ const replay = (e: HTMLElement, cls: string) => { e.classList.remove(cls); void 
 export type PowerKind = 'thunder' | 'ghost' | 'chili' | 'rattle';
 export type MedalId = 'eggs' | 'gold' | 'unseen' | 'tail' | 'speedy' | 'bugs' | 'untouchable';
 export interface Medal { id: MedalId; name: string; desc: string; got: boolean }
-export interface BestRun { time: number; stars: number; eggs: number; total: number; medals: number }
 export interface Results {
   title: string; eggs: number; total: number; seconds: number; caught: number; tails: number; stars: number;
   par?: number; gold?: boolean; beetles?: number; beetlesTotal?: number; newBest?: boolean; medals?: Medal[];
+  /** There is a level after this one and it is open: the card offers it. */
+  next?: boolean;
+  /** The name of a level this run has just opened. */
+  opened?: string;
 }
+/** A level's postcard on the level select. `locked`: the line saying how it is opened (null: it is open). */
+export interface CardView { name: string; line: string; picture: string; colours: string[]; best: BestRun | null; locked: string | null }
+/** The card shown before a level. `par`: the time to beat, in seconds. */
+export interface LevelCardView { name: string; line: string; idea: string; par: number; best: BestRun | null }
 
 const POWERS: Record<PowerKind, { name: string; desc: string }> = {
   thunder: { name: 'Thunder Egg', desc: 'Smash cracked rocks' },
@@ -36,9 +46,10 @@ const OPTIONAL_ART = ['egg_thunder', 'egg_ghost', 'egg_chili', 'egg_rattle', 'eg
 const PAD_SHAPE = {
   cross: '<svg viewBox="0 0 24 24"><path d="M7.6 7.6l8.8 8.8M16.4 7.6l-8.8 8.8"/></svg>',
   tri: '<svg viewBox="0 0 24 24"><path d="M12 6.4l6.4 10.9H5.6z"/></svg>',
+  circle: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.3"/></svg>',
 };
-const PAD_LETTER = { cross: 'A', tri: 'Y' };
-const padBtn = (k: 'cross' | 'tri') => `<span class="padbtn ${k}">${PAD_SHAPE[k]}<b>${PAD_LETTER[k]}</b></span>`;
+const PAD_LETTER = { cross: 'A', tri: 'Y', circle: 'B' };
+const padBtn = (k: 'cross' | 'tri' | 'circle') => `<span class="padbtn ${k}">${PAD_SHAPE[k]}<b>${PAD_LETTER[k]}</b></span>`;
 const STICK = '<span class="stick"><i></i></span>';
 /** A pad button with a name and no shape: what a PlayStation pad calls it, and what an Xbox pad does. */
 const padKey = (ps: string, xbox: string) => `<kbd class="ps-only">${ps}</kbd><kbd class="xbox-only">${xbox}</kbd>`;
@@ -52,6 +63,16 @@ const dev = (keys: string, pad: string, touch: string) => `<span class="for-keys
 const PAD_FOR: Record<string, string> = { E: padBtn('tri'), SPACE: padBtn('cross'), WASD: STICK };
 const TOUCH_FOR: Record<string, string> = { E: '<kbd>EGG</kbd>', SPACE: '<kbd>DASH</kbd>', WASD: STICK };
 const padify = (html: string) => html.replace(/<kbd>(E|SPACE|WASD)<\/kbd>/g, (m, k: string) => dev(m, PAD_FOR[k], TOUCH_FOR[k]));
+// --- for the menus
+/** The left and right arrow keys (the font has no arrows), and a pad's d-pad. */
+const ARROWS = '<kbd class="arr"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg></kbd><kbd class="arr"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></kbd>';
+const DPAD = '<span class="dpad"><svg viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></span>';
+/** On a paper button: the key that presses it, shown only while it is the lit one (the arrows move the light). */
+const OK = `<span class="ok">${dev('<kbd>SPACE</kbd>', padBtn('cross'), '')}</span>`;
+const BACK = dev('<kbd>ESC</kbd>', padBtn('circle'), '');
+const CHOOSE = `<div class="navhint">${dev(`${ARROWS} choose`, `${DPAD} choose`, '')}</div>`;
+/** How crooked each postcard lies on the table, in degrees. */
+const CARD_TILT = [-2.2, 1.7, -1.3, 2.5, -1.9, 1.2];
 /** Plain text from the game with its keys turned into key caps. */
 const keyify = (s: string) => esc(s).replace(/\b(SPACE|ENTER|ESC|DASH)\b/g, '<kbd>$1</kbd>').replace(/✕/g, padBtn('cross')).replace(/△/g, padBtn('tri'));
 
@@ -63,15 +84,18 @@ export class Hud {
   private tailEl: HTMLElement; private tailBar: HTMLElement; private dashEl: HTMLElement; private dashBar: HTMLElement;
   private bugsEl: HTMLElement; private bugsN: HTMLElement; private bugsOf: HTMLElement;
   private powerEl: HTMLElement; private powerName: HTMLElement; private powerDesc: HTMLElement;
-  private viewEls: HTMLElement[]; private cardEls: HTMLElement[];
   private zoneEl: HTMLElement; private hintEl: HTMLElement; private toastEl: HTMLElement; private hiddenEl: HTMLElement;
   private stampEl: HTMLElement; private stampTitle: HTMLElement; private stampSub: HTMLElement;
   private promptEl: HTMLElement; private promptBar: HTMLElement; private promptText: HTMLElement;
-  private stickEl: HTMLElement; private dashBtn: HTMLElement; private soundEl: HTMLElement;
+  private stickEl: HTMLElement; private dashBtn: HTMLElement;
   private marksEl: HTMLElement; private markPool: HTMLElement[] = []; private markUsed = 0;
-  private map: HTMLCanvasElement; private mapCtx: CanvasRenderingContext2D; private mapBase: HTMLCanvasElement | null = null;
-  private bestEl: HTMLElement;
+  private map: HTMLCanvasElement; private mapCtx: CanvasRenderingContext2D; private mapBase: HTMLCanvasElement | null = null; private mapPart = -1;
   readonly title: HTMLElement; readonly pause: HTMLElement; readonly results: HTMLElement;
+  readonly splash: HTMLElement; readonly select: HTMLElement; readonly levelCard: HTMLElement; readonly how: HTMLElement;
+  private veilEl: HTMLElement; private rowEl: HTMLElement; private selGo: HTMLElement;
+  private cards: HTMLElement[] = []; private chosen = 0;
+  /** The card whose paper buttons the arrows move between (one of them is lit), if one is up. */
+  private navRoot: HTMLElement | null = null;
   private hintTimer = 0;
   private hintQueue: string[] = [];
   private stampTimer = 0;
@@ -86,14 +110,15 @@ export class Hud {
   private lastHidden = false;
   private lastPad: 'ps' | 'xbox' | false | null = null;
   private lastTouch: boolean | null = null;
-  private lastStick = ''; private lastSound: boolean | null = null;
+  private lastStick = ''; private lastSound: boolean | null = null; private soundEls: HTMLElement[] = [];
   private lastPowerKind: PowerKind | null = null; private lastPowerActive = -1; private lastUrgent = false;
   private lastBugs = -1; private lastBugsTotal = -1;
   private lastGold: boolean | null = null;
   private lastCombo = 0;
   private lastPrompt: string | null = null; private lastPromptPos = ''; private lastPromptBar = -1;
-  onPickView: (i: number) => void = () => {};
-  onStart: () => void = () => {};
+  /** A button on one of the menus: 'play', 'how', 'how-ok', 'sel-back', 'sel-go', 'card-back', 'card-go', 'next', 'select',
+   *  or 'pick' with the number of the postcard that was tapped. */
+  onMenu: (action: string, index?: number) => void = () => {};
   onResume: () => void = () => {};
   onRestart: () => void = () => {};
   onAgain: () => void = () => {};
@@ -108,8 +133,6 @@ export class Hud {
   constructor(private base: string) {
     this.root = document.getElementById('ui')!;
     const spr = (name: string) => `${base}sprites/${name}.png`;
-    const views = VIEWS.map((v, i) => `<span data-v="${i}"><b>${i + 1}</b><em>${v.label}</em></span>`).join('');
-    const picks = VIEWS.map((v, i) => `<span class="card" data-v="${i}" title="${esc(v.blurb)}"><b>${i + 1}</b>${v.label}</span>`).join('');
     const tiles = (word: string) => [...word].map((c) => `<span>${c}</span>`).join('');
     const wasd = '<span class="wasd"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>';
     this.root.innerHTML = `
@@ -127,7 +150,7 @@ export class Hud {
             <div class="pip chip bugs"><i class="bug"></i><span><b class="n">0</b><small>/ 0</small></span></div>
           </div>
         </div>
-        <div class="tr"><div class="t-top"><div class="tbtn t-pause" data-touch="pause"><i></i><i></i></div><div class="timer chip">0:00</div></div><div class="views">${views}</div></div>
+        <div class="tr"><div class="t-top"><div class="tbtn t-pause" data-touch="pause"><i></i><i></i></div><div class="timer chip">0:00</div></div></div>
         <div class="zone"><b></b><i></i></div>
         <div class="stamp"><div class="st"><b></b><small></small></div></div>
         <div class="toast"></div>
@@ -146,7 +169,8 @@ export class Hud {
         <div class="marks"></div>
         <div class="prompt"><div class="pr"><span></span><i><b></b></i></div></div>
       </div>
-      <div class="screen title on">
+      <div class="veil"></div>
+      <div class="screen title">
         <div class="t-stack">
           <div class="logo">
             <h1 aria-label="Egg Thief">${tiles('EGG')}<i></i>${tiles('THIEF')}</h1>
@@ -155,27 +179,61 @@ export class Hud {
           </div>
           <div class="creed">YOU ARE A LIZARD. <em>COLLECT EGGS.</em> HIDE UNDER BUSHES. <em>DO NOT GET EATEN.</em></div>
           <div class="aside">(Beware the scorpions…)</div>
-          <div class="howto">
-            <div class="how"><div class="pic">${dev(wasd, STICK, STICK)}</div><span>${dev('Run', 'Run', 'Drag your left thumb to run')}</span></div>
-            <div class="how"><div class="pic">${dev('<kbd class="wide">SPACE</kbd>', padBtn('cross'), TDASH)}</div><span>Dash</span></div>
-            <div class="how"><div class="pic">${dev('<kbd>E</kbd>', padBtn('tri'), '<kbd>TAP</kbd>')}<i class="how-egg"></i></div><span>Use a power egg</span></div>
-            <div class="how"><div class="pic"><img class="how-tuft" src="${spr('tuft_1')}" alt=""></div><span>Hide in bushes and long grass</span></div>
-            <div class="how"><div class="pic"><img class="how-loot" src="${spr('egg_2')}" alt=""><i class="how-arrow"></i><img class="how-burrow" src="${spr('burrow')}" alt=""></div><span>Bring eggs home to a burrow</span></div>
+          <div class="t-menu">
+            <div class="btn big" data-a="play">Play${OK}</div>
+            <div class="t-more">
+              <div class="btn" data-a="how">How to play${OK}</div>
+              <div class="btn" data-a="sound">Sound <b>on</b>${OK}</div>
+              <div class="btn touch-only full-only" data-a="full">Full screen</div>
+            </div>
           </div>
-          <div class="go">${dev('Press <kbd class="go-key">SPACE</kbd> or <kbd>ENTER</kbd>', `Press ${padBtn('cross')}`, 'Tap')} to scurry</div>
-        </div>
-        <div class="best">
-          <small>Best run</small>
-          <div class="b-stars"><i></i><i></i><i></i></div>
-          <b class="b-time">0:00</b>
-          <div class="b-line"></div>
         </div>
         <div class="t-foot">
-          <div class="vpick"><small>Camera</small>${picks}</div>
           <div class="credit">A family game by Media Jousts. Drawn by hand; rebuilt for Easter.</div>
-          <div class="t-keys">${dev('<kbd>M</kbd> sound <kbd>ESC</kbd> pause', `${padKey('OPTIONS', 'MENU')} pause`, '')}</div>
+          <div class="t-keys">${dev(`${ARROWS} choose <kbd>M</kbd> sound`, `${DPAD} choose`, '')}</div>
         </div>
-        <div class="t-full touch-only full-only" data-a="full">Full screen</div>
+      </div>
+      <div class="screen select">
+        <div class="sel-head">Where to?</div>
+        <div class="p-row" data-scroll></div>
+        <div class="sel-foot">
+          <div class="btn" data-a="sel-back">Back ${BACK}</div>
+          <div class="btn main" data-a="sel-go"><span>Play</span> ${dev('<kbd>SPACE</kbd>', padBtn('cross'), '')}</div>
+          <div class="sel-keys">${dev(`${ARROWS} choose a map`, `${DPAD} choose a map`, 'Tap a map to choose it')}</div>
+        </div>
+      </div>
+      <div class="screen lcard">
+        <div class="paper">
+          <div class="sheet">
+            <h2 class="lc-name"></h2>
+            <i class="rule"></i>
+            <div class="sub lc-line"></div>
+            <div class="lc-idea"></div>
+            <div class="lc-nums">
+              <div class="lc-par"><span>Time to beat</span><b>0:00</b></div>
+              <div class="lc-best"><span>Your best</span><b>0:00</b><div class="b-stars"><i></i><i></i><i></i></div><small></small></div>
+            </div>
+            <div class="row">
+              <div class="btn" data-a="card-back">Back ${BACK}</div>
+              <div class="btn" data-a="card-go">Go${OK}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen howcard">
+        <div class="paper">
+          <div class="sheet">
+            <h2>How to play</h2>
+            <div class="howto">
+              <div class="how"><div class="pic">${dev(wasd, STICK, STICK)}</div><span>${dev('Run', 'Run', 'Drag your left thumb to run')}</span></div>
+              <div class="how"><div class="pic">${dev('<kbd class="wide">SPACE</kbd>', padBtn('cross'), TDASH)}</div><span>Dash</span></div>
+              <div class="how"><div class="pic">${dev('<kbd>E</kbd>', padBtn('tri'), '<kbd>TAP</kbd>')}<i class="how-egg"></i></div><span>Use a power egg</span></div>
+              <div class="how"><div class="pic"><img class="how-tuft" src="${spr('tuft_1')}" alt=""></div><span>Hide in bushes and long grass</span></div>
+              <div class="how"><div class="pic"><img class="how-loot" src="${spr('egg_2')}" alt=""><i class="how-arrow"></i><img class="how-burrow" src="${spr('burrow')}" alt=""></div><span>Bring eggs home to a burrow</span></div>
+            </div>
+            <div class="row"><div class="btn" data-a="how-ok">Got it${OK}</div></div>
+          </div>
+        </div>
       </div>
       <div class="screen pause">
         <div class="paper">
@@ -184,6 +242,7 @@ export class Hud {
             <div class="menu">
               <div class="btn" data-a="resume">Back to it ${dev('<kbd>ESC</kbd>', padKey('OPTIONS', 'MENU'), '')}</div>
               <div class="btn" data-a="restart">Start again ${dev('<kbd>R</kbd>', padKey('L1', 'LB'), '')}</div>
+              <div class="btn" data-a="select">Level select${OK}</div>
               <div class="btn touch-only" data-a="sound">Sound <b>on</b></div>
               <div class="btn touch-only full-only" data-a="full">Full screen</div>
             </div>
@@ -193,12 +252,11 @@ export class Hud {
               <div><span>Power egg</span>${dev('<kbd>E</kbd>', padBtn('tri'), 'tap the egg when you hold one')}</div>
               <div><span>Go home</span>${dev('hold <kbd>SPACE</kbd> on the star burrow', `hold ${padBtn('cross')} on the star burrow`, `hold ${TDASH} on the star burrow`)}</div>
               <div><span>Look round</span>${dev('<kbd>Z</kbd><kbd>X</kbd>', 'the right stick', 'drag on the right of the screen')}</div>
-              <div class="not-touch"><span>Camera</span>${dev('<kbd>C</kbd> or <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>', `${padKey('CREATE', 'VIEW')} or click a stick`, '')}</div>
               <div class="not-touch"><span>Sound</span><kbd>M</kbd> on or off</div>
               <div class="not-touch"><span>Pause</span>${dev('<kbd>ESC</kbd> or <kbd>P</kbd>', `${padKey('OPTIONS', 'MENU')}<span class="ps-only"> or the touchpad</span>`, '')}</div>
             </div>
-            <div class="vpick not-touch">${picks}</div>
             <div class="p-tip">Bushes and long grass hide you. A burrow keeps your eggs and mends your tail.</div>
+            ${CHOOSE}
           </div>
         </div>
       </div>
@@ -222,10 +280,20 @@ export class Hud {
               <div class="medals"></div>
               <div class="m-list"></div>
             </div>
-            <div class="row"><div class="btn" data-a="again">Go again ${dev('<kbd>SPACE</kbd>', padBtn('cross'), '')}</div></div>
+            <div class="r-open"></div>
+            <div class="row">
+              <div class="btn" data-a="again">Go again${OK}</div>
+              <div class="btn" data-a="next">Next level${OK}</div>
+              <div class="btn" data-a="select">Level select${OK}</div>
+            </div>
+            ${CHOOSE}
           </div>
           <div class="confetti"></div>
         </div>
+      </div>
+      <div class="screen splash">
+        <div class="sp"><img alt="Media Jousts"><b>Media Jousts</b><span>presents</span></div>
+        <small class="sp-wait">Waking the lizard…</small>
       </div>`;
     this.play = el(this.root, '.hud');
     this.eggsEl = el(this.root, '.eggs'); this.eggsN = el(this.eggsEl, '.n'); this.eggsOf = el(this.eggsEl, '.of');
@@ -235,25 +303,37 @@ export class Hud {
     this.dashEl = el(this.root, '.pip.dash'); this.dashBar = el(this.root, '.pip.dash .bar b');
     this.bugsEl = el(this.root, '.pip.bugs'); this.bugsN = el(this.bugsEl, '.n'); this.bugsOf = el(this.bugsEl, 'small');
     this.powerEl = el(this.root, '.power'); this.powerName = el(this.root, '.p-name'); this.powerDesc = el(this.root, '.p-desc');
-    this.viewEls = [...this.root.querySelectorAll<HTMLElement>('.views span')];
-    this.cardEls = [...this.root.querySelectorAll<HTMLElement>('.card')];
     this.zoneEl = el(this.root, '.zone'); this.hintEl = el(this.root, '.hint'); this.toastEl = el(this.root, '.toast'); this.hiddenEl = el(this.root, '.hidden-tag');
     this.stampEl = el(this.root, '.stamp'); this.stampTitle = el(this.stampEl, 'b'); this.stampSub = el(this.stampEl, 'small');
     this.promptEl = el(this.root, '.prompt'); this.promptBar = el(this.root, '.prompt b'); this.promptText = el(this.root, '.prompt span');
     this.marksEl = el(this.root, '.marks');
-    this.stickEl = el(this.root, '.tstick'); this.dashBtn = el(this.root, '.t-dash'); this.soundEl = el(this.root, '.btn[data-a="sound"] b');
+    this.stickEl = el(this.root, '.tstick'); this.dashBtn = el(this.root, '.t-dash');
+    this.soundEls = [...this.root.querySelectorAll<HTMLElement>('.btn[data-a="sound"] b')];
     this.map = el<HTMLCanvasElement>(this.root, '.minimap canvas'); this.mapCtx = this.map.getContext('2d')!;
     this.title = el(this.root, '.title'); this.pause = el(this.root, '.pause'); this.results = el(this.root, '.results');
-    this.bestEl = el(this.root, '.best');
+    this.splash = el(this.root, '.splash'); this.select = el(this.root, '.select'); this.levelCard = el(this.root, '.lcard'); this.how = el(this.root, '.howcard');
+    this.veilEl = el(this.root, '.veil'); this.rowEl = el(this.root, '.p-row'); this.selGo = el(this.root, '.btn[data-a="sel-go"]');
 
-    this.cardEls.forEach((c) => c.addEventListener('click', (e) => { e.stopPropagation(); this.onPickView(Number(c.dataset.v)); }));
-    el(this.root, '.go').addEventListener('click', () => this.onStart());
-    this.root.querySelectorAll<HTMLElement>('[data-a]').forEach((b) => b.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const a = b.dataset.a;
-      if (a === 'resume') this.onResume(); else if (a === 'restart') this.onRestart(); else if (a === 'again') this.onAgain();
-      else if (a === 'sound') this.onSound(); else if (a === 'full') this.onFullscreen();
-    }));
+    this.root.querySelectorAll<HTMLElement>('[data-a]').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const a = b.dataset.a!;
+        if (a === 'resume') this.onResume(); else if (a === 'restart') this.onRestart(); else if (a === 'again') this.onAgain();
+        else if (a === 'sound') this.onSound(); else if (a === 'full') this.onFullscreen();
+        else this.onMenu(a);
+      });
+      // A mouse resting on a button takes the light there, so there are never two lit.
+      b.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && this.navRoot?.contains(b) && this.navBtns().includes(b)) this.light(b); });
+    });
+    // The postcards come and go; the row they lie in takes their taps.
+    this.rowEl.addEventListener('click', (e) => {
+      const c = e.target instanceof Element ? e.target.closest<HTMLElement>('.pcard[data-i]') : null;
+      if (c) this.onMenu('pick', Number(c.dataset.i));
+    });
+    // The studio's logo, if there is a picture of it: until then the splash spells the name out.
+    const logo = new Image();
+    logo.onload = () => { el<HTMLImageElement>(this.splash, 'img').src = logo.src; this.splash.classList.add('has-logo'); };
+    logo.src = new URL(`${base}studio-logo.png`, document.baseURI).href;
     // The full-screen buttons are only there where the browser can do it (an iPhone's cannot: there the game is added to the home screen instead).
     this.root.classList.toggle('can-full', !!document.fullscreenEnabled);
     for (const name of OPTIONAL_ART) this.wantArt(name);
@@ -278,8 +358,130 @@ export class Hud {
   }
 
   showPlay(on: boolean) { this.play.classList.toggle('off', !on); }
-  showTitle(on: boolean) { this.title.classList.toggle('on', on); }
-  showPause(on: boolean) { this.pause.classList.toggle('on', on); }
+  showPause(on: boolean) { this.pause.classList.toggle('on', on); this.navFor(this.pause, on, 'resume'); }
+
+  // ---- the menus: splash, title, how to play, level select, the card before a level
+
+  /** "Media Jousts presents", on plain dark. `waiting`: the game is still loading behind it, and says so. */
+  showSplash(on: boolean, waiting = false) { this.splash.classList.toggle('on', on); this.splash.classList.toggle('late', on && waiting); }
+  /** A dark sheet over the picture while one level is swapped for another. */
+  veil(on: boolean) { this.veilEl.classList.toggle('on', on); }
+  showTitle(on: boolean) { this.title.classList.toggle('on', on); this.navFor(this.title, on, 'play'); }
+  showHow(on: boolean) { this.how.classList.toggle('on', on); this.navFor(this.how, on, 'how-ok'); }
+
+  /** The level select: a postcard for each level, then `coming` face-down cards for levels still to be made. null takes it away. */
+  showSelect(cards: CardView[] | null, chosen = 0, coming = 0) {
+    this.select.classList.toggle('on', cards !== null);
+    if (!cards) return;
+    this.selectNote('');
+    for (const name of ['egg_gold']) this.wantArt(name);
+    const stars = (n: number) => [0, 1, 2].map((k) => `<i${k < n ? ' class="won"' : ''}></i>`).join('');
+    const face = (c: CardView, i: number) => {
+      const rec = c.locked !== null ? `<div class="pc-rec lock">${esc(c.locked)}</div>`
+        : c.best ? `<div class="pc-rec"><div class="b-stars">${stars(c.best.stars)}</div><b>${fmtTime(c.best.time)}</b><span>${c.best.eggs}/${c.best.total} eggs</span>${c.best.gold ? '<i class="g-egg" title="The golden egg"></i>' : ''}</div>`
+        : '<div class="pc-rec none">Not played yet</div>';
+      return `<div class="pcard${c.locked !== null ? ' locked' : ''}" data-i="${i}" style="--r:${CARD_TILT[i % CARD_TILT.length]}deg">
+        <div class="pc-pic">${c.picture ? `<img src="${esc(c.picture)}" alt="" draggable="false">` : ''}<i class="pc-lock"></i></div>
+        <b class="pc-name">${esc(c.name)}</b><span class="pc-line">${esc(c.line)}</span>
+        <div class="pc-strip">${c.colours.map((h) => `<i style="background:${esc(h)}"></i>`).join('')}</div>${rec}</div>`;
+    };
+    const back = (i: number) => `<div class="pcard back" style="--r:${CARD_TILT[(cards.length + i) % CARD_TILT.length]}deg"><i></i><span>More maps on the way</span></div>`;
+    this.rowEl.innerHTML = cards.map(face).join('') + Array.from({ length: coming }, (_, i) => back(i)).join('');
+    this.cards = [...this.rowEl.querySelectorAll<HTMLElement>('.pcard[data-i]')];
+    this.layout();
+    this.choose(chosen, true);
+  }
+
+  /** Lift one postcard and bring it to the middle of the row. */
+  choose(i: number, instant = false) {
+    const card = this.cards[i];
+    if (!card) return;
+    this.chosen = i;
+    this.cards.forEach((c, k) => c.classList.toggle('on', k === i));
+    const locked = card.classList.contains('locked');
+    this.selGo.classList.toggle('off', locked);
+    (this.selGo.firstElementChild as HTMLElement).textContent = locked ? 'Locked' : 'Play';
+    const row = this.rowEl;
+    row.scrollTo({ left: card.offsetLeft + card.offsetWidth / 2 - row.clientWidth / 2, behavior: instant ? 'auto' : 'smooth' });
+  }
+
+  /** A word across the top of the level select when something went wrong ('' puts the usual heading back). */
+  selectNote(text: string) { el(this.select, '.sel-head').textContent = text || 'Where to?'; }
+
+  /** The chosen postcard shakes: it cannot be played yet. */
+  refuse() { const c = this.cards[this.chosen]; if (c) replay(c, 'no'); }
+
+  /** The window changed size: where the row of postcards is wider than the screen it scrolls, with room at each end
+   *  for the first and last card to come to the middle. */
+  layout() {
+    const row = this.rowEl;
+    row.classList.remove('wide');
+    row.classList.toggle('wide', row.scrollWidth > row.clientWidth + 1);
+    // The face-down cards are as tall as the others.
+    if (this.cards[0]) row.style.setProperty('--ch', `${this.cards[0].offsetHeight}px`);
+    if (this.select.classList.contains('on')) this.choose(this.chosen, true);
+  }
+
+  /** The card before a level: its name, its one new idea, the time to beat and the best so far. null takes it away. */
+  showLevelCard(v: LevelCardView | null) {
+    const C = this.levelCard;
+    C.classList.toggle('on', v !== null);
+    this.navFor(C, v !== null, 'card-go');
+    if (!v) return;
+    el(C, '.lc-name').textContent = v.name;
+    el(C, '.lc-line').textContent = v.line;
+    el(C, '.lc-idea').textContent = v.idea;
+    el(C, '.lc-par b').textContent = fmtTime(v.par);
+    const best = el(C, '.lc-best');
+    best.classList.toggle('none', !v.best);
+    el(best, 'b').textContent = v.best ? fmtTime(v.best.time) : '';
+    best.querySelectorAll<HTMLElement>('.b-stars i').forEach((s, i) => s.classList.toggle('won', !!v.best && i < v.best.stars));
+    el(best, 'small').textContent = v.best ? `${v.best.eggs}/${v.best.total} eggs` : 'no run yet';
+  }
+
+  // ---- the paper buttons of whichever card is up: one is lit, the arrows move the light, and "go" presses it
+
+  private navBtns(): HTMLElement[] {
+    return this.navRoot ? [...this.navRoot.querySelectorAll<HTMLElement>('.btn[data-a]')].filter((b) => b.offsetParent !== null) : [];
+  }
+  private light(b: HTMLElement | null) {
+    this.navRoot?.querySelectorAll('.btn.on').forEach((x) => x.classList.remove('on'));
+    b?.classList.add('on');
+  }
+  private navFor(root: HTMLElement, on: boolean, first: string) {
+    if (!on) { if (this.navRoot === root) this.navRoot = null; return; }
+    this.navRoot = root;
+    const list = this.navBtns();
+    this.light(list.find((b) => b.dataset.a === first) ?? list[0] ?? null);
+  }
+  /** Move the light one button back (-1) or on (1). True if it moved. */
+  nav(d: number): boolean {
+    const list = this.navBtns();
+    if (list.length < 2) return false;
+    const at = Math.max(0, list.findIndex((b) => b.classList.contains('on')));
+    const to = Math.min(list.length - 1, Math.max(0, at + Math.sign(d)));
+    if (to === at) return false;
+    this.light(list[to]);
+    return true;
+  }
+  /** Press the lit button. True if there was one. */
+  press(): boolean {
+    const list = this.navBtns();
+    const b = list.find((x) => x.classList.contains('on')) ?? list[0];
+    if (!b) return false;
+    b.click();
+    return true;
+  }
+
+  /** Another level is up: forget what was being said about the last one. */
+  newLevel() {
+    this.mapBase = null;
+    this.hintQueue = []; this.hintTimer = 0; this.hintEl.classList.remove('on');
+    this.stampQueue = []; this.stampTimer = 0; this.stampEl.classList.remove('show', 'out');
+    this.toastEl.classList.remove('show'); this.zoneEl.classList.remove('show');
+    this.prompt(null); this.combo(0);
+    this.beginMarks(); this.endMarks();
+  }
 
   /** Show keyboard keys or pad buttons everywhere. An Xbox-style pad gets letters, anything else PlayStation shapes. */
   usePad(pad: boolean, kind: 'ps' | 'xbox' = 'ps') {
@@ -309,16 +511,11 @@ export class Hud {
     (e.firstElementChild as HTMLElement).style.transform = st.on ? `translate(${(st.dx * st.r).toFixed(1)}px, ${(st.dy * st.r).toFixed(1)}px)` : '';
   }
 
-  /** What the sound button on the pause card says. */
+  /** What the sound buttons (on the title, and on the pause card of a touch screen) say. */
   setSound(on: boolean) {
     if (on === this.lastSound) return;
     this.lastSound = on;
-    this.soundEl.textContent = on ? 'on' : 'off';
-  }
-
-  setView(i: number) {
-    this.viewEls.forEach((e, k) => e.classList.toggle('on', k === i));
-    this.cardEls.forEach((e) => e.classList.toggle('on', Number(e.dataset.v) === i));
+    for (const e of this.soundEls) e.textContent = on ? 'on' : 'off';
   }
 
   setEggs(banked: number, total: number, carried: number[]) {
@@ -523,24 +720,33 @@ export class Hud {
 
   /** The small map: only what the lizard has been near is drawn in. */
   drawMap(level: Level, explored: Uint8Array, lx: number, lz: number, heading: number, nests: { x: number; z: number; has: boolean }[], threats: { x: number; z: number; hot: boolean }[], checkpoint: number) {
-    const S = 4, W = level.w, H = level.h;
-    if (!this.mapBase) {
-      this.map.width = W * S; this.map.height = H * S;
+    // A map in two parts (a forest floor and its canopy) shows only the part the lizard is on.
+    const S = 4, W = level.w, part = level.part(lx);
+    const X0 = Math.floor(part.x0), Z0 = Math.floor(part.z0), PW = Math.ceil(part.x1) - X0, PH = Math.ceil(part.z1) - Z0;
+    if (!this.mapBase || this.mapPart !== X0) {
+      this.mapPart = X0;
+      this.map.width = PW * S; this.map.height = PH * S;
       const base = (this.mapBase = document.createElement('canvas'));
-      base.width = W * S; base.height = H * S;
+      base.width = PW * S; base.height = PH * S;
       const b = base.getContext('2d')!;
-      for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
-        const i = r * W + c;
-        b.fillStyle = level.solid[i] ? '#4a3f17' : level.sand[i] ? '#e9cf86' : '#8a7c3e';
+      const m = level.theme.map;
+      for (let r = 0; r < PH; r++) for (let c = 0; c < PW; c++) {
+        const i = (r + Z0) * W + c + X0, deck = level.deck[i];
+        // Up top: gaps dark, leaf mat the colour of water on the floor's map, boughs the colour of cover.
+        b.fillStyle = deck === 1 ? '#2C1A42' : deck === 2 ? m[3] : deck === 3 ? m[4] : level.hard[i] ? m[2] : level.water[i] === 1 ? m[3] : level.sand[i] || level.water[i] ? m[1] : m[0];
         b.fillRect(c * S, r * S, S, S);
-        if (level.cover[i]) { b.fillStyle = '#d9822a'; b.fillRect(c * S + 1, r * S + 1, S - 2, S - 2); }
+        if (level.cover[i]) { b.fillStyle = m[4]; b.fillRect(c * S + 1, r * S + 1, S - 2, S - 2); }
       }
     }
     const g = this.mapCtx;
     g.drawImage(this.mapBase, 0, 0);
     g.fillStyle = 'rgba(31,25,5,0.93)';
-    for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) if (!explored[r * W + c]) g.fillRect(c * S, r * S, S, S);
-    const seen = (x: number, z: number) => explored[Math.floor(z) * W + Math.floor(x)] === 1;
+    for (let r = 0; r < PH; r++) for (let c = 0; c < PW; c++) if (!explored[(r + Z0) * W + c + X0]) g.fillRect(c * S, r * S, S, S);
+    // Everything else is placed in map tiles: slide the part's corner to the canvas's.
+    g.save();
+    g.translate(-X0 * S, -Z0 * S);
+    const inMap = (x: number, z: number) => x >= 0 && z >= 0 && x < W && z < level.h;
+    const seen = (x: number, z: number) => inMap(x, z) && explored[Math.floor(z) * W + Math.floor(x)] === 1;
     for (const n of nests) if (seen(n.x, n.z)) { g.fillStyle = n.has ? '#fff3c8' : 'rgba(255,243,200,0.25)'; g.beginPath(); g.arc(n.x * S, n.z * S, n.has ? 2.6 : 1.6, 0, 7); g.fill(); }
     level.burrows.forEach((bw, i) => {
       if (!seen(bw.x, bw.z) && bw.kind !== 'exit') return;
@@ -554,16 +760,7 @@ export class Hud {
     g.fillStyle = '#ffd21f'; g.strokeStyle = '#1f1905'; g.lineWidth = 1.2;
     g.beginPath(); g.moveTo(0, -5.5); g.lineTo(3.6, 4); g.lineTo(0, 2); g.lineTo(-3.6, 4); g.closePath(); g.fill(); g.stroke();
     g.restore();
-  }
-
-  /** The best finished run so far, for the title screen (null = none yet). */
-  setBest(best: BestRun | null) {
-    this.bestEl.classList.toggle('on', best !== null);
-    if (!best) return;
-    this.bestEl.querySelectorAll<HTMLElement>('.b-stars i').forEach((s, i) => s.classList.toggle('won', i < best.stars));
-    el(this.bestEl, '.b-time').textContent = fmtTime(best.time);
-    const medals = best.medals > 0 ? `<span>${best.medals} medal${best.medals === 1 ? '' : 's'}</span>` : '';
-    el(this.bestEl, '.b-line').innerHTML = `<span>${best.eggs}/${best.total} eggs</span>${medals}`;
+    g.restore();
   }
 
   /** The end-of-level card: stars pop one by one, then the earned medals (onStar and onMedal fire as each lands). null takes it away. */
@@ -572,6 +769,12 @@ export class Hud {
     this.resultTimers = [];
     const R = this.results;
     R.classList.toggle('on', r !== null);
+    if (r) {
+      el(R, '.btn[data-a="next"]').style.display = r.next ? '' : 'none';
+      el(R, '.r-open').textContent = r.opened ? `New map open: ${r.opened}` : '';
+      R.classList.toggle('opened', !!r.opened);
+    }
+    this.navFor(R, r !== null, 'again');
     if (!r) return;
     for (const name of ['medals', 'egg_gold', 'beetle']) this.wantArt(name);
     const later = (seconds: number, fn: () => void) => { this.resultTimers.push(window.setTimeout(fn, seconds * 1000)); };

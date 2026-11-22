@@ -19,17 +19,100 @@ const install = `(() => {
 })()`;
 const ui = (cls) => `document.getElementById('ui').classList.contains('${cls}')`;
 const D = 'et.debug()';
+const S = 'et.shell.screen';
+const lit = `(document.querySelector('.screen.on .btn.on')?.dataset.a ?? null)`;
+const chosen = `[...document.querySelectorAll('.pcard[data-i]')].findIndex((c) => c.classList.contains('on'))`;
+/** Is that pad button's picture showing inside the element (and no key cap)? */
+const shows = (sel, shape) => `(() => { const e = document.querySelector('${sel}'); const vis = (x) => !!x && x.getClientRects().length > 0; return vis(e?.querySelector('.padbtn.${shape}')) && ![...(e?.querySelectorAll('kbd') ?? [])].some(vis); })()`;
+/** Wait for a level that is on its way. */
+const up = [{ eval: 'et.shell.settled()', as: 'the level that is up' }, { eval: 'et.fast(0.2).level' }];
+const exit = 'et.level.burrows.find((b) => b.kind === "exit")';
 export default {
-  size: [1280, 720],
+  size: [1280, 863], // a 1280 x 720 page
   steps: [
-    // --- the title: any button wakes the hints up as PlayStation shapes
-    { goto: 'mute=1' },
+    // --- the splash and the title: any button wakes the hints up as PlayStation shapes
+    { goto: 'splash=60&unlock=1&safe=1' },
     { eval: install, as: 'plugged in' },
-    { eval: 'tap(5).state', as: 'R1 on the title' },
+    { expect: `${S} === 'splash'`, as: 'the splash is up' },
+    { eval: `tap(5); ${S}`, as: 'R1 on the splash' },
+    { expect: `${S} === 'title'`, as: 'any button sends the splash away' },
     { expect: `${ui('pad')} && !${ui('xbox')}`, as: 'the title shows PlayStation buttons' },
+    { expect: `${lit} === 'play' && ${shows('.title .btn.on', 'cross')}`, as: 'Play is lit, with a cross on it' },
     { wait: 700 }, { shot: 'pad-title' },
-    { eval: 'tap(0).state', as: 'cross' },
-    { expect: `${D}.state === 'play'`, as: 'cross starts the game' },
+    { eval: `B(15, 1); et.fast(0.5); B(15, 0); et.fast(0.1); ${lit}`, as: 'd-pad right, held half a second' },
+    { expect: `${lit} === 'how'`, as: 'the d-pad moves the light one button a push, however long it is held' },
+    { eval: `pad.axes[0] = 1; et.fast(0.3); pad.axes[0] = 0; et.fast(0.1); ${lit}`, as: 'a flick of the stick, right' },
+    { expect: `${lit} === 'sound'`, as: 'so does a flick of the left stick' },
+    { eval: `pad.axes[0] = -1; et.fast(0.1); pad.axes[0] = 0; et.fast(0.1); B(14, 1); et.fast(0.1); B(14, 0); et.fast(0.1); ${lit}`, as: 'stick left, d-pad left' },
+    { expect: `${lit} === 'play'`, as: 'and back again' },
+    { eval: `tap(1); ${S}`, as: 'circle on the title' },
+    { expect: `${S} === 'title'`, as: 'circle does nothing on the title' },
+
+    // --- the level select
+    { eval: `tap(0); ${S}`, as: 'cross on Play' },
+    { expect: `${S} === 'select' && ${chosen} === 0`, as: 'cross opens the level select' },
+    { expect: `${shows('.btn[data-a="sel-go"]', 'cross')} && ${shows('.btn[data-a="sel-back"]', 'circle')} && !!document.querySelector('.sel-keys .dpad')?.getClientRects().length`, as: 'its buttons show cross, circle and the d-pad' },
+    { wait: 900 }, { shot: 'pad-select' },
+    { eval: `B(15, 1); et.fast(0.1); B(15, 0); et.fast(0.1); ${chosen}`, as: 'd-pad right' },
+    { expect: `${chosen} === 1`, as: 'the d-pad chooses the next postcard' },
+    { eval: 'et.fast(0.5); 1' }, ...up,
+    { expect: `${D}.level === 'rainforest' && ${S} === 'select'`, as: 'and its level comes up behind the table' },
+    { eval: `B(15, 1); et.fast(0.1); B(15, 0); et.fast(0.1); pad.axes[0] = -1; et.fast(0.1); pad.axes[0] = 0; et.fast(0.1); ${chosen}`, as: 'd-pad right at the end of the row, then stick left' },
+    { expect: `${chosen} === 0`, as: 'the stick chooses too' },
+    { eval: 'et.fast(0.5); 1' }, ...up,
+    { expect: `${D}.level === 'desert'`, as: 'and Africa comes back up' },
+    { eval: `tap(1); ${S}`, as: 'circle' },
+    { expect: `${S} === 'title'`, as: 'circle goes back to the title' },
+    { eval: `tap(0); B(15, 1); et.fast(0.1); B(15, 0); et.fast(0.6); ${chosen}`, as: 'cross, d-pad right' }, ...up,
+
+    // --- the card before a level
+    { eval: `tap(0); ${S}`, as: 'cross on the rainforest' }, ...up,
+    { expect: `${S} === 'card' && document.querySelector('.lc-name').textContent === 'Rainforest' && ${lit} === 'card-go'`, as: 'cross opens its card, with Go lit' },
+    { expect: `${shows('.lcard .btn.on', 'cross')} && ${shows('.btn[data-a="card-back"]', 'circle')}`, as: 'Go shows a cross, Back a circle' },
+    { wait: 700 }, { shot: 'pad-card' },
+    { eval: `tap(1); ${S}`, as: 'circle' },
+    { expect: `${S} === 'select' && ${chosen} === 1`, as: 'circle goes back to the level select' },
+    { eval: `tap(0); ${S}`, as: 'cross' }, ...up,
+    { eval: `tap(0); ${S}`, as: 'cross on Go' },
+    { expect: `${S} === 'first' && ${lit} === 'how-ok'`, as: 'a first run is shown how to play' },
+    { expect: `${shows('.howcard .how:nth-child(2) .pic', 'cross')}`, as: 'in pad buttons' },
+    { wait: 700 }, { shot: 'pad-how' },
+    { eval: `tap(1); ${S}`, as: 'circle' }, ...up,
+    { expect: `${S} === 'card'`, as: 'circle goes back to the card' },
+    { eval: `tap(0); tap(0); ${S}`, as: 'cross, cross' },
+    { expect: `${S} === 'none' && ${D}.state === 'play' && ${D}.level === 'rainforest'`, as: 'cross on "Got it" starts the rainforest' },
+    { expect: 'et.lizard.dashCd === 0', as: 'and is not also a dash' },
+
+    // --- the pause card: on to the level select
+    { eval: 'tap(9); et.paused', as: 'Options' },
+    { expect: `et.paused === true && ${lit} === 'resume'`, as: 'Options pauses, with "Back to it" lit' },
+    { eval: `B(15, 1); et.fast(0.1); B(15, 0); et.fast(0.1); B(15, 1); et.fast(0.1); B(15, 0); et.fast(0.1); ${lit}`, as: 'd-pad right, twice' },
+    { expect: `${lit} === 'select' && et.paused === true && Math.abs(${D}.time) < 0.5`, as: 'the d-pad moves the light to Level select (and the lizard stays put)' },
+    { wait: 600 }, { shot: 'pad-pause-select' },
+    { eval: `tap(0); ${S}`, as: 'cross' },
+    { expect: `${S} === 'select' && !et.paused && ${D}.state === 'title' && ${chosen} === 1`, as: 'cross on Level select leaves the run for the level select' },
+    { eval: `B(14, 1); et.fast(0.1); B(14, 0); et.fast(0.6); ${chosen}`, as: 'd-pad left' }, ...up,
+    { eval: `tap(0); ${S}`, as: 'cross on Africa' }, ...up,
+    { eval: `tap(0); ${S}`, as: 'cross on Go' },
+    { expect: `${S} === 'none' && ${D}.state === 'play' && ${D}.level === 'desert'`, as: 'and Africa is played with the pad' },
+
+    // --- the end card
+    { eval: `et.teleport(${exit}.x, ${exit}.z, 0); et.fast(0.4); B(0, 1); et.fast(1.7); B(0, 0); et.fast(6).state`, as: 'cross held on the way out' },
+    { expect: `${D}.state === 'won' && ${lit} === 'again'`, as: 'home, with Go again lit' },
+    { expect: `${shows('.results .btn.on', 'cross')} && !!document.querySelector('.results .navhint .dpad')?.getClientRects().length`, as: 'the end card shows a cross and the d-pad' },
+    { wait: 5000 }, { shot: 'pad-results' },
+    { eval: `B(15, 1); et.fast(0.1); B(15, 0); et.fast(0.1); ${lit}`, as: 'd-pad right' },
+    { expect: `${lit} === 'next'`, as: 'the d-pad moves the light to Next level' },
+    { eval: `tap(0); ${S}`, as: 'cross on Next level' }, ...up,
+    { expect: `${S} === 'card' && ${D}.level === 'rainforest'`, as: 'cross on Next level goes to the rainforest\'s card' },
+    { eval: `tap(1); tap(1); ${S}`, as: 'circle, circle' },
+    { expect: `${S} === 'title'`, as: 'and circle leads all the way back to the title' },
+
+    // --- an Xbox pad gets letters on the menus too
+    { eval: `rest(); pad.id = 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)'; tap(5); tap(0); ${S}`, as: 'an Xbox pad: RB, then A' },
+    { expect: `${ui('xbox')} && ${S} === 'select'`, as: 'an Xbox pad gets letters, and A opens the level select' },
+    { expect: `(() => { const b = (a) => document.querySelector('.btn[data-a="' + a + '"] .padbtn b'); return getComputedStyle(b('sel-go')).display === 'block' && b('sel-go').textContent === 'A' && b('sel-back').textContent === 'B'; })()`, as: 'Play shows an A and Back a B' },
+    { wait: 700 }, { shot: 'pad-select-xbox' },
 
     // --- play
     { goto: 'skip=1&safe=1&mute=1&at=8,16' },
@@ -50,10 +133,8 @@ export default {
     { eval: `rest(); et.give('thunder'); et.fast(0.3).power`, as: 'holding' },
     { eval: 'tap(3).power', as: 'triangle' },
     { expect: `${D}.power === null`, as: 'triangle uses the power egg' },
-    { eval: 'const v = et.debug().view; tap(8); v + " -> " + et.debug().view', as: 'Create' },
-    { expect: `${D}.view !== 'chase'`, as: 'Create switches camera' },
-    { eval: 'tap(11); tap(10).view', as: 'R3, L3' },
-    { expect: `${D}.view === 'chase'`, as: 'two stick clicks come back round to the low camera' },
+    { eval: 'tap(8); tap(11); tap(10).view', as: 'Create, R3, L3' },
+    { expect: `${D}.view === 'chase'`, as: 'Create and the stick clicks do nothing to the camera' },
 
     // --- the pause card
     { eval: 'tap(9); et.paused', as: 'Options' },

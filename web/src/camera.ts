@@ -1,16 +1,11 @@
-// The camera, and the three ways of looking at the game that can be swapped while playing (keys 1, 2, 3).
-// Because every drawing is seen from straight above, the same world works from any angle that looks down:
-//   top    the original game's view, flat on, with the birds' height shown by their shadows
-//   tilt   leaning back like a table-top: layers part, rocks get sides, birds hang in the air
-//   chase  low behind the lizard, turning with it: the world comes at you
+// The camera. Players only ever see the chase view: low behind the lizard, turning with it, the world comes at you.
+// The top view (flat on, high up) is for development only: ?view=top, or et.setView(0) in the console.
 import * as THREE from 'three';
 import { shared } from './gfx';
 import { DEG, angleDamp, angleDiff, clamp, damp, noise1, type V2 } from './util';
 
 export interface View {
-  id: 'top' | 'tilt' | 'chase';
-  label: string;
-  blurb: string;
+  id: 'top' | 'chase';
   pitch: number;
   fov: number;
   dist: number;
@@ -27,9 +22,8 @@ export interface View {
 }
 
 export const VIEWS: View[] = [
-  { id: 'top', label: 'Top-down', blurb: 'Flat on, like the original', pitch: 89.4, fov: 22, dist: 24, follow: false, lead: 0.2, haze: 0, fog: 0, tilt: 0 },
-  { id: 'tilt', label: 'Tilted', blurb: 'Leaning back: depth and layers', pitch: 55, fov: 26, dist: 21.5, follow: false, lead: 0.26, haze: 0.1, fog: 0.3, tilt: 0.5 },
-  { id: 'chase', label: 'Chase', blurb: 'Low behind the lizard', pitch: 34, fov: 46, dist: 8.8, follow: true, lead: 0.34, haze: 0.3, fog: 0.9, tilt: 1 },
+  { id: 'top', pitch: 89.4, fov: 22, dist: 24, follow: false, lead: 0.2, haze: 0, fog: 0, tilt: 0 },
+  { id: 'chase', pitch: 34, fov: 46, dist: 8.8, follow: true, lead: 0.34, haze: 0.3, fog: 0.9, tilt: 1 },
 ];
 
 export class CameraRig {

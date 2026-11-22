@@ -28,7 +28,7 @@
     <div id="ui"></div>
     <div id="boot"><div id="boot-msg"><b>Egg Thief</b>Waking the lizard…</div></div>
     <!-- A phone held upright: there is no room for the game that way up. -->
-    <div id="rotate"><div><i></i><b>Turn your phone sideways</b>The desert is wide.</div></div>
+    <div id="rotate"><div><i></i><b>Turn your phone sideways</b>The maps are wide.</div></div>
     <script>
       // Show a boot error on the page instead of a blank screen.
       window.__bootError = function (msg) {
@@ -36,6 +36,7 @@
         var boot = document.getElementById('boot');
         if (!el || !boot) return;
         boot.style.display = 'grid';
+        boot.classList.remove('gone');
         el.innerHTML = '<b>The lizard is stuck</b>' + msg + '<br><small>The browser console (F12) has the details.</small>';
       };
       window.addEventListener('error', function (e) { if (!window.__booted) window.__bootError(e.message || String(e)); });

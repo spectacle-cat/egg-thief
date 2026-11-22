@@ -4,6 +4,9 @@
 //   scorpion    waits under a boulder that shifts now and then; rattles, then lunges at whoever steps beside it
 //   owl         glides a fixed loop low over the ground; never look up, just don't be under it
 //   hawk        circles high; anything in the open beneath it gets a screech and then a dive
+// In the rainforest the same parts are played by others: a coati walks the roadrunner's beat (its ringed tail stands
+// up over the ferns, so it can be followed from cover), and the guard is an eyelash viper that never leaves its
+// flower: it strikes at what comes close and hisses the coatis over to anything further off.
 import * as THREE from 'three';
 import type { CameraRig } from './camera';
 import { ORDER, SpriteBatch, shared } from './gfx';
@@ -18,6 +21,8 @@ import { DEG, Path, TAU, angleDiff, angleToward, clamp, clamp01, damp, dirX, dir
 export interface Ctx {
   level: Level; lizard: Lizard; fx: Particles; sound: Sound; rig: CameraRig; world: World; decoy: TailDecoy;
   time: number;
+  /** How hard it is raining, 0..1: hunters see less far in the rain. */
+  rain: number;
   /** A Rattle Egg making its racket: walkers that hear it go and see. */
   lure: { x: number; z: number; active: boolean };
   /** Something got the lizard: 'tail' if it escaped by dropping its tail, 'dead', 'burnt' if it was too hot to bite, or 'none' (it can't be hurt just now). */
@@ -44,6 +49,10 @@ const wingL = [0, 0], wingR = [0, 0];
 // ---------------------------------------------------------------------------------------------------------
 
 const CONE_RAYS = 36;
+/** How far a viper's strike reaches from its coil, in tiles. */
+const VIPER_REACH = 2.1;
+/** Where a viper's head is when it is not striking: that far out from the middle of its coil. */
+const VIPER_REST = 1.15;
 const CONE_VERT = /* glsl */ `
 attribute float aT;
 varying float vT;
@@ -82,9 +91,17 @@ class Roadrunner {
   /** What it is pecking at: the dropped tail, or a Rattle Egg. */
   private bait: 'tail' | 'lure' = 'tail';
   private stunFor = 0;
+  /** How much less far it sees just now (rain). */
+  private dim = 1;
+  /** A viper that has seen something out of its reach: where. The others are told. */
+  shout: V2 | null = null;
+  /** A viper's strike: how far out the head is (0..1 of reach), how far it reaches this time, and whether it has bitten. */
+  private lunge = 0;
+  private reach = 0;
+  private bit = false;
 
-  /** post: a sentry stands there and sweeps its gaze instead of walking a beat. */
-  constructor(scene: THREE.Object3D, private route: Route, index: number, private post: Sentry | null = null) {
+  /** post: a sentry stands there and sweeps its gaze instead of walking a beat. rooted: a viper, which never leaves it. */
+  constructor(scene: THREE.Object3D, private route: Route, index: number, private post: Sentry | null = null, readonly rooted = false) {
     this.seed = index * 7.3;
     this.pos = { ...route.pts[0] };
     this.wp = 1 % route.pts.length;
@@ -122,10 +139,10 @@ class Roadrunner {
     this.heading = this.post ? this.post.facing : headingOf(this.route.pts[this.wp].x - this.pos.x, this.route.pts[this.wp].z - this.pos.z);
   }
 
-  private range() { return this.state === 'chase' ? 8.5 : this.post ? 7.2 : 5.4; }
-  private halfAngle() { return (this.state === 'chase' ? 62 : this.post ? 27 : 33) * DEG; }
-  private eyeX() { return this.pos.x + dirX(this.heading) * 0.55; }
-  private eyeZ() { return this.pos.z + dirZ(this.heading) * 0.55; }
+  private range() { return (this.rooted ? 6.2 : this.state === 'chase' ? 8.5 : this.post ? 7.2 : 5.4) * this.dim; }
+  private halfAngle() { return (this.rooted ? 27 : this.state === 'chase' ? 62 : this.post ? 27 : 33) * DEG; }
+  private eyeX() { return this.pos.x + dirX(this.heading) * (this.rooted ? VIPER_REST : 0.55); }
+  private eyeZ() { return this.pos.z + dirZ(this.heading) * (this.rooted ? VIPER_REST : 0.55); }
 
   private sees(ctx: Ctx): boolean {
     const liz = ctx.lizard;
@@ -149,7 +166,8 @@ class Roadrunner {
     const want = headingOf(tmp.x - this.pos.x, tmp.z - this.pos.z);
     this.heading = angleToward(this.heading, want, turn * dt);
     const v = speed * clamp(Math.cos(angleDiff(this.heading, want)), 0.12, 1);
-    ctx.level.moveCircle(this.pos, dirX(this.heading) * v * dt, dirZ(this.heading) * v * dt, 0.28);
+    // One the flood has caught wades out; otherwise water is a wall to it.
+    ctx.level.moveCircle(this.pos, dirX(this.heading) * v * dt, dirZ(this.heading) * v * dt, 0.28, ctx.level.inWater(this.pos.x, this.pos.z) ? 'skim' : 'walker');
     this.speedNow = v;
     this.anim += v * dt * 1.5;
     // Push through tufts noisily.
@@ -166,6 +184,8 @@ class Roadrunner {
     const seeing = this.sees(ctx);
     const dLiz = dist(this.pos.x, this.pos.z, liz.pos.x, liz.pos.z);
     if (seeing) { this.lastSeen.x = liz.pos.x; this.lastSeen.z = liz.pos.z; this.unseen = 0; } else this.unseen += dt;
+    this.dim = 1 - 0.3 * ctx.rain;
+    if (this.rooted) { this.viper(dt, ctx, seeing, dLiz); return; }
 
     // A Rattle Egg within earshot: nothing is more interesting.
     const lure = ctx.lure;
@@ -203,7 +223,7 @@ class Roadrunner {
         if (this.meter >= 1) {
           this.go('chase');
           ctx.note('alarm');
-          ctx.sound.play('spotted'); ctx.sound.play('runner');
+          ctx.sound.play('spotted'); ctx.sound.play(ctx.level.theme.walker === 'coati' ? 'coati' : 'runner');
           ctx.rig.zoomPunch(0.5);
           ctx.fx.burst('ringRed', this.pos.x, this.pos.z);
         } else if (this.meter <= 0) { this.meter = 0; this.go('patrol'); }
@@ -268,11 +288,85 @@ class Roadrunner {
       if ((hunting && (dNose < 0.5 || dLiz < 0.45)) || (!hunting && liz.exposed && dNose < 0.42)) {
         const got = ctx.catchLizard('roadrunner', this.pos.x, this.pos.z);
         if (got === 'tail') { this.bait = 'tail'; this.go('peck'); }
-        else if (got === 'dead') { this.go('gloat'); ctx.fx.burst('feathers', this.pos.x, this.pos.z); }
-        else if (got === 'burnt') { this.go('flee'); ctx.fx.burst('feathers', this.pos.x, this.pos.z); }
+        else if (got === 'dead') { this.go('gloat'); ctx.fx.burst(ctx.level.theme.walker === 'coati' ? 'poof' : 'feathers', this.pos.x, this.pos.z); }
+        else if (got === 'burnt') { this.go('flee'); ctx.fx.burst(ctx.level.theme.walker === 'coati' ? 'poof' : 'feathers', this.pos.x, this.pos.z); }
       }
     }
     if (dLiz < 7) ctx.hint('runner');
+  }
+
+  /** A viper has hissed at something: a walker with nothing better to do goes to see. */
+  hear(x: number, z: number) {
+    if (this.post || dist(this.pos.x, this.pos.z, x, z) > 13) return;
+    if (this.state !== 'patrol' && this.state !== 'return' && this.state !== 'look' && this.state !== 'suspect') return;
+    this.lastSeen.x = x; this.lastSeen.z = z;
+    this.meter = Math.max(this.meter, 0.6);
+    this.go('search');
+  }
+
+  /** The viper: coiled on its flower, the head sweeping. Close enough, it strikes; too far, it hisses for the others. */
+  private viper(dt: number, ctx: Ctx, seeing: boolean, dLiz: number) {
+    const liz = ctx.lizard, post = this.post as Sentry, lure = ctx.lure;
+    if (dLiz < 7) ctx.hint('viper');
+    switch (this.state) {
+      case 'stun':
+        this.lunge = damp(this.lunge, 0, 8, dt);
+        this.heading += Math.sin(this.stateT * 9) * 1.4 * dt;
+        if (this.stateT > this.stunFor) { this.meter = 0; this.go('patrol'); }
+        return;
+      case 'chase': {
+        // The strike: out in a blink, held a moment, drawn back slowly.
+        const t = this.stateT;
+        this.lunge = t < 0.1 ? easeOutCubic(t / 0.1) : t < 0.3 ? 1 : Math.max(0, 1 - (t - 0.3) / 0.55);
+        ctx.mark('!', this.pos.x, 1.1, this.pos.z);
+        const hx = this.pos.x + dirX(this.heading) * (VIPER_REST + this.lunge * this.reach), hz = this.pos.z + dirZ(this.heading) * (VIPER_REST + this.lunge * this.reach);
+        if (!this.bit && t < 0.34 && liz.alive && dist(hx, hz, liz.pos.x, liz.pos.z) < 0.52) {
+          this.bit = true;
+          if (ctx.catchLizard('viper', this.pos.x, this.pos.z) === 'burnt') { this.stun(2.4); ctx.fx.burst('poof', hx, hz); return; }
+        }
+        if (t > 0.85) { if (!this.bit && liz.alive && dLiz < 4.5) ctx.note('miss'); this.meter = 0.3; this.go('look'); }
+        return;
+      }
+      case 'look':
+        // Getting its coils back in order: for a moment it cannot strike.
+        this.lunge = 0;
+        if (this.stateT > 1.3) this.go('patrol');
+        return;
+    }
+    this.lunge = 0;
+    if (this.state !== 'suspect') this.state = 'patrol';
+    // A Rattle Egg in earshot: it cannot go and look, but it cannot look away either.
+    if (lure.active && dist(this.pos.x, this.pos.z, lure.x, lure.z) < 11) {
+      this.heading = angleToward(this.heading, headingOf(lure.x - this.pos.x, lure.z - this.pos.z), 4 * dt);
+      this.meter = Math.max(0, this.meter - dt);
+      this.state = 'patrol';
+      ctx.mark('?', this.pos.x, 1.1, this.pos.z);
+      return;
+    }
+    if (this.state === 'patrol') this.heading = angleToward(this.heading, post.facing + Math.sin(ctx.time * 0.62 + this.seed) * post.sweep, 2.4 * dt);
+    else { this.heading = angleToward(this.heading, headingOf(this.lastSeen.x - this.pos.x, this.lastSeen.z - this.pos.z), 5 * dt); ctx.mark('?', this.pos.x, 1.1, this.pos.z); }
+    if (seeing) this.meter += dt * (1.5 + 3.0 * (1 - dLiz / this.range()));
+    else this.meter = Math.max(0, this.meter - dt * (this.state === 'suspect' ? 0.55 : 0.8));
+    const touching = liz.alive && liz.exposed && dist(this.eyeX(), this.eyeZ(), liz.pos.x, liz.pos.z) < 0.5;
+    if (this.state === 'patrol' && this.meter > 0.22 && !touching) { this.go('suspect'); ctx.sound.play('hiss'); }
+    else if (this.state === 'suspect' && this.meter <= 0) this.go('patrol');
+    else if ((this.state === 'suspect' && this.meter >= 1) || touching) {
+      if (dLiz < VIPER_REST + VIPER_REACH) {
+        this.heading = headingOf(liz.pos.x - this.pos.x, liz.pos.z - this.pos.z);
+        this.reach = clamp(dLiz - VIPER_REST + 0.25, 0.2, VIPER_REACH);
+        this.bit = false;
+        this.go('chase');
+        ctx.sound.play('snap');
+        ctx.rig.zoomPunch(0.4);
+      } else {
+        this.shout = { x: liz.pos.x, z: liz.pos.z };
+        ctx.note('alarm');
+        ctx.sound.play('spotted'); ctx.sound.play('hiss');
+        ctx.fx.burst('ringRed', this.pos.x, this.pos.z);
+        this.meter = 0.5;
+        this.go('look');
+      }
+    }
   }
 
   private nearestWaypoint() {
@@ -281,16 +375,34 @@ class Roadrunner {
     return best;
   }
 
-  draw(ctx: Ctx, body: SpriteBatch, shadow: SpriteBatch) {
+  draw(ctx: Ctx, body: SpriteBatch, shadow: SpriteBatch, tail: SpriteBatch | null = null) {
     const frame = Math.floor(this.anim) & 3;
     const peck = this.state === 'peck' ? Math.abs(Math.sin(this.stateT * 15)) * 0.16 : 0;
     const x = this.pos.x + dirX(this.heading) * peck, z = this.pos.z + dirZ(this.heading) * peck;
     const wob = this.state === 'stun' ? Math.sin(this.stateT * 13) * 0.12 : 0;
-    shadow.push(x + 0.12, 0.03, z + 0.1, 1.05, 2.05, this.heading, 0, 0, 0, 0.3, frame * 0.25, 0, 0.25, 1);
-    // Three sheets of card, the lower ones darker: a bird with some body to it.
-    for (let k = 0; k < 3; k++) {
-      const t = k === 2 ? 1 : 0.42 + k * 0.2;
-      body.push(x, 0.26 + k * 0.045, z, 1.0, 2.0, this.heading + wob, t, t, t, 1, frame * 0.25, 0, 0.25, 1);
+    if (this.rooted) {
+      // The coil lies on its flower and never moves. The head and neck are a piece of their own: they turn with
+      // the gaze, and a strike draws the neck out to its length while the head keeps its shape.
+      const lie = (this.post as Sentry).facing, breathe = 1 + Math.sin(ctx.time * 2.1 + this.seed) * 0.02;
+      shadow.push(x + 0.1, 0.03, z + 0.08, 1.75, 1.75, lie, 0, 0, 0, 0.3);
+      body.push(x, 0.07, z, 1.75, 1.75, lie, 0.55, 0.55, 0.55, 1);
+      body.push(x, 0.12, z, 1.75 * breathe, 1.75 * breathe, lie, 1, 1, 1, 1);
+      if (tail) {
+        // The drawing is 200 by 400 at the coil's own scale, its root at the bottom middle: neck in the lower 47%,
+        // head and tongue in the 28% above that, nothing above. The neck stretches; the head keeps its shape.
+        const h = this.heading + wob, neck = 0.82 + this.lunge * this.reach, head = 0.49;
+        tail.push(x + dirX(h) * neck * 0.5, 0.2, z + dirZ(h) * neck * 0.5, 0.875, neck, h, 1, 1, 1, 1, 0, 0, 1, 0.47);
+        tail.push(x + dirX(h) * (neck + head * 0.5), 0.2, z + dirZ(h) * (neck + head * 0.5), 0.875, head, h, 1, 1, 1, 1, 0, 0.47, 1, 0.28);
+      }
+    } else {
+      shadow.push(x + 0.12, 0.03, z + 0.1, 1.05, 2.05, this.heading, 0, 0, 0, 0.3, frame * 0.25, 0, 0.25, 1);
+      // Three sheets of card, the lower ones darker: a bird with some body to it.
+      for (let k = 0; k < 3; k++) {
+        const t = k === 2 ? 1 : 0.42 + k * 0.2;
+        body.push(x, 0.26 + k * 0.045, z, 1.0, 2.0, this.heading + wob, t, t, t, 1, frame * 0.25, 0, 0.25, 1);
+      }
+      // A coati carries its ringed tail straight up: a card of its own, standing at its rump, swaying as it trots.
+      if (tail) tail.push(x - dirX(this.heading) * 0.62, 0.3, z - dirZ(this.heading) * 0.62, 0.5, 1.3, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0.5 + this.speedNow * 0.25, this.seed);
     }
 
     // The cone of sight, cut off by rocks.
@@ -683,6 +795,9 @@ export class Hunters {
   private owls: Owl[] = [];
   private hawks: Hawk[] = [];
   private runnerBody: SpriteBatch; private runnerShadow: SpriteBatch;
+  /** The rainforest's own: the coatis' tails, and the vipers. */
+  private tails: SpriteBatch | null = null;
+  private guardBody: SpriteBatch; private guardShadow: SpriteBatch; private guardHead: SpriteBatch | null = null;
   private scorpBody: SpriteBatch;
   private owlBody: SpriteBatch; private owlShadow: SpriteBatch;
   private hawkBody: SpriteBatch[]; private hawkShadow: SpriteBatch[];
@@ -700,11 +815,16 @@ export class Hunters {
       else this.hawks.push(new Hawk(route));
     }
     for (const post of level.sentries) {
-      this.runners.push(new Roadrunner(scene, { type: 'roadrunner', name: post.name, pts: [{ x: post.x, z: post.z }], closed: true, phase: 0 }, i++, post));
+      this.runners.push(new Roadrunner(scene, { type: 'roadrunner', name: post.name, pts: [{ x: post.x, z: post.z }], closed: true, phase: 0 }, i++, post, level.theme.guard === 'viper'));
     }
     for (const b of level.boulders) if (b.scorpion) this.scorpions.push(new Scorpion(b.c, b.r, level));
     this.runnerShadow = new SpriteBatch(scene, tex.roadrunner, this.runners.length + 1, { order: ORDER.shadow, bias: 2 });
     this.runnerBody = new SpriteBatch(scene, tex.roadrunner, this.runners.length * 3 + 1, { order: ORDER.runner, kind: 'cut' });
+    const vipers = level.theme.guard === 'viper';
+    this.guardShadow = vipers ? new SpriteBatch(scene, tex.viperCoil, level.sentries.length + 1, { order: ORDER.shadow, bias: 2 }) : this.runnerShadow;
+    this.guardBody = vipers ? new SpriteBatch(scene, tex.viperCoil, level.sentries.length * 2 + 1, { order: ORDER.runner, kind: 'cut' }) : this.runnerBody;
+    if (vipers) this.guardHead = new SpriteBatch(scene, tex.viperHead, level.sentries.length * 2 + 1, { order: ORDER.runner, kind: 'cut' });
+    if (level.theme.walker === 'coati') this.tails = new SpriteBatch(scene, tex.coatiTail, this.runners.length + 1, { order: ORDER.runner, kind: 'up' });
     this.scorpBody = new SpriteBatch(scene, tex.scorpion, this.scorpions.length * 2 + 1, { order: ORDER.scorpion, kind: 'cut' });
     // The owl and the hawks are puppets of five strips each (see puppet.ts), in two sheets of card.
     this.owlShadow = new SpriteBatch(scene, tex.owl, this.owls.length * 5 + 1, { order: ORDER.birdShadowHigh, bias: 2.2 });
@@ -733,12 +853,16 @@ export class Hunters {
   /** Move everything (dt may be 0 while the game is frozen: they still get drawn). */
   update(dt: number, ctx: Ctx) {
     const all = [this.runnerShadow, this.runnerBody, this.scorpBody, this.owlShadow, this.owlBody, ...this.hawkShadow, ...this.hawkBody, this.stars];
+    if (this.guardBody !== this.runnerBody) all.push(this.guardShadow, this.guardBody);
+    if (this.guardHead) all.push(this.guardHead);
+    if (this.tails) all.push(this.tails);
     all.forEach((b) => b.clear());
     let danger = 0;
     for (const r of this.runners) {
       if (dt > 0) r.update(dt, ctx);
-      r.draw(ctx, this.runnerBody, this.runnerShadow);
+      if (r.rooted) r.draw(ctx, this.guardBody, this.guardShadow, this.guardHead); else r.draw(ctx, this.runnerBody, this.runnerShadow, this.tails);
       danger = Math.max(danger, r.threat);
+      if (r.shout) { const at = r.shout; r.shout = null; for (const other of this.runners) if (other !== r) other.hear(at.x, at.z); }
       // Stars going round its head.
       if (r.dazed) for (let k = 0; k < 3; k++) {
         const a = ctx.time * 5 + (k / 3) * TAU;

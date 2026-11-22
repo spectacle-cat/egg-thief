@@ -36,6 +36,13 @@ export const shared = {
   uFog: { value: new THREE.Vector4(0.86, 0.7, 0.48, 0) },
   /** Where the dust starts and where it is at its thickest (tiles from the camera). */
   uFogRange: { value: new THREE.Vector2(10, 34) },
+  /** How far the water has risen: 0 a dry spell, 1 in flood. */
+  uFlood: { value: 0 },
+  /** How hard it is raining, 0..1. */
+  uRain: { value: 0 },
+  /** A map in two parts (a forest floor, and its canopy in a far corner of the same grid): where the line between them
+   *  runs (x), and which side is shown (-1 the left, 1 the right). Nothing is hidden while the line is far off. */
+  uSplit: { value: new THREE.Vector2(1e9, -1) },
 };
 
 /** Shader pieces for the dust in the distance. In a vertex shader call FOG_V with the world position in wp. */
@@ -46,7 +53,7 @@ uniform vec4 uFog;
 uniform vec2 uFogRange;
 varying float vFogD;
 float fogAmt() { return uFog.a * smoothstep(uFogRange.x, uFogRange.y, vFogD); }`;
-export const fogUniforms = () => ({ uFog: shared.uFog, uFogRange: shared.uFogRange });
+export const fogUniforms = () => ({ uFog: shared.uFog, uFogRange: shared.uFogRange, uSplit: shared.uSplit });
 /** A fine scatter of dots, 0..1: solid cut-outs fade by dropping dots, not by going see-through. */
 export const DITHER_F = /* glsl */ `
 float dither() { return fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))); }`;
@@ -113,6 +120,7 @@ uniform vec2 uWind;
 uniform vec2 uCamRight;
 uniform vec3 uCamUp;
 uniform vec4 uLizard;
+uniform vec2 uSplit;
 varying vec2 vUv;
 varying vec2 vLocal;
 varying vec4 vParams;
@@ -164,6 +172,8 @@ void main() {
   vFlash = aFx.y;
   ${FOG_V}
   gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
+  // The other part of a map in two parts is not drawn at all.
+  if ((aPR.x - uSplit.x) * uSplit.y < 0.0) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
 }`;
 
 const SPRITE_FRAG = /* glsl */ `
@@ -348,7 +358,8 @@ export class SpriteBatch {
 
 // ---------------------------------------------------------------------------------------------------------
 // The ground: the two hand-drawn floor tiles, mixed by a small mask so sand meets scrub along a wandering edge
-// instead of a grid line, with a soft shade where rocks sit.
+// instead of a grid line, with a soft shade where rocks sit. Water is painted here too: the mask says where it lies
+// in a dry spell and where in flood, and uFlood moves the shoreline between the two.
 
 const GROUND_VERT = /* glsl */ `
 varying vec2 vW;
@@ -360,11 +371,27 @@ void main() {
 
 const GROUND_FRAG = /* glsl */ `
 uniform sampler2D tScrub;
+uniform sampler2D tWater;
+uniform float uWaterDrawn;
+uniform float uSeamless;
 uniform sampler2D tMask;
+uniform sampler2D tDeck;
+uniform sampler2D tMat;
+uniform float uDecks;
+uniform vec2 uSplit;
 uniform vec2 uMap;
 uniform float uTime;
 uniform vec4 uFog;
 uniform vec2 uFogRange;
+uniform vec3 uG2a;
+uniform vec3 uG2b;
+uniform float uRipples;
+uniform float uClouds;
+uniform vec3 uWaterA;
+uniform vec3 uWaterB;
+uniform vec3 uWaterC;
+uniform float uFlood;
+uniform float uRain;
 varying vec2 vW;
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float vnoise(vec2 p) {
@@ -375,6 +402,16 @@ float vnoise(vec2 p) {
 void main() {
   vec2 p = vW;
   vec2 dx = dFdx(p), dy = dFdy(p);
+  // A canopy: leaf mat where the map says so, and nothing at all in the gaps between (the floor far below shows
+  // through). The edge of a mat wanders a little either side of the tile's edge, never straight.
+  float mat = 0.0;
+  if (uDecks > 0.5) {
+    if ((p.x - uSplit.x) * uSplit.y < 0.0) discard;
+    vec2 dw = (vec2(vnoise(p * 1.9 + 3.0), vnoise(p * 1.9 + 17.0)) - 0.5) * 0.3;
+    vec4 dk = texture2D(tDeck, (p + dw) / uMap);
+    if (dk.r + (vnoise(p * 5.0) - 0.5) * 0.16 < 0.44) discard;
+    mat = step(0.5, dk.g);
+  }
   // Each tile of the hand-drawn floor is turned a different way, so the same square never reads as a repeat.
   vec2 cell = floor(p);
   vec2 g = fract(p) - 0.5;
@@ -382,13 +419,21 @@ void main() {
   float k = floor(h * 4.0);
   if (k == 1.0) g = vec2(-g.y, g.x); else if (k == 2.0) g = -g; else if (k == 3.0) g = vec2(g.y, -g.x);
   if (fract(h * 7.13) > 0.5) g.x = -g.x;
-  vec3 scrub = textureGrad(tScrub, g * 0.985 + 0.5, dx, dy).rgb;
+  vec3 scrub = uSeamless > 0.5 ? textureGrad(tScrub, p * 0.5, dx * 0.5, dy * 0.5).rgb : textureGrad(tScrub, g * 0.985 + 0.5, dx, dy).rgb;
+  // Stones, for ground that has them: cut-paper pebbles, each cell of a jittered grid holding one or none.
+  vec2 sp = p * 3.3 + (vec2(vnoise(p * 1.3), vnoise(p * 1.3 + 9.0)) - 0.5) * 1.5;
+  vec2 sc = floor(sp), sf = fract(sp) - 0.5;
+  float sh = hash(sc + 7.7);
+  vec2 so = (vec2(hash(sc + 1.3), hash(sc + 4.1)) - 0.5) * 0.4;
+  float stone = (1.0 - smoothstep(0.1 + sh * 0.16, 0.125 + sh * 0.16, length((sf - so) * vec2(1.0, 1.0 + hash(sc + 2.9) * 0.7)))) * step(0.5, hash(sc + 9.1));
+  // Most stones are only a shade off the ground; a few catch the light (the desert's sand has its own, drawn).
+  vec3 stoneCol = mix(mix(uG2a * 1.12, uG2b, step(0.78, hash(sc + 3.3))), uG2b, uRipples) * (0.74 + 0.26 * hash(sc));
   // Sand is the same drawing in sand colours (its pebbles are the bluer bits), under ripples the wind left.
-  float pebble = smoothstep(0.212, 0.252, scrub.b);
-  vec3 sand = mix(vec3(0.925, 0.79, 0.5), vec3(0.965, 0.9, 0.7), pebble * 0.85);
+  float pebble = mix(stone, smoothstep(0.212, 0.252, scrub.b), uRipples);
+  vec3 sand = mix(mix(scrub * 1.12, uG2a, uRipples), stoneCol, pebble * mix(1.0, 0.85, uRipples));
   float ripple = sin((p.y + vnoise(p * 0.33) * 2.4) * 8.0 + vnoise(p * 1.1) * 1.6);
-  sand *= 1.0 - 0.075 * smoothstep(0.15, 1.0, ripple);
-  sand += 0.03 * smoothstep(0.3, 1.0, -ripple);
+  sand *= 1.0 - 0.075 * uRipples * smoothstep(0.15, 1.0, ripple);
+  sand += 0.03 * uRipples * smoothstep(0.3, 1.0, -ripple);
   vec2 warp = vec2(vnoise(p * 0.7), vnoise(p * 0.7 + 31.7)) - 0.5;
   float m = texture2D(tMask, (p + warp * 1.5) / uMap).r;
   float sandAmt = smoothstep(0.36, 0.64, m + (vnoise(p * 2.7) - 0.5) * 0.34);
@@ -396,24 +441,84 @@ void main() {
   float lip = smoothstep(0.0, 0.5, sandAmt) * (1.0 - smoothstep(0.5, 1.0, sandAmt));
   vec3 col = mix(scrub, sand, sandAmt);
   col *= 1.0 - lip * 0.16;
-  // Big soft patches of light and dark, and the shadows of clouds going over.
+  // Up top the ground is a mat of leaves, laid edge to edge, shining a little when it is wet.
+  if (mat > 0.5) {
+    col = textureGrad(tMat, p * 0.5, dx * 0.5, dy * 0.5).rgb;
+    col = mix(col, vec3(0.851, 0.961, 0.902), 0.1 * uRain * smoothstep(0.55, 0.8, vnoise(p * 3.1 + uTime * 0.2)));
+  }
+  // Big soft patches of light and dark, and the shadows of clouds going over (of the last leaves overhead, up top).
   col *= 0.92 + 0.16 * vnoise(p * 0.21 + 5.0);
-  col *= 0.9 + 0.1 * smoothstep(0.3, 0.62, vnoise(p * 0.085 + vec2(uTime * 0.035, uTime * 0.012)));
+  col *= 1.0 - 0.1 * mix(uClouds, 1.6, mat) * (1.0 - smoothstep(0.3, 0.62, vnoise(p * mix(0.085, 0.16, mat) + vec2(uTime * 0.035, uTime * 0.012))));
   // Shade gathered round the rocks.
   float ao = texture2D(tMask, p / uMap).g;
   col *= 1.0 - 0.42 * smoothstep(0.12, 0.9, ao);
+  // Water. The shoreline wanders (the mask is read a little off true) and creeps out as the flood rises.
+  vec4 wm = texture2D(tMask, (p + warp * 0.55) / uMap);
+  float lvl = mix(wm.b, wm.a, uFlood);
+  if (lvl > 0.02) {
+    lvl += (vnoise(p * 2.3) - 0.5) * 0.2;
+    float shallow = smoothstep(0.14, 0.26, lvl);
+    float deep = smoothstep(0.5, 0.56, lvl);
+    // The bank and the shallows: wet stones under a thin wash of water.
+    vec3 bank = mix(col * 0.82, stoneCol, stone * 0.9);
+    bank = mix(bank, uWaterB, 0.22 + 0.2 * smoothstep(0.26, 0.5, lvl));
+    col = mix(col, bank, shallow);
+    // Deep water in two flat tones, with short pale strokes drifting along it and a broken line of foam at its edge.
+    float drift = uTime * (0.22 + 0.5 * uFlood);
+    float band = vnoise(vec2(p.x * 0.9 + vnoise(p * 0.4) * 1.6, p.y * 0.9) + drift * 0.3);
+    vec3 water = mix(uWaterA, mix(uWaterA, uWaterB, 0.7), smoothstep(0.56, 0.62, band));
+    vec2 q = vec2(p.x * 1.6 + sin(p.y * 1.3 + drift) * 0.35, p.y * 5.5 + drift * 2.0);
+    float stroke = smoothstep(0.8, 0.86, vnoise(q)) * smoothstep(0.35, 0.6, vnoise(p * 1.9 - drift * 0.4));
+    water = mix(water, mix(uWaterB, uWaterC, 0.35), stroke * 0.8);
+    if (uWaterDrawn > 0.5) {
+      // A drawn tile of water, sliding downstream and swaying a little; darker where the current runs deep.
+      vec2 wuv = p * 0.5 + vec2(sin(p.y * 0.8 + drift * 1.4) * 0.03, drift * 0.16);
+      water = textureGrad(tWater, wuv, dx * 0.5, dy * 0.5).rgb * mix(0.74, 1.0, smoothstep(0.5, 0.62, band));
+      water = mix(water, uWaterC, stroke * 0.25);
+    }
+    float foam = deep * (1.0 - smoothstep(0.6, 0.72, lvl)) * step(0.45, vnoise(p * 6.0 + drift));
+    water = mix(water, uWaterC, foam * 0.8);
+    // Rain pocks it with rings.
+    vec2 rc = floor(p * 1.7), rf = fract(p * 1.7) - 0.5;
+    float rt = fract(uTime * 0.9 + hash(rc) * 7.0);
+    float ring = smoothstep(0.035, 0.0, abs(length(rf - (vec2(hash(rc + 2.0), hash(rc + 5.0)) - 0.5) * 0.5) - rt * 0.34)) * (1.0 - rt) * uRain;
+    water = mix(water, uWaterC, ring * 0.7);
+    col = mix(col, water, deep);
+  }
   // The ground is one huge sheet, so its distance is worked out here, at each point, not at its far corners.
   float fog = uFog.a * smoothstep(uFogRange.x, uFogRange.y, distance(vec3(p.x, 0.0, p.y), cameraPosition));
   gl_FragColor = vec4(mix(col, uFog.rgb, fog), 1.0);
 }`;
 
-export function makeGround(parent: THREE.Object3D, level: Level, scrub: THREE.Texture, margin: number) {
+/** Where a canopy's deck is: red, something to stand on that the ground itself draws (the floor, a leaf mat: a bough
+ *  is its own picture); green, a leaf mat. Kept, since the canopy's own layers read the same picture. */
+export function deckMask(level: Level): THREE.DataTexture {
   const { w, h } = level;
   const data = new Uint8Array(w * h * 4);
   for (let i = 0; i < w * h; i++) {
-    data[i * 4] = level.sand[i] ? 255 : 0;
-    data[i * 4 + 1] = level.solid[i] ? 255 : 0;
+    const d = level.deck[i];
+    data[i * 4] = d === 0 || d === 2 ? 255 : 0;
+    data[i * 4 + 1] = d === 2 ? 255 : 0;
+    data[i * 4 + 2] = d === 2 || d === 3 ? 255 : 0;
     data[i * 4 + 3] = 255;
+  }
+  const t = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);
+  t.magFilter = t.minFilter = THREE.LinearFilter;
+  t.needsUpdate = true;
+  return t;
+}
+
+export function makeGround(parent: THREE.Object3D, level: Level, scrub: THREE.Texture, margin: number, water: THREE.Texture | null = null, leafMat: THREE.Texture | null = null, deck: THREE.Texture | null = null) {
+  const { w, h } = level;
+  const data = new Uint8Array(w * h * 4);
+  for (let i = 0; i < w * h; i++) {
+    // Red: the second ground. Green: something solid stands here. Blue: water in a dry spell (a ford is thin water).
+    // Alpha: water in flood.
+    const wt = level.water[i];
+    data[i * 4] = level.sand[i] ? 255 : 0;
+    data[i * 4 + 1] = level.hard[i] ? 255 : 0;
+    data[i * 4 + 2] = wt === 1 ? 255 : wt === 3 ? 96 : 0;
+    data[i * 4 + 3] = wt ? 255 : 0;
   }
   const mask = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);
   mask.magFilter = mask.minFilter = THREE.LinearFilter;
@@ -423,7 +528,14 @@ export function makeGround(parent: THREE.Object3D, level: Level, scrub: THREE.Te
   geo.rotateX(-Math.PI / 2);
   const mat = new THREE.ShaderMaterial({
     vertexShader: GROUND_VERT, fragmentShader: GROUND_FRAG,
-    uniforms: { tScrub: { value: scrub }, tMask: { value: mask }, uMap: { value: new THREE.Vector2(w, h) }, uTime: shared.uTime, ...fogUniforms() },
+    uniforms: {
+      tScrub: { value: scrub }, tWater: { value: water ?? scrub }, uWaterDrawn: { value: water ? 1 : 0 }, uSeamless: { value: level.theme.seamless ? 1 : 0 }, tMask: { value: mask }, uMap: { value: new THREE.Vector2(w, h) }, uTime: shared.uTime, ...fogUniforms(),
+      tDeck: { value: deck ?? mask }, tMat: { value: leafMat ?? scrub }, uDecks: { value: deck && leafMat ? 1 : 0 },
+      uG2a: { value: new THREE.Vector3(...level.theme.ground2[0]) }, uG2b: { value: new THREE.Vector3(...level.theme.ground2[1]) },
+      uRipples: { value: level.theme.ripples ? 1 : 0 }, uClouds: { value: level.theme.clouds },
+      uWaterA: { value: new THREE.Vector3(...level.theme.water[0]) }, uWaterB: { value: new THREE.Vector3(...level.theme.water[1]) },
+      uWaterC: { value: new THREE.Vector3(...level.theme.water[2]) }, uFlood: shared.uFlood, uRain: shared.uRain,
+    },
     depthTest: false, depthWrite: false,
   });
   const mesh = new THREE.Mesh(geo, mat);
@@ -458,6 +570,14 @@ export const MOODS: Record<string, Mood> = {
   thicket: { sat: 1.12, mul: [0.95, 1.03, 0.88], shadow: [0.0, 0.03, 0.02], high: [0.05, 0.05, 0.0], vig: [0.42, 0.5, 0.36], vigAmt: 0.5, heat: 0.0, wind: 1.5, fog: [0.62, 0.66, 0.42] },
   dusk: { sat: 0.96, mul: [0.92, 0.88, 1.08], shadow: [0.05, 0.04, 0.13], high: [0.1, 0.05, 0.03], vig: [0.44, 0.4, 0.66], vigAmt: 0.5, heat: 0.0, wind: 1.2, fog: [0.52, 0.46, 0.62] },
   sunset: { sat: 1.14, mul: [1.12, 0.88, 0.78], shadow: [0.07, 0.0, 0.07], high: [0.1, 0.05, 0.0], vig: [0.55, 0.26, 0.3], vigAmt: 0.56, heat: 0.35, wind: 0.8, fog: [0.9, 0.52, 0.36] },
+  // --- the rainforest: dim under the leaves, the distance a pale green mist
+  hall: { sat: 1.06, mul: [0.98, 1.0, 1.03], shadow: [0.03, 0.0, 0.06], high: [0.0, 0.04, 0.03], vig: [0.1, 0.06, 0.19], vigAmt: 0.5, heat: 0.0, wind: 0.5, fog: [0.4, 0.72, 0.66] },
+  fords: { sat: 1.08, mul: [1.0, 1.03, 1.02], shadow: [0.02, 0.0, 0.05], high: [0.02, 0.05, 0.03], vig: [0.1, 0.1, 0.22], vigAmt: 0.44, heat: 0.0, wind: 0.8, fog: [0.52, 0.82, 0.74] },
+  creek: { sat: 1.08, mul: [0.95, 1.02, 1.04], shadow: [0.02, 0.01, 0.07], high: [0.0, 0.05, 0.04], vig: [0.05, 0.14, 0.2], vigAmt: 0.5, heat: 0.0, wind: 0.9, fog: [0.3, 0.62, 0.62] },
+  heliconia: { sat: 1.12, mul: [1.04, 0.98, 1.02], shadow: [0.05, 0.0, 0.06], high: [0.05, 0.02, 0.03], vig: [0.2, 0.05, 0.2], vigAmt: 0.5, heat: 0.0, wind: 0.6, fog: [0.5, 0.66, 0.68] },
+  // Up in the leaves: bright, open, and the distance a pale mist (the style guide's numbers).
+  canopy: { sat: 1.1, mul: [1.0, 1.05, 1.0], shadow: [0.0, 0.03, 0.04], high: [0.05, 0.07, 0.03], vig: [0.05, 0.29, 0.31], vigAmt: 0.3, heat: 0.0, wind: 1.4, fog: [0.75, 0.92, 0.85] },
+  firefly: { sat: 1.0, mul: [0.66, 0.74, 0.98], shadow: [0.03, 0.02, 0.13], high: [0.08, 0.1, 0.0], vig: [0.05, 0.03, 0.14], vigAmt: 0.68, heat: 0.0, wind: 0.4, fog: [0.1, 0.17, 0.28] },
 };
 
 const POST_VERT = /* glsl */ `
@@ -470,6 +590,7 @@ uniform sampler2D tScene;
 uniform vec2 uRes;
 uniform float uTime;
 uniform float uSat;
+uniform float uRain;
 uniform vec3 uMul;
 uniform vec3 uShadow;
 uniform vec3 uHigh;
@@ -552,6 +673,21 @@ void main() {
   }
   float l = luma(c);
   c = mix(vec3(l), c, uSat) * uMul + uShadow * (1.0 - l) + uHigh * l;
+  // Rain: the picture dims and cools, and short pale strokes of it slant down across everything, three sheets deep.
+  if (uRain > 0.01) {
+    c *= 1.0 - 0.22 * uRain;
+    c = mix(c, c * vec3(0.84, 0.98, 1.07), uRain * 0.6);
+    float fall = 0.0;
+    for (int i = 0; i < 3; i++) {
+      float fi = float(i);
+      vec2 ruv = vec2(vUv.x * uRes.x / uRes.y + vUv.y * 0.16, vUv.y) * vec2(30.0 + fi * 24.0, 2.6 + fi * 1.5);
+      ruv.y += uTime * (4.6 + fi * 1.9) + hash(vec2(floor(ruv.x), fi)) * 9.0;
+      vec2 rf = fract(ruv);
+      float on = step(1.0 - 0.3 * uRain, hash(floor(ruv) + fi * 17.0));
+      fall += on * smoothstep(0.14, 0.02, abs(rf.x - 0.5)) * smoothstep(0.0, 0.25, rf.y) * smoothstep(1.0, 0.55, rf.y) * (1.0 - fi * 0.25);
+    }
+    c += vec3(0.62, 0.9, 0.84) * fall * 0.2 * uRain;
+  }
 
   // Far haze for the low camera: distance fades into warm dust.
   c = mix(c, uHaze.rgb, uHaze.a * smoothstep(0.52, 1.0, vUv.y));
@@ -590,7 +726,7 @@ export class Post {
     renderer.getDrawingBufferSize(this.size);
     this.target = this.makeTarget();
     this.u = {
-      tScene: { value: this.target.texture }, uRes: { value: this.size.clone() }, uTime: shared.uTime,
+      tScene: { value: this.target.texture }, uRes: { value: this.size.clone() }, uTime: shared.uTime, uRain: shared.uRain,
       uSat: { value: 1 }, uMul: { value: new THREE.Vector3(1, 1, 1) }, uShadow: { value: new THREE.Vector3() }, uHigh: { value: new THREE.Vector3() },
       uVigCol: { value: new THREE.Vector3(0.5, 0.4, 0.4) }, uVig: { value: 0.4 }, uGrain: { value: 0.035 }, uHeat: { value: 0 },
       uDanger: { value: 0 }, uHidden: { value: 0 }, uFlash: { value: 0 }, uAberr: { value: 0 }, uDesat: { value: 0 },

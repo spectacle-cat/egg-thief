@@ -9,8 +9,8 @@
     "build": "vite build",
     "preview": "vite preview --port 4183",
     "typecheck": "tsc --noEmit -p .",
-    "assets": "bash tools/art-items.sh && bash tools/art-props.sh && bash tools/assets.sh",
-    "level": "node tools/make-level.mjs"
+    "assets": "bash tools/art-items.sh && bash tools/art-props.sh && bash tools/assets.sh && bash tools/art-rainforest.sh",
+    "level": "node tools/make-level.mjs && node tools/make-rainforest.mjs"
   },
   "dependencies": {
     "three": "^0.187.0"

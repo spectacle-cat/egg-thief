@@ -2,7 +2,7 @@
 # Screenshot the running dev server (http://127.0.0.1:5183) with headless Chromium on software rendering
 # (it never touches the real GPU), and print what the page logged.
 # Usage: tools/shot.sh "<query>" <out.png> [width] [height] [virtual-ms]
-#   tools/shot.sh "skip=1&view=tilt&at=27,24" .shots/dunes.png
+#   tools/shot.sh "skip=1&view=top&at=27,24" .shots/dunes.png
 cd "$(dirname "$0")/.."
 Q="$1"; OUT="${2:-.shots/shot.png}"; W="${3:-1280}"; H="${4:-720}"; WAIT="${5:-6000}"
 mkdir -p "$(dirname "$OUT")"

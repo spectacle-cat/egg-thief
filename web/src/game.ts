@@ -1,16 +1,23 @@
 // The game itself: what the lizard is doing, the eggs it has, the power eggs and what they do, what happens when
 // it is caught, and the frame loop that moves everything and draws it.
+//
+// A Game is one level. Changing level makes a new one and throws the old one away (`dispose`); what must last the
+// whole visit (the picture's canvas, the sound, the HUD, the keys and pads) belongs to the Shell it is handed.
 import * as THREE from 'three';
-import { Sound } from './audio';
-import { CameraRig, VIEWS } from './camera';
+import type { Sound } from './audio';
+import { CameraRig } from './camera';
 import { Critters } from './critters';
-import { MOODS, Post, makeRenderer, shared, type Mood } from './gfx';
-import { Hud, type BestRun, type Medal } from './hud';
+import { MOODS, shared, type Mood, type Post } from './gfx';
+import type { Hud, Medal } from './hud';
 import { Hunters, type Ctx } from './hunters';
-import { Input } from './input';
+import type { Input } from './input';
 import { POWERS, type Burrow, type Level, type Nest, type PowerKind, type PowerNest, type Zone } from './level';
+import { bestOf, betterRun, isOpen, nextAfter, saveBest, type BestRun, type LevelInfo } from './levels';
 import { Lizard, TailDecoy } from './lizard';
 import { Particles } from './particles';
+import { Canopy } from './canopy';
+import { Tunnels } from './tunnels';
+import { Weather } from './weather';
 import { World, type Textures } from './world';
 import { TAU, clamp, clamp01, damp, dirX, dirZ, dist, easeInOut, headingOf, lerp, type V2 } from './util';
 
@@ -29,6 +36,14 @@ const HINTS: Record<string, string> = {
   grass: 'Long grass hides you, even on the run',
   tail: 'You dropped your tail! It grows back; a burrow mends it at once.',
   scorpion: 'A boulder that shifts has a scorpion under it',
+  water: 'Too wide to swim. Walk the pebbles, run a log, or <kbd>SPACE</kbd> dash over a narrow stream.',
+  rain: 'Thunder! When it rains the streams swell and the logs float off somewhere new.',
+  tunnel: 'A hollow log: in one end, out the other, and nobody sees',
+  spider: 'Legs at the mouth of a log: somebody lives there. Wait until it comes out.',
+  viper: 'A viper on its flower. It never leaves, but it strikes at what comes close and its hiss brings others.',
+  door: 'A split in the old tree, glowing. Lizard-sized.',
+  canopy: 'The canopy. Mind the gaps: it is a long way down, though the leaves break a fall.',
+  fall: 'A soft landing. The way back up is the hollow tree.',
   hawk: 'Hawks dive on anything in the open beneath them',
   owl: "Owls glide low and never turn. Don't be underneath.",
   sentry: 'A guard. It will not leave its post unless something gives it a reason.',
@@ -46,6 +61,7 @@ const HINTS: Record<string, string> = {
 const HINTS_TOUCH: Record<string, string> = {
   move: 'Put your left thumb down anywhere and drag: run',
   dash: 'Tap <kbd>DASH</kbd> for a burst of speed',
+  water: 'Too wide to swim. Walk the pebbles, run a log, or tap <kbd>DASH</kbd> to skip over a narrow stream.',
   thunder: 'Tap the Thunder Egg: it smashes cracked rocks and knocks hunters silly',
   ghost: 'Tap the Ghost Egg: for a few seconds nothing can see you or catch you',
   chili: 'Tap the Chili Egg: run like fire and burn through thorns',
@@ -64,12 +80,33 @@ const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 export interface Params { view?: string; skip?: boolean; mute?: boolean; at?: [number, number]; bot?: boolean; post?: boolean; eggs?: number; power?: string; safe?: boolean; res?: number }
 
+/** What a game is lent and does not own: one of each for the whole visit, whichever level is up. */
+export interface Shell {
+  readonly renderer: THREE.WebGLRenderer;
+  readonly post: Post;
+  readonly sound: Sound;
+  readonly hud: Hud;
+  readonly input: Input;
+  /** How far a phone that could not keep up has lowered its picture (1: not at all). It stays lowered from level to level. */
+  resScale: number;
+  /** The screens before play (splash, title, level select, the level's card) take the buttons while the game waits behind them. */
+  menu(real: number): void;
+}
+
+/** Give back the graphics memory of everything in a set of textures (or anything else that holds some). */
+export function disposeTextures(set: unknown, seen = new Set<unknown>()) {
+  if (!set || typeof set !== 'object' || ArrayBuffer.isView(set) || seen.has(set)) return;
+  seen.add(set);
+  if (set instanceof THREE.Texture) { set.dispose(); return; }
+  for (const v of Array.isArray(set) ? set : Object.values(set as Record<string, unknown>)) disposeTextures(v, seen);
+}
+
 export class Game {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly rig = new CameraRig();
-  readonly input = new Input();
-  readonly sound = new Sound();
+  readonly input: Input;
+  readonly sound: Sound;
   readonly post: Post;
   readonly hud: Hud;
   readonly world: World;
@@ -108,15 +145,25 @@ export class Game {
   private zone: Zone | null = null;
   private zoneT = 0;
   private mood: Mood = structuredClone(MOODS.morning);
+  /** The rain and the streams, and the hollow logs (a level without them has a sky that never changes and no logs). */
+  readonly weather: Weather;
+  private sky = 'dry';
+  readonly tunnels: Tunnels;
+  readonly canopy: Canopy;
   private explored: Uint8Array;
   private mapT = 0;
   private hinted = new Set<string>();
   private moved = 0;
   private last = 0;
   private noRender = false;
+  /** Where the stand-in player is heading (null: it can think of nowhere to go), for a test to report when it sticks. */
+  private aim: { x: number; z: number } | null = null;
+  /** Where it last got somewhere, how many frames it has pushed on since without moving, and how many more it will back away for. */
+  private botAt = { x: 0, z: 0, still: 0, back: 0 };
+  /** Thrown away: another level has taken its place. */
+  private gone = false;
   /** A phone or a tablet: fewer pixels are drawn than its sharp screen has, and fewer still if it cannot keep up. */
   private readonly handheld = navigator.maxTouchPoints > 0 && !!window.matchMedia?.('(pointer: coarse)').matches;
-  private resScale = 1;
   private slowT = 0; private slowN = 0;
   private leaving: Burrow | null = null;
   private ctx: Ctx;
@@ -147,17 +194,22 @@ export class Game {
   private zoneTotal: number[] = [];
   private zoneHome: number[] = [];
 
-  constructor(container: HTMLElement, readonly level: Level, tex: Textures, private params: Params) {
-    this.renderer = makeRenderer(container);
-    this.post = new Post(this.renderer);
+  /** `info`: the level's entry in the list of levels (its name, and the id its record is kept under). */
+  constructor(readonly shell: Shell, readonly info: LevelInfo, readonly level: Level, private tex: Textures, private params: Params) {
+    this.renderer = shell.renderer; this.post = shell.post; this.sound = shell.sound; this.hud = shell.hud; this.input = shell.input;
     this.post.enabled = params.post !== false;
-    this.hud = new Hud(import.meta.env.BASE_URL);
+    this.hud.newLevel();
+    this.input.bot = null;
     this.world = new World(this.scene, level, tex);
     this.decoy = new TailDecoy(this.scene, tex.lizard);
     this.lizard = new Lizard(this.scene, tex.lizard);
     this.hunters = new Hunters(this.scene, level, tex);
     this.critters = new Critters(this.scene, level, tex);
     this.fx = new Particles(this.scene);
+    this.weather = new Weather(level, this.world);
+    this.tunnels = new Tunnels(this.scene, level, tex);
+    this.canopy = new Canopy(this.scene, level, tex, this.world);
+    this.sound.setTheme(level.theme.name);
     this.fx.blocked = (x, z) => level.isOpaque(Math.floor(x), Math.floor(z));
     this.explored = new Uint8Array(level.w * level.h);
     this.left = level.nests.map((n) => [...n.eggs]);
@@ -167,27 +219,18 @@ export class Game {
     this.zoneOf = level.nests.map((n) => level.zones.indexOf(level.zoneAt(n.x, n.z) as Zone));
     this.zoneTotal = level.zones.map((_, i) => level.nests.reduce((sum, n) => sum + (this.zoneOf[n.id] === i ? n.eggs.length : 0), 0));
     this.zoneHome = level.zones.map(() => 0);
-    if (params.mute) this.sound.enabled = false;
 
-    const view = VIEWS.findIndex((v) => v.id === params.view);
-    this.rig.setView(view >= 0 ? view : 2, true);
-    this.hud.setView(this.rig.viewIndex);
-    this.hud.onPickView = (i) => this.setView(i);
-    this.hud.onStart = () => this.start();
+    this.rig.setView(params.view === 'top' ? 0 : 1, true);
+    // The cards' buttons now mean this game (the one before, if there was one, is let go of here).
     this.hud.onResume = () => this.setPaused(false);
     this.hud.onRestart = () => { this.setPaused(false); this.resetLevel(); };
     this.hud.onAgain = () => this.again();
-    this.hud.onSound = () => { this.sound.toggleMute(); this.sound.play('ui'); };
-    this.hud.onFullscreen = () => this.fullscreen();
-    // Sound can only be started from inside a key press, a click or a touch (an iPhone is strict about it).
-    this.input.onGesture = () => this.sound.unlock();
     this.hud.onStar = (i) => this.sound.play('star', i);
     this.hud.onMedal = (_, nth) => this.sound.play('medal', nth);
-    this.hud.setBest(this.best());
     this.critters.onEat = (x, z, n) => this.ate(x, z, n);
 
     this.ctx = {
-      level, lizard: this.lizard, fx: this.fx, sound: this.sound, rig: this.rig, world: this.world, decoy: this.decoy, time: 0,
+      level, lizard: this.lizard, fx: this.fx, sound: this.sound, rig: this.rig, world: this.world, decoy: this.decoy, time: 0, rain: 0,
       lure: { x: 0, z: 0, active: false },
       catchLizard: (by, x, z) => this.catchLizard(by, x, z),
       mark: (kind, x, y, z) => this.mark(kind, x, y, z),
@@ -200,28 +243,25 @@ export class Game {
     if (params.at) this.lizard.place(params.at[0], params.at[1], 0);
     this.rig.snapTo(this.lizard.pos.x, this.lizard.pos.z, this.lizard.heading);
     this.zone = level.zoneAt(this.lizard.pos.x, this.lizard.pos.z);
-    if (this.zone) { this.mood = structuredClone(MOODS[this.zone.mood] ?? MOODS.morning); this.sound.setZone(this.zone.mood); }
+    this.mood = structuredClone(MOODS[this.zone?.mood ?? level.theme.mood] ?? MOODS[level.theme.mood]);
+    this.sound.setZone(this.zone?.mood ?? level.theme.mood);
+    this.sound.setPower(null);
+    this.sound.setTension(0);
+    this.openIris();
 
-    window.addEventListener('resize', () => this.resize());
-    window.visualViewport?.addEventListener('resize', () => this.resize());
     this.resize();
-    // The page put away (another tab, the phone locked, a call): stop the clock and the sound until it is back.
-    document.addEventListener('visibilitychange', () => {
-      this.input.letGo();
-      if (document.hidden && this.state === 'play' && !this.paused) this.setPaused(true);
-      this.sound.sleep(document.hidden);
-    });
     if (params.skip) this.start();
     if (params.eggs) for (let i = 0; i < params.eggs; i++) this.carried.push({ type: 1 + (i % 3), nest: -1, x: this.lizard.pos.x, z: this.lizard.pos.z, pop: 1, roll: i });
     if (params.power) this.give(params.power);
   }
 
-  private resize() {
+  /** The window changed size (the shell listens for that, once, for whichever game is up). */
+  resize() {
     const w = window.innerWidth, h = window.innerHeight;
     let ratio = Math.min(window.devicePixelRatio || 1, 2);
     // A tablet's screen has more pixels than its chip can paint sixty times a second with the finishing pass on.
     if (this.handheld) ratio = Math.min(ratio, Math.sqrt(3.2e6 / Math.max(1, w * h)));
-    ratio = this.params.res ?? Math.max(0.75, ratio * this.resScale);
+    ratio = this.params.res ?? Math.max(0.75, ratio * this.shell.resScale);
     this.renderer.setPixelRatio(ratio);
     this.renderer.setSize(w, h);
     this.post.resize();
@@ -236,37 +276,76 @@ export class Game {
     if (this.slowN < 120) return;
     const avg = this.slowT / this.slowN;
     this.slowT = this.slowN = 0;
-    if (avg > 23 && this.resScale > 0.5) { this.resScale *= 0.85; this.resize(); }
+    if (avg > 23 && this.shell.resScale > 0.5) { this.shell.resScale *= 0.85; this.resize(); }
   }
 
-  /** Fill the screen, on its side (where the browser can: the buttons that call this are only shown there). */
-  private fullscreen() {
-    const lock = () => (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.('landscape')?.catch(() => {});
-    try {
-      if (document.fullscreenElement) void document.exitFullscreen();
-      else void document.documentElement.requestFullscreen({ navigationUI: 'hide' }).then(lock).catch(() => {});
-    } catch { /* not here */ }
-  }
+  /** The page put away (another tab, the phone locked, a call): stop the clock until it is back. */
+  putAway() { if (this.state === 'play' && !this.paused) this.setPaused(true); }
 
   setView(i: number) {
     this.rig.setView(i);
-    this.hud.setView(this.rig.viewIndex);
-    this.sound.play('ui');
   }
 
+  /** Out from behind the menus and into play. */
   start() {
     if (this.state !== 'title') return;
     this.sound.unlock();
     this.sound.play('uiGo');
     this.state = 'play';
     this.lizard.frozen = false;
-    this.hud.showTitle(false);
     this.hud.showPlay(true);
     if (this.zone) this.hud.zone(this.zone.name);
     this.hintOnce('move');
   }
 
+  /** The finishing pass is the shell's, and remembers the last game's iris: open it wide. */
+  private openIris() {
+    this.iris = 3; this.irisOpen = 0; this.desat = 0;
+    (this.post.u.uIris.value as THREE.Vector3).set(0.5, 0.5, 3);
+    (this.post.u.uFocus.value as THREE.Vector2).set(0.5, 0.5);
+  }
+
+  /** Back behind the menus, from the pause card or the end card: the level as it was at the start, nobody playing. */
+  idle() {
+    const lv = this.level;
+    this.paused = false;
+    this.hud.showPause(false);
+    this.hud.showResults(null);
+    this.hud.showPlay(false);
+    this.hud.prompt(null);
+    this.resetLevel();
+    this.state = 'title'; this.stateT = 0;
+    this.lizard.place(lv.start.x, lv.start.z, Math.PI / 2);
+    this.lizard.frozen = true;
+    this.rig.snapTo(this.lizard.pos.x, this.lizard.pos.z, this.lizard.heading);
+    this.zone = lv.zoneAt(this.lizard.pos.x, this.lizard.pos.z);
+    this.sound.setZone(this.zone?.mood ?? lv.theme.mood);
+    this.openIris();
+  }
+
+  /** Another level is taking this one's place: give back everything it drew with. The canvas, the sound, the HUD and
+   *  the keys are the shell's and stay. Call it before the next game draws its first picture. */
+  dispose() {
+    if (this.gone) return;
+    this.gone = true;
+    this.endActive(true); this.endRattle(true);
+    this.input.bot = null;
+    const textures = new Set<unknown>();
+    this.scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      m.geometry?.dispose();
+      for (const mat of Array.isArray(m.material) ? m.material : m.material ? [m.material] : []) {
+        // Pictures made on the spot (the ground's mask) are held only by the material that uses them.
+        for (const u of Object.values((mat as THREE.ShaderMaterial).uniforms ?? {})) if (u.value instanceof THREE.Texture) disposeTextures(u.value, textures);
+        mat.dispose();
+      }
+    });
+    disposeTextures(this.tex, textures);
+    this.scene.clear();
+  }
+
   private again() {
+    if (this.state !== 'won') return;
     this.hud.showResults(null);
     this.resetLevel();
     this.state = 'play';
@@ -296,6 +375,9 @@ export class Game {
     this.burnQueue = []; this.prints = [];
     this.level.restore();
     this.world.resetBarriers();
+    this.weather.reset();
+    this.tunnels.reset();
+    this.canopy.reset();
     this.critters.reset();
     this.checkpoint = Math.max(0, this.level.burrows.findIndex((b) => b.kind === 'start'));
     this.respawn();
@@ -306,7 +388,9 @@ export class Game {
   private hintOnce(id: string) {
     if (this.hinted.has(id) || this.state !== 'play') return;
     this.hinted.add(id);
-    if (HINTS[id]) this.hud.hint(HINTS[id], HINTS_TOUCH[id]);
+    // (A place with its own names for things says the hint in its own words.)
+    const theme = this.level.theme, text = theme.hints[id] ?? HINTS[id];
+    if (text) this.hud.hint(text, theme.hintsTouch[id] ?? HINTS_TOUCH[id]);
   }
 
   private mark(kind: '!' | '?', x: number, y: number, z: number) {
@@ -561,7 +645,7 @@ export class Game {
       this.fx.burst('dustBig', c + 0.5, r + 0.5);
       broke++;
     }
-    const stunned = this.hunters.stunNear(liz.pos.x, liz.pos.z, THUNDER_STUN, 3.8);
+    const stunned = this.hunters.stunNear(liz.pos.x, liz.pos.z, THUNDER_STUN, 3.8) + this.tunnels.stunNear(liz.pos.x, liz.pos.z, THUNDER_STUN, 3.8);
     this.stats.smashed += broke;
     this.hop = 1;
     this.hitstop = 0.09; this.flash = 0.6; this.aberr = 1.6;
@@ -695,7 +779,7 @@ export class Game {
         if (rep !== this.pushRep) { this.pushRep = rep; this.sound.play('pushup'); }
       }
     } else { this.pushT = 0; this.pushRep = -1; }
-    liz.lift = lift;
+    liz.lift = lift + this.weather.perch + this.canopy.lift;
 
     // --- the first sight of a barrier gets a word
     if (playing && !(this.hinted.has('cracked') && this.hinted.has('thorns'))) {
@@ -716,7 +800,7 @@ export class Game {
    */
   private bot() {
     const liz = this.lizard, lv = this.level;
-    const reach = lv.fieldTo(Math.floor(liz.pos.x), Math.floor(liz.pos.z));
+    const reach = lv.fieldTo(Math.floor(liz.pos.x), Math.floor(liz.pos.z), 'lizard');
     const can = (x: number, z: number) => reach[Math.floor(z) * lv.w + Math.floor(x)] >= 0;
     const near = <T extends { x: number; z: number }>(list: T[], ok: (t: T) => boolean): T | null => {
       let best: T | null = null, bd = Infinity;
@@ -754,17 +838,25 @@ export class Game {
       const exit = lv.burrows.find((b) => b.kind === 'exit');
       if (exit) { target = exit; hold = dist(exit.x, exit.z, liz.pos.x, liz.pos.z) < 0.5; }
     }
+    this.aim = target;
     if (!target) { this.input.bot = { x: 0, z: 0, dash: false, power }; return; }
     // Straight at a wall it means to burn; round the rocks to anything else.
-    if (lv.isSolid(Math.floor(target.x), Math.floor(target.z))) { this.v2.x = target.x; this.v2.z = target.z; } else lv.stepToward(liz.pos, target.x, target.z, 0.25, this.v2);
-    const dx = this.v2.x - liz.pos.x, dz = this.v2.z - liz.pos.z;
+    if (lv.isSolid(Math.floor(target.x), Math.floor(target.z))) { this.v2.x = target.x; this.v2.z = target.z; } else lv.stepToward(liz.pos, target.x, target.z, 0.25, this.v2, 'lizard');
+    let dx = this.v2.x - liz.pos.x, dz = this.v2.z - liz.pos.z;
     const len = Math.hypot(dx, dz) || 1;
+    // Pushing at something on the way and getting nowhere (a hollow log's mouth wants a run-up before it lets a
+    // lizard in): back away for half a second and come at it again. (Standing where it meant to go is not that.)
+    const at = this.botAt;
+    if (liz.frozen || dist(liz.pos.x, liz.pos.z, target.x, target.z) < 0.9 || dist(liz.pos.x, liz.pos.z, at.x, at.z) > 0.1) { at.x = liz.pos.x; at.z = liz.pos.z; at.still = 0; }
+    else if (++at.still > 90) { at.still = 0; at.back = 30; }
+    if (at.back > 0) { at.back--; dx = -dx; dz = -dz; }
     // The bot steers in world directions: undo the camera's turn.
     const s = Math.sin(-this.rig.yaw), c = Math.cos(-this.rig.yaw);
     this.input.bot = { x: (c * dx - s * dz) / len, z: (s * dx + c * dz) / len, dash: hold || Math.random() < 0.01, power };
   }
 
   frame(now: number) {
+    if (this.gone) return;
     const real = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
     if (this.frames > 60) this.pace(now - this.last);
     this.last = now;
@@ -782,16 +874,17 @@ export class Game {
     this.hud.useTouch(input.usingTouch);
     this.hud.setStick(input.stick);
     this.hud.setSound(this.sound.enabled && !this.sound.muted);
-    if (input.camPick) this.setView(input.camPick - 1);
-    if (input.camNext) this.setView(this.rig.viewIndex + 1);
     if (input.mute) this.hud.toast(this.sound.toggleMute() ? 'Sound off' : 'Sound on');
     if (input.zoom) this.rig.zoom = Math.min(1.5, Math.max(0.65, this.rig.zoom * (1 + input.zoom * 0.08)));
 
-    if (this.state === 'title') { if (input.confirm || input.dash || input.tap) this.start(); }
-    else if (this.state === 'won') { if (input.confirm || input.dash) this.again(); }
+    // The cards: the arrows move the light between a card's buttons, and "go" presses the lit one.
+    if (this.state === 'title') { this.shell.menu(real); if (this.gone) return; }
+    else if (this.state === 'won') { if (input.navX) this.navCard(input.navX); else if (input.confirm || input.dash) this.hud.press(); if (this.gone) return; }
     else if (input.pause) this.setPaused(!this.paused);
     else if (this.paused && input.back && input.usingPad) { this.setPaused(false); input.power = false; } // circle backs out of the pause card (and is not also "use the egg")
     else if (this.paused && input.restart) { this.setPaused(false); this.resetLevel(); }
+    else if (this.paused && input.navX) this.navCard(input.navX);
+    else if (this.paused && input.confirm) { this.hud.press(); input.dash = false; if (this.gone) return; } // (and is not also a dash as the clock restarts)
 
     // How fast the world runs this frame: stopped for a beat on a hit, slow just after.
     this.hitstop = Math.max(0, this.hitstop - real);
@@ -813,6 +906,25 @@ export class Game {
     const nearExit = lv.burrows.some((b) => b.kind === 'exit' && dist(b.x, b.z, liz.pos.x, liz.pos.z) < 0.9) && !this.carried.length;
     this.rig.toWorld(input.moveX, input.moveZ, this.v2);
     if (dt > 0) liz.update(dt, this.v2.x, this.v2.z, input.dash && this.state === 'play' && !nearExit, lv);
+    // --- the rain, the streams and the logs; then whoever is in a hollow log
+    this.weather.update(dt, this.state === 'play', liz, this.fx, this.sound);
+    if (this.weather.washed) { this.hintOnce('water'); this.rig.shake(0.25); this.input.rumble(0.4, 140); }
+    if (this.weather.sky !== this.sky) {
+      // Lightning with the thunder; a word when the water starts to move.
+      this.sky = this.weather.sky;
+      if (this.sky === 'warn') { this.flash = Math.max(this.flash, 0.3); this.hintOnce('rain'); }
+      else if (this.sky === 'rain') { this.flash = Math.max(this.flash, 0.6); this.rig.shake(0.3); this.input.rumble(0.5, 260); if (this.state === 'play') this.hud.toast('The streams are rising'); }
+      else if (this.sky === 'ease' && this.state === 'play') this.hud.toast('The rain is easing');
+    }
+    this.ctx.rain = this.weather.rain;
+    this.sound.setRain(this.state === 'won' ? 0 : this.weather.rain);
+    this.tunnels.update(dt, this.ctx, this.state === 'play');
+    // --- up or down the hollow tree, or off the edge of the canopy
+    this.canopy.update(dt, this.state === 'play', liz, this.fx, this.sound);
+    if (this.canopy.moved) this.rig.snapTo(liz.pos.x, liz.pos.z, liz.heading);
+    if (this.canopy.event === 'up') this.hintOnce('canopy');
+    else if (this.canopy.event === 'landed') { this.hintOnce('fall'); this.rig.shake(0.3); this.input.rumble(0.5, 160); }
+    if (lv.canopy && !this.canopy.up && dist(liz.pos.x, liz.pos.z, lv.canopy.door.x, lv.canopy.door.z) < 4.5) this.hintOnce('door');
     if (dt > 0 && this.state === 'play') this.lizardFx(dt);
 
     // --- eggs, burrows, powers, the way out
@@ -822,7 +934,8 @@ export class Game {
     // --- hunters and critters (drawn even when time is stopped)
     this.hunters.update(this.state === 'play' || this.state === 'title' ? dt : dt * 0.25, this.ctx);
     this.critters.update(dt, this.time, liz, this.fx, this.sound, w, this.state === 'play');
-    this.danger = damp(this.danger, this.state === 'play' ? this.hunters.danger : 0, this.hunters.danger > this.danger ? 8 : 1.6, real);
+    const threat = Math.max(this.hunters.danger, this.tunnels.danger);
+    this.danger = damp(this.danger, this.state === 'play' ? threat : 0, threat > this.danger ? 8 : 1.6, real);
     this.sound.setTension(this.danger);
 
     this.decoy.update(dt, this.time);
@@ -841,7 +954,7 @@ export class Game {
     const target = calm ? { x: liz.pos.x + Math.sin(this.time * 0.21) * 2.5, z: liz.pos.z + Math.cos(this.time * 0.17) * 1.6 } : liz.pos;
     const moodZoom = calm ? 1.08 : this.active?.kind === 'chili' ? 1.14 : liz.hidden ? 0.93 : this.danger > 0.6 ? 1.07 : 1;
     if (this.state === 'play' && !this.paused) this.rig.turnBy(input.look);
-    this.rig.update(this.paused ? 0 : real, target, liz.alive ? liz.vel : { x: 0, z: 0 }, liz.heading, lv.w, lv.h, aspect, moodZoom, this.state === 'play' ? input.turn : 0);
+    this.rig.update(this.paused ? 0 : real, target, liz.alive ? liz.vel : { x: 0, z: 0 }, liz.heading, this.canopy.up ? lv.w : lv.floorW, lv.h, aspect, moodZoom, this.state === 'play' ? input.turn : 0);
     // The leaves part between the camera and a hidden lizard; long grass bows away from it.
     const hs = this.rig.toScreen(liz.pos.x, 0.1, liz.pos.z, this.scr);
     w.setHole(hs.x, hs.y, liz.hiddenAmt, this.post.size);
@@ -1073,10 +1186,7 @@ export class Game {
     if (t > 1.8) this.finish();
   }
 
-  private bestKey() { return `eggthief.best.${this.level.title}`; }
-  private best(): BestRun | null {
-    try { return JSON.parse(localStorage.getItem(this.bestKey()) ?? 'null'); } catch { return null; }
-  }
+  private navCard(d: number) { if (this.hud.nav(d)) this.sound.play('ui'); }
 
   /** Home: count it all up. */
   private finish() {
@@ -1095,17 +1205,20 @@ export class Game {
       { id: 'bugs', name: 'Bug Buffet', desc: 'Eat every beetle', got: this.critters.beetlesTotal > 0 && this.critters.eaten === this.critters.beetlesTotal },
       { id: 'untouchable', name: 'Untouchable', desc: 'Never get eaten', got: st.caught === 0 },
     ];
-    const run: BestRun = { time: this.playTime, stars, eggs: this.banked, total: lv.totalEggs, medals: medals.filter((m) => m.got).length };
-    const old = this.best();
-    const newBest = !old || run.stars > old.stars || (run.stars === old.stars && (run.medals > old.medals || (run.medals === old.medals && run.time < old.time)));
-    if (newBest) {
-      try { localStorage.setItem(this.bestKey(), JSON.stringify(run)); } catch { /* a private window: no record kept */ }
-      this.hud.setBest(run);
-    }
+    // The record is kept under the level's id. The golden egg, once found, stays found on it.
+    const old = bestOf(this.info);
+    const run: BestRun = { time: this.playTime, stars, eggs: this.banked, total: lv.totalEggs, medals: medals.filter((m) => m.got).length, gold: this.gold || !!old?.gold };
+    const next = nextAfter(this.info.id);
+    const wasShut = !!next && !isOpen(next);
+    const newBest = betterRun(run, old);
+    if (newBest) saveBest(this.info, run);
+    else if (old && run.gold && !old.gold) saveBest(this.info, { ...old, gold: true });
+    const open = !!next && isOpen(next);
     this.hud.showPlay(false);
     this.hud.showResults({
-      title: lv.title, eggs: this.banked, total: lv.totalEggs, seconds: this.playTime, par: lv.parSeconds, caught: st.caught, tails: st.tails, stars,
+      title: this.info.line ? `${this.info.name} · ${this.info.line}` : this.info.name, eggs: this.banked, total: lv.totalEggs, seconds: this.playTime, par: lv.parSeconds, caught: st.caught, tails: st.tails, stars,
       gold: this.gold, beetles: this.critters.eaten, beetlesTotal: this.critters.beetlesTotal, newBest: newBest && !!old, medals,
+      next: open, opened: open && wasShut ? next!.name : undefined,
     });
   }
 
@@ -1121,7 +1234,7 @@ export class Game {
         this.sound.setZone(zone.mood);
       }
     } else this.zoneT = 0;
-    const to = MOODS[this.zone?.mood ?? 'morning'] ?? MOODS.morning;
+    const to = MOODS[this.zone?.mood ?? this.level.theme.mood] ?? MOODS[this.level.theme.mood];
     const k = 1 - Math.exp(-1.3 * real);
     const m = this.mood;
     m.sat += (to.sat - m.sat) * k; m.vigAmt += (to.vigAmt - m.vigAmt) * k; m.heat += (to.heat - m.heat) * k; m.wind += (to.wind - m.wind) * k;
@@ -1147,7 +1260,8 @@ export class Game {
       // The iris opens again after a respawn.
       if (this.irisOpen > 0) { this.irisOpen += real / 0.55; this.iris = lerp(0, 2.2, easeInOut(clamp01(this.irisOpen))); if (this.irisOpen >= 1) { this.irisOpen = 0; this.iris = 3; } }
       const s = this.rig.toScreen(liz.pos.x, 0.1, liz.pos.z, this.scr);
-      (u.uIris.value as THREE.Vector3).set(s.x, 1 - s.y, this.iris);
+      // (The same wipe closes and opens as the lizard goes up the hollow tree, comes down it, or falls.)
+      (u.uIris.value as THREE.Vector3).set(s.x, 1 - s.y, this.canopy.wipe > 0 ? Math.min(this.iris, 2.2 * (1 - this.canopy.wipe)) : this.iris);
       (u.uFocus.value as THREE.Vector2).set(s.x, 1 - s.y);
     }
     u.uSat.value = m.sat;
@@ -1197,12 +1311,15 @@ export class Game {
   /** For tests and the console. */
   debug() {
     return {
-      state: this.state, banked: this.banked, carried: this.carried.length, x: +this.lizard.pos.x.toFixed(2), z: +this.lizard.pos.z.toFixed(2),
+      level: this.info.id, state: this.state, banked: this.banked, carried: this.carried.length, x: +this.lizard.pos.x.toFixed(2), z: +this.lizard.pos.z.toFixed(2),
       alive: this.lizard.alive, hidden: this.lizard.hidden, tail: +this.lizard.tailLen.toFixed(2), caught: this.stats.caught, tails: this.stats.tails,
       alarms: this.stats.alarms, smashed: this.stats.smashed, burnt: this.stats.burnt, beetles: this.critters.eaten, gold: this.gold,
       power: this.held?.kind ?? (this.active ? this.active.kind + '!' : this.rattle ? 'rattle!' : null),
       danger: +this.danger.toFixed(2), zone: this.zone?.name, view: this.rig.view.id, particles: this.fx.live, frames: this.frames, time: +this.playTime.toFixed(1),
-      draws: this.renderer.info.render.calls,
+      draws: this.renderer.info.render.calls, sky: this.weather.sky, flood: +this.weather.flood.toFixed(2), inside: this.lizard.inside, deck: this.canopy.up ? 'canopy' : 'floor',
+      // What the graphics card is holding: these must not creep up as levels come and go.
+      geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures, programs: this.renderer.info.programs?.length ?? 0,
+      aim: this.params.bot ? (this.aim ? [+this.aim.x.toFixed(1), +this.aim.z.toFixed(1)] : 'nowhere') : undefined,
     };
   }
   /** Run the game ahead without drawing it (tests: minutes of play in a moment). */

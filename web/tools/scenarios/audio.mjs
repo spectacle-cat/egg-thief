@@ -10,7 +10,7 @@ const NAMES = [
   'thud', 'swoop', 'hoot', 'rattle', 'snap', 'tail', 'regrow', 'caught', 'respawn', 'zone', 'ui', 'uiGo', 'hold', 'win', 'star',
   'powerGet', 'powerEmpty', 'thunder', 'smash', 'stun', 'ghostOn', 'ghostOff', 'ghostTick', 'chiliOn', 'chiliOff', 'burn', 'scare',
   'rattleThrow', 'lure', 'crunch', 'gold', 'combo', 'zoneClear', 'medal', 'nearMiss', 'pushup', 'flutter', 'tumble', 'sentry',
-  'nestRegrow', 'denied',
+  'nestRegrow', 'denied', 'storm', 'splash', 'logLift', 'logLodge', 'tunnel', 'spiderOut', 'spiderIn', 'hiss', 'coati',
 ];
 const ZONES = ['morning', 'noon', 'canyon', 'thicket', 'dusk', 'sunset'];
 const MUSIC = [...ZONES, 'morning, hunted', 'morning, ghost', 'morning, chili', 'canyon, hunted, chili', 'tour of every area'];

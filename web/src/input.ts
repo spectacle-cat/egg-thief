@@ -52,16 +52,19 @@ interface Finger {
 }
 const touchy = (e: PointerEvent) => e.pointerType === 'touch' || e.pointerType === 'pen';
 /** Things on the page that have their own idea of what a tap means. */
-const TAPPABLE = '[data-touch], [data-a], .btn, .card, .medal, a, button';
+const TAPPABLE = '[data-touch], [data-a], .btn, .pcard, .medal, a, button';
+/** Parts of a screen a finger may slide sideways (the row of level cards): the browser scrolls those itself. */
+const SCROLLS = '[data-scroll]';
 
 export class Input {
   moveX = 0;
   moveZ = 0;
   /** Buttons that went down this frame. */
-  dash = false; confirm = false; back = false; pause = false; camNext = false; restart = false; mute = false; any = false;
+  dash = false; confirm = false; back = false; pause = false; restart = false; mute = false; any = false;
+  /** On a menu: one step left or right (-1, 1) and up or down, on the frame an arrow, the d-pad or the stick is pushed that way. */
+  navX = 0; navY = 0;
   /** Use the power egg. */
   power = false;
-  camPick = 0;
   zoom = 0;
   /** Swing the low camera round by hand: -1 left .. 1 right. */
   turn = 0;
@@ -85,6 +88,8 @@ export class Input {
   private keys = new Set<string>();
   private pressed = new Set<string>();
   private padWas: boolean[] = [];
+  /** Which way the pad's stick or d-pad was pushed last frame, for the menus: a push is one step, however long it is held. */
+  private padNavX = 0; private padNavY = 0;
   /** The pad in use: with two plugged in, whichever was touched last. */
   private padIndex = -1;
   private wheel = 0;
@@ -134,11 +139,11 @@ export class Input {
     // on a paper button is let through, or the browser would not turn it into a click.)
     const inGame = (t: EventTarget | null) => t instanceof Element && (t.tagName === 'CANVAS' || !!t.closest('[data-touch]'));
     document.addEventListener('touchstart', (e) => { if (inGame(e.target) && e.cancelable) e.preventDefault(); }, { passive: false });
-    document.addEventListener('touchmove', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+    document.addEventListener('touchmove', (e) => { if (e.cancelable && !(e.target instanceof Element && e.target.closest(SCROLLS))) e.preventDefault(); }, { passive: false });
     for (const type of ['gesturestart', 'gesturechange', 'dblclick']) document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
     // A pad wakes up (the browser shows it on its first button press): the hints change to its buttons straight away.
     window.addEventListener('gamepadconnected', (e) => { if (playable(e.gamepad)) { this.padIndex = e.gamepad.index; this.usingPad = true; this.usingTouch = false; } });
-    window.addEventListener('gamepaddisconnected', (e) => { if (e.gamepad.index === this.padIndex) { this.padIndex = -1; this.padWas = []; this.usingPad = false; } });
+    window.addEventListener('gamepaddisconnected', (e) => { if (e.gamepad.index === this.padIndex) { this.padIndex = -1; this.padWas = []; this.padNavX = this.padNavY = 0; this.usingPad = false; } });
   }
 
   /** How far the thumb pushes the stick to run flat out, in page pixels: a comfortable roll of the thumb on a phone, no bigger on a tablet. */
@@ -202,15 +207,15 @@ export class Input {
     this.confirm = p.has('Enter') || p.has('Space');
     this.back = p.has('Escape');
     this.pause = p.has('Escape') || p.has('KeyP') || p.has('Touch:pause');
-    this.camNext = p.has('KeyC');
     this.power = p.has('KeyE') || p.has('KeyF') || p.has('PointerRight') || p.has('Touch:power');
     this.tap = p.has('Tap');
     this.look = this.lookSum; this.lookSum = 0;
     this.turn = (this.keys.has('KeyX') || this.keys.has('Period') ? 1 : 0) - (this.keys.has('KeyZ') || this.keys.has('Comma') ? 1 : 0);
     this.restart = p.has('KeyR');
     this.mute = p.has('KeyM');
-    this.camPick = p.has('Digit1') ? 1 : p.has('Digit2') ? 2 : p.has('Digit3') ? 3 : 0;
     this.zoom = this.wheel + (p.has('BracketRight') ? -1 : 0) + (p.has('BracketLeft') ? 1 : 0);
+    this.navX = (p.has('ArrowRight') || p.has('KeyD') ? 1 : 0) - (p.has('ArrowLeft') || p.has('KeyA') ? 1 : 0);
+    this.navY = (p.has('ArrowDown') || p.has('KeyS') ? 1 : 0) - (p.has('ArrowUp') || p.has('KeyW') ? 1 : 0);
     this.any = p.size > 0;
     this.wheel = 0;
 
@@ -250,6 +255,11 @@ export class Input {
       }
       if (ax || az) { px = ax; pz = az; }
       if (px || pz) { x = px; z = pz; this.usingPad = true; this.usingTouch = false; }
+      // For the menus: a push past half way is one step, and the stick must come back before it can be another.
+      const nx = px > 0.55 ? 1 : px < -0.55 ? -1 : 0, nz = pz > 0.55 ? 1 : pz < -0.55 ? -1 : 0;
+      if (nx && nx !== this.padNavX) this.navX = nx;
+      if (nz && nz !== this.padNavY) this.navY = nz;
+      this.padNavX = nx; this.padNavY = nz;
       if (hit(L.cross) || hit(L.square) || hit(L.r2)) this.dash = true;
       if (down(L.cross) || down(L.square) || down(L.r2)) this.dashHeld = true;
       if (hit(L.triangle) || hit(L.circle) || hit(L.r1) || hit(L.l2)) this.power = true;
@@ -258,7 +268,6 @@ export class Input {
       if (hit(L.cross)) this.confirm = true;
       if (hit(L.circle)) this.back = true;
       if (hit(L.start) || hit(L.touch)) this.pause = true;
-      if (hit(L.select) || hit(L.l3) || hit(L.r3)) this.camNext = true;
       if (hit(L.l1)) this.restart = true; // only means anything on the pause card
       for (let i = 0; i < pad.buttons.length; i++) { if (hit(i)) { this.any = true; this.usingPad = true; this.usingTouch = false; } this.padWas[i] = down(i); }
     }

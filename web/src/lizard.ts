@@ -103,7 +103,7 @@ class Ribbon {
   }
 }
 
-export interface LizardEvents { dashed: boolean; stepped: boolean; enteredCover: boolean; leftCover: boolean; bumped: boolean }
+export interface LizardEvents { dashed: boolean; stepped: boolean; enteredCover: boolean; leftCover: boolean; bumped: boolean; /** In open water with no dash left to carry it. */ swamped: boolean; /** Over a gap in the canopy, likewise. */ fell: boolean }
 
 export class Lizard {
   pos: V2 = { x: 0, z: 0 };
@@ -125,6 +125,10 @@ export class Lizard {
   dashCd = 0;
   /** Set by the game to stop it (cut-scenes, the way out). */
   frozen = false;
+  /** Inside a hollow log: nothing can see it. */
+  inside = false;
+  /** A moment after a dash ends in which it still skims water (so a dash that just makes the far bank does). */
+  private skim = 0;
   /** Death tumble: turns and shrinks. */
   tumble = 0;
   scale = 1;
@@ -150,9 +154,11 @@ export class Lizard {
   fire = 0;
   /** How much faster than usual it runs (a Chili Egg). */
   speedMul = 1;
+  /** Where the player is pushing right now (length up to 1; nothing while it is held still). */
+  readonly push: V2 = { x: 0, z: 0 };
   /** Push-ups and sunbathing when left alone (set by the game: 0 none, else how high it is lifted). */
   lift = 0;
-  readonly events: LizardEvents = { dashed: false, stepped: false, enteredCover: false, leftCover: false, bumped: false };
+  readonly events: LizardEvents = { dashed: false, stepped: false, enteredCover: false, leftCover: false, bumped: false, swamped: false, fell: false };
 
   constructor(parent: THREE.Object3D, tex: THREE.Texture) {
     this.mat = ribbonMaterial(tex);
@@ -176,7 +182,7 @@ export class Lizard {
   get dashing() { return this.dashT > 0; }
   get dashReady() { return this.dashCd <= 0; }
   /** Can a hunter see it? */
-  get exposed() { return this.alive && !this.hidden && !this.frozen && this.ghost < 0.5; }
+  get exposed() { return this.alive && !this.hidden && !this.frozen && !this.inside && this.ghost < 0.5; }
   /** How long it has been standing still. */
   get idleTime() { return this.idle; }
   get physicalLength() { return LENGTH * (BODY + (1 - BODY) * this.tailLen); }
@@ -201,7 +207,7 @@ export class Lizard {
   /** moveX/moveZ: where the player is pushing, already turned to the world (length up to 1). */
   update(dt: number, moveX: number, moveZ: number, wantDash: boolean, level: Level) {
     const ev = this.events;
-    ev.dashed = ev.stepped = ev.enteredCover = ev.leftCover = ev.bumped = false;
+    ev.dashed = ev.stepped = ev.enteredCover = ev.leftCover = ev.bumped = ev.swamped = ev.fell = false;
     this.invuln = Math.max(0, this.invuln - dt);
     this.boost = Math.max(0, this.boost - dt);
     this.dashCd = Math.max(0, this.dashCd - dt);
@@ -226,6 +232,7 @@ export class Lizard {
 
     let mag = Math.hypot(moveX, moveZ);
     if (this.frozen) { moveX = moveZ = 0; mag = 0; wantDash = false; }
+    this.push.x = moveX; this.push.z = moveZ;
     if (wantDash && this.dashCd <= 0) {
       const dx = mag > 0.2 ? moveX / mag : dirX(this.heading), dz = mag > 0.2 ? moveZ / mag : dirZ(this.heading);
       this.dashX = dx; this.dashZ = dz;
@@ -244,7 +251,16 @@ export class Lizard {
     }
 
     const bx = this.pos.x, bz = this.pos.z;
-    ev.bumped = level.moveCircle(this.pos, this.vel.x * dt, this.vel.z * dt, RADIUS);
+    this.skim = this.dashT > 0 ? 0.09 : Math.max(0, this.skim - dt);
+    if (this.skim <= 0 && level.inWater(this.pos.x, this.pos.z)) {
+      // Nothing under its feet: it goes nowhere until the game has washed it ashore.
+      ev.swamped = true;
+      this.vel.x = this.vel.z = 0;
+    } else if (this.skim <= 0 && level.overGap(this.pos.x, this.pos.z)) {
+      // Nothing under its feet up here either: the game takes it down to the floor below.
+      ev.fell = true;
+      this.vel.x = this.vel.z = 0;
+    } else ev.bumped = level.moveCircle(this.pos, this.vel.x * dt, this.vel.z * dt, RADIUS, this.skim > 0 ? 'skim' : 'lizard');
     const mx = this.pos.x - bx, mz = this.pos.z - bz;
     const moved = Math.hypot(mx, mz);
     this.speed = dt > 0 ? moved / dt : 0;
@@ -265,8 +281,9 @@ export class Lizard {
     }
 
     const was = this.hidden;
-    this.hidden = level.coverAt(this.pos.x, this.pos.z);
-    if (this.hidden) {
+    this.hidden = this.inside || level.coverAt(this.pos.x, this.pos.z);
+    if (this.inside) this.coverC = this.coverR = -1;
+    else if (this.hidden) {
       // Which tuft: the nearest one's tile.
       let best = 9;
       const c0 = Math.floor(this.pos.x), r0 = Math.floor(this.pos.z);
